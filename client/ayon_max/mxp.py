@@ -56,13 +56,6 @@ def default_mxp_template():
         'Sounds=./',
         '[XReferenceDirs]',
         'Dir1=./',
-        '[BitmapDirs]',
-        'Dir1=C:/Program Files/Autodesk/3ds Max 2023/Maps',
-        'Dir2=C:/Program Files/Autodesk/3ds Max 2023/Maps/glare',
-        'Dir3=C:/Program Files/Autodesk/3ds Max 2023/Maps/adskMtl',
-        'Dir4=C:/Program Files/Autodesk/3ds Max 2023/Maps/Noise',
-        'Dir5=C:/Program Files/Autodesk/3ds Max 2023/Maps/mental_mill',
-        'Dir6=C:/Program Files/Autodesk/3ds Max 2023/Maps/fx',
-        'Dir7=C:/Program Files/Autodesk/3ds Max 2023/Maps/Particle Flow Presets',
+        ''
     ))
     return mxp_template
