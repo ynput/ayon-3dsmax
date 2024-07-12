@@ -1,5 +1,6 @@
 from ayon_applications import PreLaunchHook, LaunchTypes
 from ayon_max.mxp import create_workspace_mxp
+from ayon_core.settings import get_project_settings
 
 
 class PreCopyMxp(PreLaunchHook):
@@ -12,9 +13,20 @@ class PreCopyMxp(PreLaunchHook):
 
     def execute(self):
         project_entity = self.data["project_entity"]
+        project_settings = get_project_settings(project_entity.get("name"))
+        if not project_settings:
+            return
+        mxp_workspace = project_settings["max"].get("mxp_workspace")
+        # Ensure the hook would not cause possible error
+        # when using the old addon.
+        if mxp_workspace is None:
+            self.log.warning("No mxp workspace setting found in the "
+                             "latest Max Addon.")
+            return
+
         workdir = self.launch_context.env.get("AYON_WORKDIR")
         if not workdir:
             self.log.warning("BUG: Workdir is not filled.")
             return
 
-        create_workspace_mxp(workdir, project_entity["name"])
+        create_workspace_mxp(workdir, mxp_workspace=mxp_workspace)
