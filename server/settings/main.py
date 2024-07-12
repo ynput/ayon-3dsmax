@@ -94,8 +94,7 @@ DEFAULT_MXP_WORKSPACE_SETTINGS = "\n".join((
     'Scenes=./',
     'Sounds=./sceneassets/sounds',
     '[XReferenceDirs]',
-    'Dir1=./',
-    '',
+    'Dir1=./'
 ))
 
 

@@ -15,8 +15,10 @@ from ayon_core.pipeline import (
     register_loader_plugin_path,
     AVALON_CONTAINER_ID,
     AYON_CONTAINER_ID,
+    get_current_project_name
 )
 from ayon_max.api.menu import AYONMenu
+from ayon_core.settings import get_project_settings
 from ayon_max.api import lib
 from ayon_max.api.plugin import MS_CUSTOM_ATTRIB
 from ayon_max import MAX_HOST_DIR
@@ -211,6 +213,11 @@ def containerise(name: str, nodes: list, context,
 
 
 def _set_project():
+    project_name = get_current_project_name()
+    project_settings = get_project_settings(project_name)
+    enable_project_creation = project_settings["max"].get("enabled_project_creation")
+    if not enable_project_creation:
+        log.debug("Project creation disabled. Skipping project creation.")
     workdir = os.getenv("AYON_WORKDIR")
 
     os.makedirs(workdir, exist_ok=True)
@@ -220,7 +227,8 @@ def _set_project():
         directory_count = rt.pathConfig.getProjectSubDirectoryCount()
         for count in range(directory_count):
             proj_dir = rt.pathConfig.getProjectSubDirectory(count)
-            os.makedirs(proj_dir, exist_ok=True)
+            if proj_dir:
+                os.makedirs(proj_dir, exist_ok=True)
         rt.pathConfig.doProjectSetupStepsUsingDirectory(workdir)
     rt.pathConfig.setCurrentProjectFolder(workdir)
 

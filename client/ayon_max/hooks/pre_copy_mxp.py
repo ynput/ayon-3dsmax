@@ -1,6 +1,5 @@
 from ayon_applications import PreLaunchHook, LaunchTypes
 from ayon_max.mxp import create_workspace_mxp
-from ayon_core.settings import get_project_settings
 
 
 class PreCopyMxp(PreLaunchHook):
@@ -12,11 +11,13 @@ class PreCopyMxp(PreLaunchHook):
     launch_types = {LaunchTypes.local}
 
     def execute(self):
-        project_entity = self.data["project_entity"]
-        project_settings = get_project_settings(project_entity.get("name"))
-        if not project_settings:
+        max_setting = self.data["project_settings"]["max"]
+        enabled_project_creation = max_setting.get("enabled_project_creation")
+        if not enabled_project_creation:
+            self.log.warning("3dsmax project creation is not enabled. "
+                             "Skipping creating workspace.mxp to workdir.")
             return
-        mxp_workspace = project_settings["max"].get("mxp_workspace")
+        mxp_workspace = max_setting.get("mxp_workspace")
         # Ensure the hook would not cause possible error
         # when using the old addon.
         if mxp_workspace is None:
