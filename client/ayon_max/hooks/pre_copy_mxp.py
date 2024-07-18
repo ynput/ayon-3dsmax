@@ -21,8 +21,8 @@ class PreCopyMxp(PreLaunchHook):
             return
         enabled_project_creation = mxp_workspace.get("enabled_project_creation")
         if not enabled_project_creation:
-            self.log.warning("3dsmax project creation is disabled. "
-                             "Skipping creating workspace.mxp to workdir.")
+            self.log.debug("3dsmax project creation is not enabled. "
+                           "Skipping creating workspace.mxp to workdir.")
             return
         workdir = self.launch_context.env.get("AYON_WORKDIR")
         if not workdir:
