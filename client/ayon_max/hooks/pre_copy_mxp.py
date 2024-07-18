@@ -12,11 +12,6 @@ class PreCopyMxp(PreLaunchHook):
 
     def execute(self):
         max_setting = self.data["project_settings"]["max"]
-        enabled_project_creation = max_setting.get("enabled_project_creation")
-        if not enabled_project_creation:
-            self.log.warning("3dsmax project creation is not enabled. "
-                             "Skipping creating workspace.mxp to workdir.")
-            return
         mxp_workspace = max_setting.get("mxp_workspace")
         # Ensure the hook would not cause possible error
         # when using the old addon.
@@ -24,7 +19,11 @@ class PreCopyMxp(PreLaunchHook):
             self.log.warning("No mxp workspace setting found in the "
                              "latest Max Addon.")
             return
-
+        enabled_project_creation = max_setting["mxp_workspace"].get("enabled_project_creation")
+        if not enabled_project_creation:
+            self.log.warning("3dsmax project creation is not enabled. "
+                             "Skipping creating workspace.mxp to workdir.")
+            return
         workdir = self.launch_context.env.get("AYON_WORKDIR")
         if not workdir:
             self.log.warning("BUG: Workdir is not filled.")

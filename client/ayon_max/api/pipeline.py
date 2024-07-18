@@ -229,7 +229,7 @@ def _set_project():
             proj_dir = rt.pathConfig.getProjectSubDirectory(count)
             if proj_dir:
                 os.makedirs(proj_dir, exist_ok=True)
-        rt.pathConfig.doProjectSetupStepsUsingDirectory(workdir)
+        #rt.pathConfig.doProjectSetupStepsUsingDirectory(workdir)
     rt.pathConfig.setCurrentProjectFolder(workdir)
 
 
