@@ -9,7 +9,11 @@ def create_workspace_mxp(workdir, mxp_workspace=None):
 
     log = Logger.get_logger("create_workspace_mxp")
     max_script = default_mxp_template()
-    if mxp_workspace and mxp_workspace.get("enabled_project_creation"):
+    if mxp_workspace:
+        if not mxp_workspace.get("enabled_project_creation"):
+            log.debug("3dsmax project creation is disabled.")
+            return
+
         max_script = mxp_workspace.get("mxp_workspace_script")
         # Skip if mxp script in settings is empty
         if not max_script:
