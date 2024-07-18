@@ -19,9 +19,9 @@ class PreCopyMxp(PreLaunchHook):
             self.log.warning("No mxp workspace setting found in the "
                              "latest Max Addon.")
             return
-        enabled_project_creation = max_setting["mxp_workspace"].get("enabled_project_creation")
+        enabled_project_creation = mxp_workspace.get("enabled_project_creation")
         if not enabled_project_creation:
-            self.log.warning("3dsmax project creation is not enabled. "
+            self.log.warning("3dsmax project creation is disabled. "
                              "Skipping creating workspace.mxp to workdir.")
             return
         workdir = self.launch_context.env.get("AYON_WORKDIR")
