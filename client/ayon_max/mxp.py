@@ -8,7 +8,6 @@ def create_workspace_mxp(workdir, mxp_workspace=None):
         return
 
     log = Logger.get_logger("create_workspace_mxp")
-    os.makedirs(workdir, exist_ok=True)
     max_script = default_mxp_template()
     if mxp_workspace and mxp_workspace.get("enabled_project_creation"):
         max_script = mxp_workspace.get("mxp_workspace_script")
@@ -17,6 +16,7 @@ def create_workspace_mxp(workdir, mxp_workspace=None):
             log.debug("File 'workspace.mxp' not created. Settings value is empty.")
             return
 
+    os.makedirs(workdir, exist_ok=True)
     with open(dst_filepath, "w") as mxp_file:
         mxp_file.write(max_script)
 
