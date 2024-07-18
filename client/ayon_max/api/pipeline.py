@@ -51,7 +51,6 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         register_loader_plugin_path(LOAD_PATH)
         register_creator_plugin_path(CREATE_PATH)
 
-        # self._register_callbacks()
         _set_project()
 
         self.menu = AYONMenu()
