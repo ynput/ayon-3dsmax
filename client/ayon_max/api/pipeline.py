@@ -217,6 +217,7 @@ def _set_project():
     enable_project_creation = project_settings["max"].get("enabled_project_creation")
     if not enable_project_creation:
         log.debug("Project creation disabled. Skipping project creation.")
+        return
     workdir = os.getenv("AYON_WORKDIR")
 
     os.makedirs(workdir, exist_ok=True)
