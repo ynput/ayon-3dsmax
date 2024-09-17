@@ -55,6 +55,9 @@ filename = "{filename}"
 new_filepath = "{new_filepath}"
 new_output = "{new_output}"
 camera = "{camera}"
+target_cam = next((c for c in rt.Objects if rt.Classof(c) in rt.Camera.classes and c.name == camera), None)
+if target_cam:
+    rt.viewport.setCamera(target_cam)
 rt.rendOutputFilename = new_output
 directory = os.path.dirname(rt.rendOutputFilename)
 directory = os.path.join(directory, filename)
