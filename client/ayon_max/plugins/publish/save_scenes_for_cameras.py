@@ -59,6 +59,7 @@ target_camera_node = rt.getNodeByName(camera)
 rt.viewport.setCamera(target_camera_node)
 rt.rendOutputFilename = new_output
 directory = os.path.dirname(rt.rendOutputFilename)
+os.makedirs(directory, exist_ok=True)
 directory = os.path.join(directory, filename)
 render_elem = rt.maxOps.GetCurRenderElementMgr()
 render_elem_num = render_elem.NumRenderElements()
@@ -76,7 +77,6 @@ rt.saveMaxFile(new_filepath)
                     camera=camera,
                     ext=fmt)
             scripts.append(script)
-
         maxbatch_exe = os.path.join(
             os.path.dirname(sys.executable), "3dsmaxbatch")
         maxbatch_exe = maxbatch_exe.replace("\\", "/")
@@ -105,3 +105,4 @@ rt.saveMaxFile(new_filepath)
                 self.log.error("Camera scene files not existed yet!")
                 raise RuntimeError("MaxBatch.exe doesn't run as expected")
             self.log.debug(f"Found Camera scene:{camera_scene}")
+        self.log.debug(scripts)
