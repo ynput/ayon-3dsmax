@@ -76,6 +76,7 @@ rt.saveMaxFile(new_filepath)
                     new_output=new_output,
                     camera=camera,
                     ext=fmt)
+            self.log.log(script)
             scripts.append(script)
         maxbatch_exe = os.path.join(
             os.path.dirname(sys.executable), "3dsmaxbatch")
@@ -92,17 +93,13 @@ rt.saveMaxFile(new_filepath)
                 for script in scripts:
                     tmp.write(script + "\n")
 
-            try:
-                current_filepath = current_filepath.replace("\\", "/")
-                tmp_script_path = tmp_script_path.replace("\\", "/")
-                run_subprocess([maxbatch_exe, tmp_script_path,
-                                "-sceneFile", current_filepath])
-            except RuntimeError:
-                self.log.debug("Checking the scene files existing")
+            current_filepath = current_filepath.replace("\\", "/")
+            tmp_script_path = tmp_script_path.replace("\\", "/")
+            run_subprocess([maxbatch_exe, tmp_script_path,
+                            "-sceneFile", current_filepath])
 
         for camera_scene in camera_scene_files:
             if not os.path.exists(camera_scene):
                 self.log.error("Camera scene files not existed yet!")
                 raise RuntimeError("MaxBatch.exe doesn't run as expected")
             self.log.debug(f"Found Camera scene:{camera_scene}")
-        self.log.debug(scripts)
