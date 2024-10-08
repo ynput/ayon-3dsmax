@@ -281,6 +281,12 @@ def reset_frame_range(fps: bool = True):
     set_render_frame_range(
         frame_range["frameStartHandle"], frame_range["frameEndHandle"])
 
+    project_name = get_current_project_name()
+    settings = get_project_settings(project_name).get("max")
+    auto_key_default_key_time = settings.get(
+        "auto_key_default", {}).get("defualt_key_time")
+    rt.maxOps.autoKeyDefaultKeyTime = auto_key_default_key_time
+
 
 def get_fps_for_current_context():
     """Get fps that should be set for current context.
