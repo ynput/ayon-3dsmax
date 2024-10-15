@@ -1,6 +1,6 @@
 name = "max"
 title = "Max"
-version = "0.2.4"
+version = "0.2.4+dev"
 client_dir = "ayon_max"
 
 ayon_required_addons = {
