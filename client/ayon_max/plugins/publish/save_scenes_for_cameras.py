@@ -59,8 +59,9 @@ target_camera_node = rt.getNodeByName(camera)
 rt.viewport.setCamera(target_camera_node)
 rt.rendOutputFilename = new_output
 directory = os.path.dirname(rt.rendOutputFilename)
-os.makedirs(directory, exist_ok=True)
 directory = os.path.join(directory, filename)
+if not os.path.exists(directory):
+    os.mkdir(directory)
 render_elem = rt.maxOps.GetCurRenderElementMgr()
 render_elem_num = render_elem.NumRenderElements()
 if render_elem_num > 0:
@@ -76,7 +77,6 @@ rt.saveMaxFile(new_filepath)
                     new_output=new_output,
                     camera=camera,
                     ext=fmt)
-            self.log.log(script)
             scripts.append(script)
         maxbatch_exe = os.path.join(
             os.path.dirname(sys.executable), "3dsmaxbatch")
