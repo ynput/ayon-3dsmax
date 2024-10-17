@@ -93,16 +93,18 @@ rt.saveMaxFile(new_filepath)
                 for script in scripts:
                     tmp.write(script + "\n")
 
-            current_filepath = current_filepath.replace("\\", "/")
-            tmp_script_path = tmp_script_path.replace("\\", "/")
             full_script = "\n".join(scripts)
             self.log.debug(f"Failed running script {tmp_script_path}:\n{full_script}")
+            current_filepath = current_filepath.replace("\\", "/")
+            tmp_script_path = tmp_script_path.replace("\\", "/")
             run_subprocess([maxbatch_exe, tmp_script_path,
                             "-sceneFile", current_filepath],
                             logger=self.log)
 
         for camera_scene in camera_scene_files:
             if not os.path.exists(camera_scene):
+                full_script = "\n".join(scripts)
+                self.log.debug(f"Failed running script {tmp_script_path}:\n{full_script}")
                 self.log.error("Camera scene files not existed yet!")
                 raise RuntimeError("MaxBatch.exe doesn't run as expected")
             self.log.debug(f"Found Camera scene:{camera_scene}")
