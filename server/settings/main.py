@@ -38,6 +38,11 @@ class UnitScaleSettings(BaseSettingsModel):
     )
 
 
+class AutoKeyValueSettings(BaseSettingsModel):
+    defualt_key_time: int = SettingsField(
+        0, title="Auto Key Default Frame")
+
+
 class PRTAttributesModel(BaseSettingsModel):
     _layout = "compact"
     name: str = SettingsField(title="Name")
@@ -53,6 +58,10 @@ class MaxSettings(BaseSettingsModel):
     unit_scale_settings: UnitScaleSettings = SettingsField(
         default_factory=UnitScaleSettings,
         title="Set Unit Scale"
+    )
+    auto_key_default: AutoKeyValueSettings = SettingsField(
+        default_factory=AutoKeyValueSettings,
+        title="Auto Key Default Value"
     )
     mxp_workspace: MxpWorkspaceSettings = SettingsField(
         default_factory=MxpWorkspaceSettings,
@@ -106,6 +115,9 @@ DEFAULT_VALUES = {
     "mxp_workspace": {
         "enabled_project_creation": False,
         "mxp_workspace_script": DEFAULT_MXP_WORKSPACE_SETTINGS
+    },
+    "auto_key_default":{
+        "defualt_key_time": 0
     },
     "RenderSettings": DEFAULT_RENDER_SETTINGS,
     "CreateReview": DEFAULT_CREATE_REVIEW_SETTINGS,
