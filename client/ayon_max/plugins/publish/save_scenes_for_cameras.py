@@ -1,5 +1,6 @@
 import pyblish.api
 import os
+import sys
 import platform
 import tempfile
 
