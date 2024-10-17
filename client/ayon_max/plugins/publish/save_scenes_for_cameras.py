@@ -1,7 +1,8 @@
 import pyblish.api
 import os
-import sys
+import platform
 import tempfile
+
 
 from pymxs import runtime as rt
 from ayon_core.lib import run_subprocess
@@ -26,7 +27,6 @@ class SaveScenesForCamera(pyblish.api.InstancePlugin):
                 "Multi Camera disabled. "
                 "Skipping to save scene files for cameras")
             return
-        self.log.debug(f"system platform:{sys.platform}")
         current_folder = rt.maxFilePath
         current_filename = rt.maxFileName
         current_filepath = os.path.join(current_folder, current_filename)
@@ -82,9 +82,8 @@ rt.saveMaxFile(new_filepath)
         maxbatch_exe = os.path.join(
             os.path.dirname(sys.executable), "3dsmaxbatch")
         maxbatch_exe = maxbatch_exe.replace("\\", "/")
-        if sys.platform == "windows":
-            maxbatch_exe = os.path.join(
-                os.path.dirname(sys.executable), "3dsmaxbatch.exe")
+        if platform.system().lower() == "windows":
+            maxbatch_exe += ".exe"
             maxbatch_exe = os.path.normpath(maxbatch_exe)
         with tempfile.TemporaryDirectory() as tmp_dir_name:
             tmp_script_path = os.path.join(
