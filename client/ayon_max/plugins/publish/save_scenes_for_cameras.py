@@ -95,8 +95,11 @@ rt.saveMaxFile(new_filepath)
 
             current_filepath = current_filepath.replace("\\", "/")
             tmp_script_path = tmp_script_path.replace("\\", "/")
+            full_script = "\n".join(scripts)
+            self.log.debug(f"Failed running script {tmp_script_path}:\n{full_script}")
             run_subprocess([maxbatch_exe, tmp_script_path,
-                            "-sceneFile", current_filepath])
+                            "-sceneFile", current_filepath],
+                            logger=self.log)
 
         for camera_scene in camera_scene_files:
             if not os.path.exists(camera_scene):
