@@ -40,6 +40,7 @@ class RenderProducts(object):
     def get_multiple_beauty(self, outputs, cameras):
         beauty_output_frames = dict()
         for output, camera in zip(outputs, cameras):
+            camera = camera.replace(":", "_")
             filename, ext = os.path.splitext(output)
             filename = filename.replace(".", "")
             ext = ext.replace(".", "")
@@ -59,6 +60,7 @@ class RenderProducts(object):
         renderer = str(renderer_class).split(":")[0]
         aovs_frames = {}
         for output, camera in zip(outputs, cameras):
+            camera = camera.replace(":", "_")
             filename, ext = os.path.splitext(output)
             filename = filename.replace(".", "")
             ext = ext.replace(".", "")

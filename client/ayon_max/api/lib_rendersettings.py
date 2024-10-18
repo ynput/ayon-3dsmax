@@ -181,6 +181,7 @@ class RenderSettings(object):
         for i in range(render_elem_num):
             renderlayer_name = render_elem.GetRenderElement(i)
             target, renderpass = str(renderlayer_name).split(":")
+            camera = camera.replace(":", "_")
             aov_name = f"{output}_{camera}_{renderpass}..{img_fmt}"
             render_element_list.append(aov_name)
         return render_element_list
@@ -222,6 +223,7 @@ class RenderSettings(object):
                 renderlayer = rt.batchRenderMgr.GetView(layer_no)
             # use camera name as renderlayer name
             renderlayer.name = cam
+            cam = cam.replace(":", "_")
             renderlayer.outputFilename = f"{output}_{cam}..{img_fmt}"
             outputs.append(renderlayer.outputFilename)
         return outputs
