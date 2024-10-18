@@ -3,7 +3,7 @@ import re
 import copy
 from ayon_core.lib import BoolDef
 from ayon_core.pipeline.publish import AYONPyblishPluginMixin
-from ayon_core.hosts.max.api.lib import get_tyflow_export_operators
+from ayon_max.api.lib import get_tyflow_export_operators
 from pymxs import runtime as rt
 
 
