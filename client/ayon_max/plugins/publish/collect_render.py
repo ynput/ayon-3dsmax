@@ -67,7 +67,6 @@ class CollectRender(pyblish.api.InstancePlugin):
             instance.data["files"] = list()
             instance.data["expectedFiles"].append(files_by_aov)
             instance.data["files"].append(files_by_aov)
-
         img_format = RenderProducts().image_format()
         # OCIO config not support in
         # most of the 3dsmax renderers

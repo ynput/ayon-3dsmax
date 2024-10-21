@@ -1,7 +1,9 @@
 import pyblish.api
 import os
 import sys
+import platform
 import tempfile
+
 
 from pymxs import runtime as rt
 from ayon_core.lib import run_subprocess
@@ -41,7 +43,8 @@ class SaveScenesForCamera(pyblish.api.InstancePlugin):
         for camera in cameras:
             new_output = RenderSettings().get_batch_render_output(camera)       # noqa
             new_output = new_output.replace("\\", "/")
-            new_filename = f"{filename}_{camera}{ext}"
+            camera_name = camera.replace(":", "_")
+            new_filename = f"{filename}_{camera_name}{ext}"
             new_filepath = os.path.join(new_folder, new_filename)
             new_filepath = new_filepath.replace("\\", "/")
             camera_scene_files.append(new_filepath)
@@ -55,9 +58,14 @@ filename = "{filename}"
 new_filepath = "{new_filepath}"
 new_output = "{new_output}"
 camera = "{camera}"
+camera_name = camera.replace(":", "_")
+target_camera_node = rt.getNodeByName(camera)
+rt.viewport.setCamera(target_camera_node)
 rt.rendOutputFilename = new_output
 directory = os.path.dirname(rt.rendOutputFilename)
 directory = os.path.join(directory, filename)
+if not os.path.exists(directory):
+    os.mkdir(directory)
 render_elem = rt.maxOps.GetCurRenderElementMgr()
 render_elem_num = render_elem.NumRenderElements()
 if render_elem_num > 0:
@@ -65,7 +73,7 @@ if render_elem_num > 0:
     for i in range(render_elem_num):
         renderlayer_name = render_elem.GetRenderElement(i)
         target, renderpass = str(renderlayer_name).split(":")
-        aov_name =  f"{{directory}}_{camera}_{{renderpass}}..{ext}"
+        aov_name =  f"{{directory}}_{{camera_name}}_{{renderpass}}..{ext}"
         render_elem.SetRenderElementFileName(i, aov_name)
 rt.saveMaxFile(new_filepath)
         """).format(filename=instance.name,
@@ -74,11 +82,10 @@ rt.saveMaxFile(new_filepath)
                     camera=camera,
                     ext=fmt)
             scripts.append(script)
-
         maxbatch_exe = os.path.join(
             os.path.dirname(sys.executable), "3dsmaxbatch")
         maxbatch_exe = maxbatch_exe.replace("\\", "/")
-        if sys.platform == "windows":
+        if platform.system().lower() == "windows":
             maxbatch_exe += ".exe"
             maxbatch_exe = os.path.normpath(maxbatch_exe)
         with tempfile.TemporaryDirectory() as tmp_dir_name:
@@ -90,16 +97,18 @@ rt.saveMaxFile(new_filepath)
                 for script in scripts:
                     tmp.write(script + "\n")
 
-            try:
-                current_filepath = current_filepath.replace("\\", "/")
-                tmp_script_path = tmp_script_path.replace("\\", "/")
-                run_subprocess([maxbatch_exe, tmp_script_path,
-                                "-sceneFile", current_filepath])
-            except RuntimeError:
-                self.log.debug("Checking the scene files existing")
+            full_script = "\n".join(scripts)
+            self.log.debug(f"Failed running script {tmp_script_path}:\n{full_script}")
+            current_filepath = current_filepath.replace("\\", "/")
+            tmp_script_path = tmp_script_path.replace("\\", "/")
+            run_subprocess([maxbatch_exe, tmp_script_path,
+                            "-sceneFile", current_filepath],
+                            logger=self.log)
 
         for camera_scene in camera_scene_files:
             if not os.path.exists(camera_scene):
+                full_script = "\n".join(scripts)
+                self.log.debug(f"Failed running script {tmp_script_path}:\n{full_script}")
                 self.log.error("Camera scene files not existed yet!")
                 raise RuntimeError("MaxBatch.exe doesn't run as expected")
             self.log.debug(f"Found Camera scene:{camera_scene}")
