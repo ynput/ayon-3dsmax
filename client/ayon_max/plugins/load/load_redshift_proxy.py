@@ -66,7 +66,8 @@ class RedshiftProxyLoader(load.LoaderPlugin):
             proxy.file = path
 
         lib.imprint(container["instance_node"], {
-            "representation": repre_entity["id"]
+            "representation": repre_entity["id"],
+            "project_name": context["project"]["name"]
         })
 
     def switch(self, container, context):

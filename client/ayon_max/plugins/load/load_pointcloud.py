@@ -55,8 +55,10 @@ class PointCloudLoader(load.LoaderPlugin):
             rt.Select(node_list)
             for prt in rt.Selection:
                 prt.filename = path
+
         lib.imprint(container["instance_node"], {
-            "representation": repre_entity["id"]
+            "representation": repre_entity["id"],
+            "project_name": context["project"]["name"]
         })
 
     def switch(self, container, context):

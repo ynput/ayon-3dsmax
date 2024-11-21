@@ -107,8 +107,9 @@ class ModelUSDLoader(load.LoaderPlugin):
         with maintained_selection():
             rt.Select(node)
 
-        lib.imprint(node_name, {
-            "representation": repre_entity["id"]
+        lib.imprint(container["instance_node"], {
+            "representation": repre_entity["id"],
+            "project_name": context["project"]["name"]
         })
 
     def switch(self, container, context):

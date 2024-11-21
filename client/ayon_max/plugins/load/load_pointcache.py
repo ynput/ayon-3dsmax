@@ -98,10 +98,11 @@ class AbcLoader(load.LoaderPlugin):
                     rt.Select(abc_con.Children)
                     for abc_obj in abc_con.Children:
                         abc_obj.source = path
-        lib.imprint(
-            container["instance_node"],
-            {"representation": repre_entity["id"]},
-        )
+
+        lib.imprint(container["instance_node"], {
+            "representation": repre_entity["id"],
+            "project_name": context["project"]["name"]
+        })
 
     def switch(self, container, context):
         self.update(container, context)

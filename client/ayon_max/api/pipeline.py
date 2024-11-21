@@ -202,6 +202,7 @@ def containerise(name: str, nodes: list, context,
         "namespace": namespace or "",
         "loader": loader,
         "representation": context["representation"]["id"],
+        "project_name": context["project"]["name"]
     }
     container_name = f"{namespace}:{name}{suffix}"
     container = rt.container(name=container_name)

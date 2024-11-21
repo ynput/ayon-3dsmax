@@ -97,10 +97,10 @@ class OxAbcLoader(load.LoaderPlugin):
                 abc.pos = transform_data[ox_transform] or 0
                 abc.scale = transform_data[f"{abc}.scale"] or 0
         update_custom_attribute_data(node, ox_abc_objects)
-        lib.imprint(
-            container["instance_node"],
-            {"representation": repre_entity["id"]},
-        )
+        lib.imprint(container["instance_node"], {
+            "representation": repre_entity["id"],
+            "project_name": context["project"]["name"]
+        })
 
     def switch(self, container, context):
         self.update(container, context)
