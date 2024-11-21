@@ -1,10 +1,7 @@
 import os
 import clique
 
-from ayon_core.pipeline import (
-    load,
-    get_representation_path
-)
+from ayon_core.pipeline import load
 from ayon_core.pipeline.load import LoadError
 from ayon_max.api.pipeline import (
     containerise,
@@ -56,7 +53,7 @@ class RedshiftProxyLoader(load.LoaderPlugin):
         from pymxs import runtime as rt
 
         repre_entity = context["representation"]
-        path = get_representation_path(repre_entity)
+        path = os.path.normpath(self.filepath_from_context(context))
         node = rt.getNodeByName(container["instance_node"])
         node_list = get_previous_loaded_object(node)
         rt.Select(node_list)

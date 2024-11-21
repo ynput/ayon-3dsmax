@@ -13,7 +13,7 @@ from ayon_max.api.pipeline import (
     update_custom_attribute_data,
     remove_container_data
 )
-from ayon_core.pipeline import get_representation_path, load
+from ayon_core.pipeline import load
 
 
 class ObjLoader(load.LoaderPlugin):

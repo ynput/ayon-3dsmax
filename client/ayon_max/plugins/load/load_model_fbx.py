@@ -1,5 +1,5 @@
 import os
-from ayon_core.pipeline import load, get_representation_path
+from ayon_core.pipeline import load
 from ayon_max.api.pipeline import (
     containerise, get_previous_loaded_object,
     update_custom_attribute_data,

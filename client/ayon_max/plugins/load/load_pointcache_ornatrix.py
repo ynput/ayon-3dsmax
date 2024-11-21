@@ -1,5 +1,5 @@
 import os
-from ayon_core.pipeline import load, get_representation_path
+from ayon_core.pipeline import load
 from ayon_core.pipeline.load import LoadError
 from ayon_max.api.pipeline import (
     containerise,
@@ -64,7 +64,7 @@ class OxAbcLoader(load.LoaderPlugin):
 
     def update(self, container, context):
         repre_entity = context["representation"]
-        path = get_representation_path(repre_entity)
+        path = os.path.normpath(self.filepath_from_context(context))
         node_name = container["instance_node"]
         namespace, name = get_namespace(node_name)
         node = rt.getNodeByName(node_name)

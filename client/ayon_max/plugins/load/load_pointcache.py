@@ -5,7 +5,7 @@ Because of limited api, alembics can be only loaded, but not easily updated.
 
 """
 import os
-from ayon_core.pipeline import load, get_representation_path
+from ayon_core.pipeline import load
 from ayon_max.api import lib, maintained_selection
 from ayon_max.api.lib import unique_namespace, reset_frame_range
 from ayon_max.api.pipeline import (
@@ -83,7 +83,7 @@ class AbcLoader(load.LoaderPlugin):
         from pymxs import runtime as rt
 
         repre_entity = context["representation"]
-        path = get_representation_path(repre_entity)
+        path = os.path.normpath(self.filepath_from_context(context))
         node = rt.GetNodeByName(container["instance_node"])
         abc_container = [n for n in get_previous_loaded_object(node)
                          if rt.ClassOf(n) == rt.AlembicContainer]

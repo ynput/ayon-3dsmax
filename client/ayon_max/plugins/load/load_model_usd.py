@@ -16,7 +16,7 @@ from ayon_max.api.pipeline import (
     update_custom_attribute_data,
     remove_container_data
 )
-from ayon_core.pipeline import get_representation_path, load
+from ayon_core.pipeline import load
 
 
 class ModelUSDLoader(load.LoaderPlugin):
@@ -67,7 +67,7 @@ class ModelUSDLoader(load.LoaderPlugin):
 
     def update(self, container, context):
         repre_entity = context["representation"]
-        path = get_representation_path(repre_entity)
+        path = os.path.normpath(self.filepath_from_context(context))
         node_name = container["instance_node"]
         node = rt.GetNodeByName(node_name)
         namespace, name = get_namespace(node_name)

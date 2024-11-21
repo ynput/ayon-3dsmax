@@ -15,6 +15,7 @@ class ForceStartupScript(PreLaunchHook):
     Hook `GlobalHostDataHook` must be executed before this hook.
     """
     app_groups = {"3dsmax", "adsk_3dsmax"}
+    order = 11
     launch_types = {LaunchTypes.local}
 
     def execute(self):

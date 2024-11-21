@@ -11,7 +11,7 @@ from ayon_max.api.pipeline import (
     update_custom_attribute_data,
     remove_container_data
 )
-from ayon_core.pipeline import get_representation_path, load
+from ayon_core.pipeline import load
 
 
 class PointCloudLoader(load.LoaderPlugin):
@@ -46,7 +46,7 @@ class PointCloudLoader(load.LoaderPlugin):
         from pymxs import runtime as rt
 
         repre_entity = context["representation"]
-        path = get_representation_path(repre_entity)
+        path = os.path.normpath(self.filepath_from_context(context))
         node = rt.GetNodeByName(container["instance_node"])
         node_list = get_previous_loaded_object(node)
         update_custom_attribute_data(

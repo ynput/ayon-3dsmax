@@ -12,7 +12,7 @@ from ayon_max.api.pipeline import (
     update_custom_attribute_data,
     remove_container_data
 )
-from ayon_core.pipeline import get_representation_path, load
+from ayon_core.pipeline import load
 
 
 class FbxLoader(load.LoaderPlugin):
@@ -55,7 +55,7 @@ class FbxLoader(load.LoaderPlugin):
         from pymxs import runtime as rt
 
         repre_entity = context["representation"]
-        path = get_representation_path(repre_entity)
+        path = os.path.normpath(self.filepath_from_context(context))
         node_name = container["instance_node"]
         node = rt.getNodeByName(node_name)
         namespace, _ = get_namespace(node_name)
