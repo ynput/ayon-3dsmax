@@ -52,12 +52,12 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         register_creator_plugin_path(CREATE_PATH)
 
         _set_project()
+        lib.set_context_setting()
 
         self.menu = AYONMenu()
 
         register_event_callback("workfile.open.before", on_before_open)
         self._has_been_setup = True
-
         rt.callbacks.addScript(rt.Name('systemPostNew'), on_new)
 
         rt.callbacks.addScript(rt.Name('filePostOpen'),
@@ -215,13 +215,17 @@ def containerise(name: str, nodes: list, context,
 def _set_project():
     project_name = get_current_project_name()
     project_settings = get_project_settings(project_name)
+    workdir = os.getenv("AYON_WORKDIR")
+    os.makedirs(workdir, exist_ok=True)
+    rt.pathConfig.setCurrentProjectFolder(workdir)
     enable_project_creation = project_settings["max"].get("enabled_project_creation")
-    if not enable_project_creation:
+    if enable_project_creation:
+        directory_count = rt.pathConfig.getProjectSubDirectoryCount()
+        autobackup_dir = rt.pathConfig.GetDir(rt.Name("autoback"))
+        os.makedirs(autobackup_dir, exist_ok=True)
         log.debug("Project creation disabled. Skipping project creation.")
         return
-    workdir = os.getenv("AYON_WORKDIR")
 
-    os.makedirs(workdir, exist_ok=True)
     mxp_filepath = os.path.join(workdir, "workspace.mxp")
     if os.path.exists(mxp_filepath):
         rt.pathConfig.load(mxp_filepath)
@@ -230,7 +234,6 @@ def _set_project():
             proj_dir = rt.pathConfig.getProjectSubDirectory(count)
             if proj_dir:
                 os.makedirs(proj_dir, exist_ok=True)
-    rt.pathConfig.setCurrentProjectFolder(workdir)
 
 
 def on_before_open():
