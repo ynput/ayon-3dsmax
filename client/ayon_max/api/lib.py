@@ -352,6 +352,7 @@ def set_context_setting():
     reset_frame_range()
     reset_colorspace()
     reset_unit_scale()
+    rt.viewport.ResetAllViews()
 
 
 def get_max_version():
