@@ -91,6 +91,7 @@ class TyCacheModifierLoader(TyCacheLoader):
     """Load TyCache with tyCache Modifier """
 
     representations = {"tycm"}
+    label = "Load TyCache with Modifier"
     order = -8
     icon = "code-fork"
     color = "green"
