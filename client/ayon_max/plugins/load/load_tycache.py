@@ -88,10 +88,9 @@ class TySplineCacheLoader(TyCacheLoader):
 
 
 class TyCacheModifierLoader(TyCacheLoader):
-    """Load TyCache with tyCache Modifier """
+    """Load TyCache with Modifier """
 
     representations = {"tycm"}
-    label = "Load TyCache with Modifier"
     order = -8
     icon = "code-fork"
     color = "green"
