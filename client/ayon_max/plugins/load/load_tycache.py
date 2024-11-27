@@ -11,8 +11,7 @@ from ayon_max.api.pipeline import (
     update_custom_attribute_data,
     remove_container_data
 )
-from ayon_core.pipeline import load
-from ayon_core.lib import BoolDef
+from ayon_core.pipeline import load, LoadError
 
 
 class TyCacheLoader(load.LoaderPlugin):
@@ -23,22 +22,6 @@ class TyCacheLoader(load.LoaderPlugin):
     order = -8
     icon = "code-fork"
     color = "green"
-
-    @classmethod
-    def get_options(cls, contexts):
-        defs = []
-        if (
-            str(cls.__class__.__name__) == "TyCacheLoader"
-            and int(rt.tyFlow_version()) >= 112000
-        ):
-            defs.append(
-                BoolDef(
-                    "use_tycache_modifier",
-                    label="Load tycache with modifier",
-                    default=False
-                )
-            )
-        return defs
 
     def load(self, context, name=None, namespace=None, data=None):
         """Load tyCache"""
@@ -113,6 +96,10 @@ class TyCacheModifierLoader(TyCacheLoader):
     color = "green"
 
     def load_tycache(self, filepath, namespace):
+        if int(rt.tyFlow_version()) < 112000:
+            raise LoadError(
+                "This loader only works in TyFlow v1.12. "
+                "Please update your TyFlow! ")
         obj = rt.Container()
         tyc_modifier = rt.tyCachemodifier()
         # switch the tyCache modifier mode
