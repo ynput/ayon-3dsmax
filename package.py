@@ -1,6 +1,6 @@
 name = "max"
 title = "Max"
-version = "0.2.6+dev"
+version = "0.2.7"
 app_host_name = "max"
 client_dir = "ayon_max"
 
