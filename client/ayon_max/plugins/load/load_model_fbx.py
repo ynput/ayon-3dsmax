@@ -1,5 +1,5 @@
 import os
-from ayon_core.pipeline import load, get_representation_path
+from ayon_core.pipeline import load
 from ayon_max.api.pipeline import (
     containerise, get_previous_loaded_object,
     update_custom_attribute_data,
@@ -51,7 +51,7 @@ class FbxModelLoader(load.LoaderPlugin):
         from pymxs import runtime as rt
 
         repre_entity = context["representation"]
-        path = get_representation_path(repre_entity)
+        path = os.path.normpath(self.filepath_from_context(context))
         node_name = container["instance_node"]
         node = rt.getNodeByName(node_name)
         if not node:
@@ -85,8 +85,10 @@ class FbxModelLoader(load.LoaderPlugin):
         with maintained_selection():
             rt.Select(node)
         update_custom_attribute_data(node, fbx_objects)
+
         lib.imprint(container["instance_node"], {
-            "representation": repre_entity["id"]
+            "representation": repre_entity["id"],
+            "project_name": context["project"]["name"]
         })
 
     def switch(self, container, context):

@@ -1,5 +1,5 @@
 import os
-from ayon_core.pipeline import load, get_representation_path
+from ayon_core.pipeline import load
 from ayon_core.pipeline.load import LoadError
 from ayon_max.api.pipeline import (
     containerise,
@@ -64,7 +64,7 @@ class OxAbcLoader(load.LoaderPlugin):
 
     def update(self, container, context):
         repre_entity = context["representation"]
-        path = get_representation_path(repre_entity)
+        path = os.path.normpath(self.filepath_from_context(context))
         node_name = container["instance_node"]
         namespace, name = get_namespace(node_name)
         node = rt.getNodeByName(node_name)
@@ -97,10 +97,10 @@ class OxAbcLoader(load.LoaderPlugin):
                 abc.pos = transform_data[ox_transform] or 0
                 abc.scale = transform_data[f"{abc}.scale"] or 0
         update_custom_attribute_data(node, ox_abc_objects)
-        lib.imprint(
-            container["instance_node"],
-            {"representation": repre_entity["id"]},
-        )
+        lib.imprint(container["instance_node"], {
+            "representation": repre_entity["id"],
+            "project_name": context["project"]["name"]
+        })
 
     def switch(self, container, context):
         self.update(container, context)
