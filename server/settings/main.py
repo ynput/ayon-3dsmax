@@ -109,7 +109,7 @@ DEFAULT_MXP_WORKSPACE_SETTINGS = "\n".join((
 
 DEFAULT_VALUES = {
     "unit_scale_settings": {
-        "enabled": True,
+        "enabled": False,
         "scene_unit_scale": "Centimeters"
     },
     "mxp_workspace": {

@@ -4,6 +4,7 @@ import contextlib
 import logging
 import json
 from typing import Any, Dict, Union
+from qtpy import QtWidgets, QtCore
 
 import six
 
@@ -311,11 +312,47 @@ def reset_unit_scale():
     settings = get_project_settings(project_name).get("max")
     scene_scale = settings.get("unit_scale_settings",
                                {}).get("scene_unit_scale")
+    parent = get_main_window()
+
+
+    class ResetUnitScaleWindow(QtWidgets.QDialog):
+        def __init__(self, parent=None, scene_scale=None):
+            super(ResetUnitScaleWindow, self).__init__(parent=parent, scene_scale=None)
+            self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint)
+            self.setWindowTitle("Reset Unit Scale")
+
+            layout = QtWidgets.QVBoxLayout()
+            layout.setContentsMargins(10, 5, 10, 10)
+            message_label = QtWidgets.QLabel(
+                f"Are you sure you want to reset Unit Scale to '{scene_scale}'?"
+            )
+
+            self.ok_button = QtWidgets.QPushButton("Ok", self)
+            self.cancel_button = QtWidgets.QPushButton("Cancel", self)
+
+            self.ok_button.clicked.connect(self.on_ok_click)
+            self.cancel_button.clicked.connect(self.on_cancel_click)
+
+            layout.addWidget(message_label)
+            layout.addWidget(self.ok_button)
+            layout.addWidget(self.cancel_button)
+
+            self.setLayout(layout)
+
+        def on_ok_click(self):
+            rt.units.DisplayType = rt.Name("Metric")
+            rt.units.MetricType = rt.Name(scene_scale)
+            self.close()
+
+        def on_cancel_click(self):
+            rt.units.DisplayType = rt.Name("Generic")
+            self.close()
+
     if scene_scale:
-        rt.units.DisplayType = rt.Name("Metric")
-        rt.units.MetricType = rt.Name(scene_scale)
-    else:
-        rt.units.DisplayType = rt.Name("Generic")
+        dialog = ResetUnitScaleWindow(
+            parent=parent, scene_scale=scene_scale)
+        dialog.setStyleSheet(load_stylesheet())
+        dialog.show()
 
 
 def convert_unit_scale():
