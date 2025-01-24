@@ -316,15 +316,15 @@ def reset_unit_scale():
 
 
     class ResetUnitScaleWindow(QtWidgets.QDialog):
-        def __init__(self, parent=None, scene_scale=None):
-            super(ResetUnitScaleWindow, self).__init__(parent=parent, scene_scale=None)
+        def __init__(self, parent=None):
+            super(ResetUnitScaleWindow, self).__init__(parent=parent)
             self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint)
             self.setWindowTitle("Reset Unit Scale")
 
             layout = QtWidgets.QVBoxLayout()
             layout.setContentsMargins(10, 5, 10, 10)
             message_label = QtWidgets.QLabel(
-                f"Are you sure you want to reset Unit Scale to '{scene_scale}'?"
+                f"Are you sure you want to reset Unit Scale?"
             )
 
             self.ok_button = QtWidgets.QPushButton("Ok", self)
@@ -349,8 +349,7 @@ def reset_unit_scale():
             self.close()
 
     if scene_scale:
-        dialog = ResetUnitScaleWindow(
-            parent=parent, scene_scale=scene_scale)
+        dialog = ResetUnitScaleWindow(parent=parent)
         dialog.setStyleSheet(load_stylesheet())
         dialog.show()
 
