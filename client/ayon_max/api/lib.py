@@ -305,13 +305,19 @@ def get_fps_for_current_context():
     return task_entity["attrib"]["fps"]
 
 
-def reset_unit_scale():
+def reset_unit_scale(popup=False):
     """Apply the unit scale setting to 3dsMax
     """
+
     project_name = get_current_project_name()
     settings = get_project_settings(project_name).get("max")
-    scene_scale = settings.get("unit_scale_settings",
-                               {}).get("scene_unit_scale")
+    scene_scale_enabled = settings["unit_scale_settings"]["enabled"]
+    if not scene_scale_enabled:
+        log.info("Using default scale display type.")
+        rt.units.DisplayType = rt.Name("Generic")
+        return
+
+    scene_scale = settings["unit_scale_settings"]["scene_unit_scale"]
     parent = get_main_window()
 
 
@@ -345,13 +351,19 @@ def reset_unit_scale():
             self.close()
 
         def on_cancel_click(self):
-            rt.units.DisplayType = rt.Name("Generic")
             self.close()
 
-    if scene_scale:
+    if popup and not is_headless():
+        if rt.units.DisplayType == rt.Name("Metric") and (
+            rt.units.MetricType == rt.Name(scene_scale)
+        ):
+            return
         dialog = ResetUnitScaleWindow(parent=parent)
         dialog.setStyleSheet(load_stylesheet())
         dialog.show()
+    else:
+        rt.units.DisplayType = rt.Name("Metric")
+        rt.units.MetricType = rt.Name(scene_scale)
 
 
 def convert_unit_scale():
@@ -387,7 +399,6 @@ def set_context_setting():
     reset_scene_resolution()
     reset_frame_range()
     reset_colorspace()
-    reset_unit_scale()
     rt.viewport.ResetAllViews()
 
 
