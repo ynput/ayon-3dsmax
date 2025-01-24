@@ -330,7 +330,8 @@ def reset_unit_scale(popup=False):
             layout = QtWidgets.QVBoxLayout()
             layout.setContentsMargins(10, 5, 10, 10)
             message_label = QtWidgets.QLabel(
-                f"Are you sure you want to reset Unit Scale to '{scene_scale}'?"
+                "Scene units do not match studio/project preferences."
+                f" Would you like to set your scene unit scale to '{scene_scale}'?"
             )
 
             self.ok_button = QtWidgets.QPushButton("Ok", self)
@@ -398,6 +399,7 @@ def set_context_setting():
     """
     reset_scene_resolution()
     reset_frame_range()
+    reset_unit_scale()
     reset_colorspace()
     rt.viewport.ResetAllViews()
 
