@@ -324,7 +324,7 @@ def reset_unit_scale():
             layout = QtWidgets.QVBoxLayout()
             layout.setContentsMargins(10, 5, 10, 10)
             message_label = QtWidgets.QLabel(
-                f"Are you sure you want to reset Unit Scale {scene_scale}?"
+                f"Are you sure you want to reset Unit Scale to '{scene_scale}'?"
             )
 
             self.ok_button = QtWidgets.QPushButton("Ok", self)
