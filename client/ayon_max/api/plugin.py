@@ -10,8 +10,7 @@ from ayon_core.pipeline import (
     CreatedInstance,
     Creator,
     CreatorError,
-    AYON_INSTANCE_ID,
-    AVALON_INSTANCE_ID,
+    AYON_INSTANCE_ID
 )
 
 from .lib import imprint, lsattr, read, get_tyflow_export_operators
@@ -274,7 +273,7 @@ class MaxCreatorBase(object):
         shared_data["max_cached_instances"] = {}
 
         cached_instances = []
-        for id_type in [AYON_INSTANCE_ID, AVALON_INSTANCE_ID]:
+        for id_type in [AYON_INSTANCE_ID]:
             cached_instances.extend(lsattr("id", id_type))
 
         for i in cached_instances:
