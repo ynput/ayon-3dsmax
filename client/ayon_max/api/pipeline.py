@@ -246,7 +246,7 @@ def on_before_open():
 def on_after_open():
     """Check and set up unit scale after opening workfile if user enabled.
     """
-    lib.reset_unit_scale()
+    lib.validate_unit_scale()
 
 
 def load_custom_attribute_data():

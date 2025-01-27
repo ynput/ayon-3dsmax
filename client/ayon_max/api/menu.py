@@ -164,4 +164,4 @@ class AYONMenu(object):
 
     def unit_scale_callback(self):
         """Callback to reset unit scale"""
-        return lib.reset_unit_scale()
+        return lib.validate_unit_scale()
