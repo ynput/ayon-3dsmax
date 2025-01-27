@@ -57,6 +57,7 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         self.menu = AYONMenu()
 
         register_event_callback("workfile.open.before", on_before_open)
+        register_event_callback("workfile.open.after", on_after_open)
         self._has_been_setup = True
         rt.callbacks.addScript(rt.Name('systemPostNew'), on_new)
 
@@ -240,6 +241,11 @@ def on_before_open():
     """Check and set up project before opening workfile
     """
     _set_project()
+
+
+def on_after_open():
+    """Check and set up unit scale after opening workfile if user enabled.
+    """
     lib.reset_unit_scale()
 
 
