@@ -3,14 +3,15 @@
 import contextlib
 import logging
 import json
+from functools import partial
 from typing import Any, Dict, Union
-
 import six
 
 from ayon_core.pipeline import (
     get_current_project_name,
     colorspace
 )
+from ayon_core.tools.utils import SimplePopup
 from ayon_core.settings import get_project_settings
 from ayon_core.pipeline.context_tools import (
     get_current_task_entity
@@ -217,13 +218,15 @@ def set_scene_resolution(width: int, height: int):
     rt.renderHeight = height
 
 
-def reset_scene_resolution():
+def reset_scene_resolution(task_entity=None):
     """Apply the scene resolution from the project definition
 
     scene resolution can be overwritten by a folder if the folder.attrib
     contains any information regarding scene resolution.
     """
-    task_attributes = get_current_task_entity(fields={"attrib"})["attrib"]
+    if task_entity is None:
+        task_entity = get_current_task_entity(fields={"attrib"})
+    task_attributes = task_entity["attrib"]
     width = int(task_attributes["resolutionWidth"])
     height = int(task_attributes["resolutionHeight"])
 
@@ -304,18 +307,46 @@ def get_fps_for_current_context():
     return task_entity["attrib"]["fps"]
 
 
-def reset_unit_scale():
+def validate_unit_scale(project_settings=None):
     """Apply the unit scale setting to 3dsMax
     """
-    project_name = get_current_project_name()
-    settings = get_project_settings(project_name).get("max")
-    scene_scale = settings.get("unit_scale_settings",
-                               {}).get("scene_unit_scale")
-    if scene_scale:
-        rt.units.DisplayType = rt.Name("Metric")
-        rt.units.MetricType = rt.Name(scene_scale)
-    else:
+
+    if is_headless():
+        return
+    if project_settings is None:
+        project_name = get_current_project_name()
+        project_settings = get_project_settings(project_name).get("max")
+    scene_scale_enabled = project_settings["unit_scale_settings"]["enabled"]
+    if not scene_scale_enabled:
+        log.info("Using default scale display type.")
         rt.units.DisplayType = rt.Name("Generic")
+        return
+    scene_scale = project_settings["unit_scale_settings"]["scene_unit_scale"]
+    if rt.units.DisplayType == rt.Name("Metric") and (
+        rt.units.MetricType == rt.Name(scene_scale)
+    ):
+        return
+
+    parent = get_main_window()
+    dialog = SimplePopup(parent=parent)
+    dialog.setWindowTitle("Wrong Unit Scale")
+    dialog.set_message("Scene units do not match studio/project preferences.")
+    dialog.set_button_text("Fix")
+    dialog.setStyleSheet(load_stylesheet())
+
+    dialog.on_clicked.connect(partial(set_unit_scale, project_settings))
+    dialog.show()
+
+
+def set_unit_scale(project_settings=None):
+    """Function to set unit scale in Metric
+    """
+    if project_settings is None:
+        project_name = get_current_project_name()
+        project_settings = get_project_settings(project_name).get("max")
+    scene_scale = project_settings["unit_scale_settings"]["scene_unit_scale"]
+    rt.units.DisplayType = rt.Name("Metric")
+    rt.units.MetricType = rt.Name(scene_scale)
 
 
 def convert_unit_scale():
@@ -350,8 +381,8 @@ def set_context_setting():
     """
     reset_scene_resolution()
     reset_frame_range()
+    validate_unit_scale()
     reset_colorspace()
-    reset_unit_scale()
     rt.viewport.ResetAllViews()
 
 
@@ -409,7 +440,6 @@ def check_colorspace():
         max_config_data = colorspace.get_current_context_imageio_config_preset()
         if max_config_data and color_mgr.Mode != rt.Name("OCIO_Custom"):
             if not is_headless():
-                from ayon_core.tools.utils import SimplePopup
                 dialog = SimplePopup(parent=parent)
                 dialog.setWindowTitle("Warning: Wrong OCIO Mode")
                 dialog.set_message("This scene has wrong OCIO "
