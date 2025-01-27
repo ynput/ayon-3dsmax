@@ -240,6 +240,7 @@ def on_before_open():
     """Check and set up project before opening workfile
     """
     _set_project()
+    lib.reset_unit_scale()
 
 
 def load_custom_attribute_data():

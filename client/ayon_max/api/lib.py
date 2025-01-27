@@ -4,8 +4,7 @@ import contextlib
 import logging
 import json
 from typing import Any, Dict, Union
-from qtpy import QtWidgets, QtCore
-
+from ayon_core.tools.utils import SimplePopup
 import six
 
 from ayon_core.pipeline import (
@@ -305,7 +304,7 @@ def get_fps_for_current_context():
     return task_entity["attrib"]["fps"]
 
 
-def reset_unit_scale(popup=False):
+def reset_unit_scale():
     """Apply the unit scale setting to 3dsMax
     """
 
@@ -317,54 +316,25 @@ def reset_unit_scale(popup=False):
         rt.units.DisplayType = rt.Name("Generic")
         return
 
-    scene_scale = settings["unit_scale_settings"]["scene_unit_scale"]
     parent = get_main_window()
-
-
-    class ResetUnitScaleWindow(QtWidgets.QDialog):
-        def __init__(self, parent=None):
-            super(ResetUnitScaleWindow, self).__init__(parent=parent)
-            self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint)
-            self.setWindowTitle("Reset Unit Scale")
-
-            layout = QtWidgets.QVBoxLayout()
-            layout.setContentsMargins(10, 5, 10, 10)
-            message_label = QtWidgets.QLabel(
-                "Scene units do not match studio/project preferences."
-                f" Would you like to set your scene unit scale to '{scene_scale}'?"
-            )
-
-            self.ok_button = QtWidgets.QPushButton("Ok", self)
-            self.cancel_button = QtWidgets.QPushButton("Cancel", self)
-
-            self.ok_button.clicked.connect(self.on_ok_click)
-            self.cancel_button.clicked.connect(self.on_cancel_click)
-
-            layout.addWidget(message_label)
-            layout.addWidget(self.ok_button)
-            layout.addWidget(self.cancel_button)
-
-            self.setLayout(layout)
-
-        def on_ok_click(self):
-            rt.units.DisplayType = rt.Name("Metric")
-            rt.units.MetricType = rt.Name(scene_scale)
-            self.close()
-
-        def on_cancel_click(self):
-            self.close()
-
-    if popup and not is_headless():
-        if rt.units.DisplayType == rt.Name("Metric") and (
-            rt.units.MetricType == rt.Name(scene_scale)
-        ):
-            return
-        dialog = ResetUnitScaleWindow(parent=parent)
+    if not is_headless():
+        dialog = SimplePopup(parent=parent)
+        dialog.setWindowTitle("Wrong Unit Scale")
+        dialog.set_message("Scene units do not match studio/project preferences.")
+        dialog.set_button_text("Fix")
         dialog.setStyleSheet(load_stylesheet())
+        dialog.on_clicked.connect(set_unit_scale)
         dialog.show()
-    else:
-        rt.units.DisplayType = rt.Name("Metric")
-        rt.units.MetricType = rt.Name(scene_scale)
+
+
+def set_unit_scale():
+    """Function to set unit scale in Metric
+    """
+    project_name = get_current_project_name()
+    settings = get_project_settings(project_name).get("max")
+    scene_scale = settings["unit_scale_settings"]["scene_unit_scale"]
+    rt.units.DisplayType = rt.Name("Metric")
+    rt.units.MetricType = rt.Name(scene_scale)
 
 
 def convert_unit_scale():
@@ -458,7 +428,6 @@ def check_colorspace():
         max_config_data = colorspace.get_current_context_imageio_config_preset()
         if max_config_data and color_mgr.Mode != rt.Name("OCIO_Custom"):
             if not is_headless():
-                from ayon_core.tools.utils import SimplePopup
                 dialog = SimplePopup(parent=parent)
                 dialog.setWindowTitle("Warning: Wrong OCIO Mode")
                 dialog.set_message("This scene has wrong OCIO "
