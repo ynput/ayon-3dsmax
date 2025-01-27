@@ -315,6 +315,11 @@ def reset_unit_scale():
         log.info("Using default scale display type.")
         rt.units.DisplayType = rt.Name("Generic")
         return
+    scene_scale = settings["unit_scale_settings"]["scene_unit_scale"]
+    if rt.units.DisplayType == rt.Name("Metric") and (
+        rt.units.MetricType == rt.Name(scene_scale)
+    ):
+        return
 
     parent = get_main_window()
     if not is_headless():
