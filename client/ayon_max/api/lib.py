@@ -5,7 +5,6 @@ import logging
 import json
 from functools import partial
 from typing import Any, Dict, Union
-import six
 
 from ayon_core.pipeline import (
     get_current_project_name,
@@ -100,7 +99,7 @@ def read(container) -> dict:
             continue
 
         value = value.strip()
-        if isinstance(value.strip(), six.string_types) and \
+        if isinstance(value.strip(), str) and \
                 value.startswith(JSON_PREFIX):
             with contextlib.suppress(json.JSONDecodeError):
                 value = json.loads(value[len(JSON_PREFIX):])
