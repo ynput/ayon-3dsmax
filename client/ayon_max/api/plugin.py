@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 """3dsmax specific AYON/Pyblish plugin definitions."""
-from abc import ABCMeta
-
-import six
 from pymxs import runtime as rt
 
 from ayon_core.lib import BoolDef
@@ -338,7 +335,6 @@ class MaxTyFlowDataCreatorBase(MaxCreatorBase):
         return node
 
 
-@six.add_metaclass(ABCMeta)
 class MaxCreator(Creator, MaxCreatorBase):
     selected_nodes = []
 
