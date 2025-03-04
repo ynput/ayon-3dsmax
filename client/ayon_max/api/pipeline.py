@@ -238,6 +238,8 @@ def _set_project():
             if proj_dir:
                 os.makedirs(proj_dir, exist_ok=True)
 
+    rt.viewport.ResetAllViews()
+
 
 def on_before_open():
     """Check and set up project before opening workfile
