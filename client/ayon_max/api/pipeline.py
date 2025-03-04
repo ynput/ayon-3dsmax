@@ -216,16 +216,17 @@ def containerise(name: str, nodes: list, context,
 def _set_project():
     project_name = get_current_project_name()
     project_settings = get_project_settings(project_name)
-    workdir = os.getenv("AYON_WORKDIR")
-    os.makedirs(workdir, exist_ok=True)
-    rt.pathConfig.setCurrentProjectFolder(workdir)
     enable_project_creation = project_settings["max"].get("enabled_project_creation")
-    if enable_project_creation:
+    if not enable_project_creation:
         directory_count = rt.pathConfig.getProjectSubDirectoryCount()
         autobackup_dir = rt.pathConfig.GetDir(rt.Name("autoback"))
         os.makedirs(autobackup_dir, exist_ok=True)
         log.debug("Project creation disabled. Skipping project creation.")
         return
+
+    workdir = os.getenv("AYON_WORKDIR")
+    os.makedirs(workdir, exist_ok=True)
+    rt.pathConfig.setCurrentProjectFolder(workdir)
 
     mxp_filepath = os.path.join(workdir, "workspace.mxp")
     if os.path.exists(mxp_filepath):
