@@ -214,13 +214,14 @@ def containerise(name: str, nodes: list, context,
 
 
 def _set_project():
+    # set up autobackup folder to avoid non-existing filepath
+    directory_count = rt.pathConfig.getProjectSubDirectoryCount()
+    autobackup_dir = rt.pathConfig.GetDir(rt.Name("autoback"))
+    os.makedirs(autobackup_dir, exist_ok=True)
     project_name = get_current_project_name()
     project_settings = get_project_settings(project_name)
     enable_project_creation = project_settings["max"].get("enabled_project_creation")
     if not enable_project_creation:
-        directory_count = rt.pathConfig.getProjectSubDirectoryCount()
-        autobackup_dir = rt.pathConfig.GetDir(rt.Name("autoback"))
-        os.makedirs(autobackup_dir, exist_ok=True)
         log.debug("Project creation disabled. Skipping project creation.")
         return
 
