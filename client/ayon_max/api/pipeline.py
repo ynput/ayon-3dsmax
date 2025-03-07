@@ -52,6 +52,7 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         register_creator_plugin_path(CREATE_PATH)
 
         _set_project()
+        _set_autobackup_dir()
         lib.set_context_setting()
 
         self.menu = AYONMenu()
@@ -214,10 +215,6 @@ def containerise(name: str, nodes: list, context,
 
 
 def _set_project():
-    # set up autobackup folder to avoid non-existing filepath
-    directory_count = rt.pathConfig.getProjectSubDirectoryCount()
-    autobackup_dir = rt.pathConfig.GetDir(rt.Name("autoback"))
-    os.makedirs(autobackup_dir, exist_ok=True)
     project_name = get_current_project_name()
     project_settings = get_project_settings(project_name)
     enable_project_creation = project_settings["max"].get("enabled_project_creation")
@@ -238,7 +235,15 @@ def _set_project():
             if proj_dir:
                 os.makedirs(proj_dir, exist_ok=True)
 
-    rt.viewport.ResetAllViews()
+    # avoid glitching viewport
+    # rt.viewport.ResetAllViews()
+
+
+def _set_autobackup_dir():
+    """Set up autobackup folder to avoid non-existing directory
+    """
+    autobackup_dir = rt.pathConfig.GetDir(rt.Name("autoback"))
+    os.makedirs(autobackup_dir, exist_ok=True)
 
 
 def on_before_open():
