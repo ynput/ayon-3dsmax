@@ -236,7 +236,7 @@ def _set_project():
                 os.makedirs(proj_dir, exist_ok=True)
 
     # avoid glitching viewport
-    # rt.viewport.ResetAllViews()
+    rt.viewport.ResetAllViews()
 
 
 def _set_autobackup_dir():
