@@ -15,6 +15,8 @@ from ayon_max.api.lib import (
     get_plugins
 )
 
+from pymxs import runtime as rt
+
 
 class RedshiftProxyLoader(load.LoaderPlugin):
     """Load rs files with Redshift Proxy"""
@@ -27,31 +29,24 @@ class RedshiftProxyLoader(load.LoaderPlugin):
     color = "white"
 
     def load(self, context, name=None, namespace=None, data=None):
-        from pymxs import runtime as rt
         plugin_info = get_plugins()
         if "redshift4max.dlr" not in plugin_info:
             raise LoadError("Redshift not loaded/installed in Max..")
         filepath = self.filepath_from_context(context)
-        rs_proxy = rt.RedshiftProxy()
-        rs_proxy.file = filepath
-        files_in_folder = os.listdir(os.path.dirname(filepath))
-        collections, remainder = clique.assemble(files_in_folder)
-        if collections:
-            rs_proxy.is_sequence = True
+        rs_obj = self._create_redshift_object_type()
+        rs_obj.file = filepath
 
         namespace = unique_namespace(
             name + "_",
             suffix="_",
         )
-        rs_proxy.name = f"{namespace}:{rs_proxy.name}"
+        rs_obj.name = f"{namespace}:{rs_obj.name}"
 
         return containerise(
-            name, [rs_proxy], context,
+            name, [rs_obj], context,
             namespace, loader=self.__class__.__name__)
 
     def update(self, container, context):
-        from pymxs import runtime as rt
-
         repre_entity = context["representation"]
         path = os.path.normpath(self.filepath_from_context(context))
         node = rt.getNodeByName(container["instance_node"])
@@ -59,8 +54,8 @@ class RedshiftProxyLoader(load.LoaderPlugin):
         rt.Select(node_list)
         update_custom_attribute_data(
             node, rt.Selection)
-        for proxy in rt.Selection:
-            proxy.file = path
+        for rs_obj in rt.Selection:
+            rs_obj.file = path
 
         lib.imprint(container["instance_node"], {
             "representation": repre_entity["id"],
@@ -71,6 +66,22 @@ class RedshiftProxyLoader(load.LoaderPlugin):
         self.update(container, context)
 
     def remove(self, container):
-        from pymxs import runtime as rt
         node = rt.GetNodeByName(container["instance_node"])
         remove_container_data(node)
+
+    def _create_redshift_object_type(self):
+        return rt.RedshiftProxy()
+
+
+class RedshiftVolumeLoader(RedshiftProxyLoader):
+    """Load vdb files with Redshift Volume Grid"""
+
+    label = "Load VDB"
+    product_types = {"vdbcache"}
+    representations = {"vdb"}
+    order = -9
+    icon = "code-fork"
+    color = "orange"
+
+    def _create_redshift_object_type(self):
+        return rt.RedshiftVolumeGrid()
