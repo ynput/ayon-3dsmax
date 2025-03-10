@@ -1,5 +1,4 @@
 import os
-import clique
 
 from ayon_core.pipeline import load
 from ayon_core.pipeline.load import LoadError
