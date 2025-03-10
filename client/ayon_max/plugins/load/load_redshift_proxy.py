@@ -32,7 +32,7 @@ class RedshiftProxyLoader(load.LoaderPlugin):
         if "redshift4max.dlr" not in plugin_info:
             raise LoadError("Redshift not loaded/installed in Max..")
         filepath = self.filepath_from_context(context)
-        rs_obj = self._create_redshift_object_type()
+        rs_obj = self._get_redshift_object_type()
         rs_obj.file = filepath
 
         namespace = unique_namespace(
@@ -68,7 +68,7 @@ class RedshiftProxyLoader(load.LoaderPlugin):
         node = rt.GetNodeByName(container["instance_node"])
         remove_container_data(node)
 
-    def _create_redshift_object_type(self):
+    def _get_redshift_object_type(self):
         return rt.RedshiftProxy()
 
 
@@ -82,5 +82,5 @@ class RedshiftVolumeLoader(RedshiftProxyLoader):
     icon = "code-fork"
     color = "orange"
 
-    def _create_redshift_object_type(self):
+    def _get_redshift_object_type(self):
         return rt.RedshiftVolumeGrid()
