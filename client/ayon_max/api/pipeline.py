@@ -62,7 +62,6 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         register_event_callback("workfile.open.before", on_before_open)
         register_event_callback("workfile.open.after", on_after_open)
         self._has_been_setup = True
-        rt.callbacks.addScript(rt.Name('systemPostNew'), on_new)
 
         rt.callbacks.addScript(rt.Name('filePostOpen'),
                                lib.check_colorspace)
@@ -187,14 +186,6 @@ def ls():
 
     for container in sorted(containers, key=attrgetter("name")):
         yield parse_container(container)
-
-
-def on_new():
-    lib.set_context_setting()
-    if rt.checkForSave():
-        rt.resetMaxFile(rt.Name("noPrompt"))
-        rt.clearUndoBuffer()
-        rt.redrawViews()
 
 
 def containerise(name: str, nodes: list, context,
