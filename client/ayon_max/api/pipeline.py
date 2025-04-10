@@ -53,7 +53,9 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
 
         _set_project()
         _set_autobackup_dir()
-        lib.set_context_setting()
+
+        if os.environ["AVALON_OPEN_LAST_WORKFILE"] == "0":
+            lib.set_context_setting()
 
         self.menu = AYONMenu()
 
