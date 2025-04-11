@@ -53,22 +53,14 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
 
         _set_project()
         _set_autobackup_dir()
-        lib.set_context_setting()
 
         self.menu = AYONMenu()
 
         register_event_callback("workfile.open.before", on_before_open)
         register_event_callback("workfile.open.after", on_after_open)
         self._has_been_setup = True
-        rt.callbacks.addScript(rt.Name('systemPostNew'), on_new)
+        self._register_callbacks()
 
-        rt.callbacks.addScript(rt.Name('filePostOpen'),
-                               lib.check_colorspace)
-
-        rt.callbacks.addScript(rt.Name('postWorkspaceChange'),
-                               self._deferred_menu_creation)
-        rt.NodeEventCallback(
-            nameChanged=lib.update_modifier_node_names)
 
     def workfile_has_unsaved_changes(self):
         return rt.getSaveRequired()
@@ -92,11 +84,22 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         return ls()
 
     def _register_callbacks(self):
-        rt.callbacks.removeScripts(id=rt.name("OpenPypeCallbacks"))
-
+        rt.callbacks.removeScripts(id=rt.name("AyonCallbacks"))
         rt.callbacks.addScript(
-            rt.Name("postLoadingMenus"),
-            self._deferred_menu_creation, id=rt.Name('OpenPypeCallbacks'))
+            rt.Name('welcomeScreenDone'),
+            on_new, id=rt.name("AyonCallbacks")
+        )
+        rt.callbacks.addScript(
+            rt.Name('systemPostNew'),
+            lib.set_context_setting,
+            id=rt.name("AyonCallbacks")
+        )
+        rt.callbacks.addScript(
+            rt.Name('postWorkspaceChange'),
+            self._deferred_menu_creation,
+            id=rt.name("AyonCallbacks"))
+        rt.NodeEventCallback(
+            nameChanged=lib.update_modifier_node_names)
 
     def _deferred_menu_creation(self):
         self.log.info("Building menu ...")
@@ -188,11 +191,10 @@ def ls():
 
 
 def on_new():
-    lib.set_context_setting()
-    if rt.checkForSave():
-        rt.resetMaxFile(rt.Name("noPrompt"))
-        rt.clearUndoBuffer()
-        rt.redrawViews()
+    last_workfile = os.getenv("AYON_LAST_WORKFILE")
+    if os.getenv("AVALON_OPEN_LAST_WORKFILE") != "1"  \
+        or not os.path.exists(last_workfile):
+            lib.set_context_setting()
 
 
 def containerise(name: str, nodes: list, context,
