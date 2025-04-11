@@ -191,8 +191,10 @@ def ls():
 
 
 def on_new():
-    if os.getenv("AVALON_OPEN_LAST_WORKFILE") != "1":
-        lib.set_context_setting()
+    last_workfile = os.getenv("AYON_LAST_WORKFILE")
+    if os.getenv("AVALON_OPEN_LAST_WORKFILE") != "1"  \
+        or not os.path.exists(last_workfile):
+            lib.set_context_setting()
 
 
 def containerise(name: str, nodes: list, context,
