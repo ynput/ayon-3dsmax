@@ -30,8 +30,8 @@ class ExtractThumbnail(publish.Extractor):
             start_frame=frame,
             end_frame=frame,
             percentSize=instance.data["percentSize"],
-            width=instance.data["review_width"],
-            height=instance.data["review_height"],
+            width=instance.data["resolutionWidth"],
+            height=instance.data["resolutionHeight"],
             viewport_options=viewport_options)
 
         thumbnail = next(os.path.basename(path) for path in files)
