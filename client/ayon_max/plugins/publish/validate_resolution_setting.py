@@ -72,8 +72,8 @@ class ValidateReviewResolutionSetting(ValidateResolutionSetting):
     actions = [RepairAction]
 
     def get_current_resolution(self, instance):
-        current_width = instance.data["review_width"]
-        current_height = instance.data["review_height"]
+        current_width = instance.data["resolutionWidth"]
+        current_height = instance.data["resolutionHeight"]
         return current_width, current_height
 
     @classmethod
