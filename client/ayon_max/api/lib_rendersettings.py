@@ -8,7 +8,8 @@ from ayon_core.pipeline.context_tools import get_current_folder_entity
 from ayon_max.api.lib import (
     set_render_frame_range,
     get_current_renderer,
-    get_default_render_folder
+    get_default_render_folder,
+    get_multipass_setting,
 )
 
 
@@ -99,6 +100,11 @@ class RenderSettings(object):
             "Quicksilver_Hardware_Renderer",
         ]:
             self.render_element_layer(output, width, height, img_fmt)
+
+        multipass_enabled = get_multipass_setting(setting)
+        # TODO: supports multipass for different renderers
+        if renderer == "Redshift_Renderer":
+            rt.renderers.current.separateAovFiles = multipass_enabled
 
         rt.rendSaveFile = True
 
