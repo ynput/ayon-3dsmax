@@ -71,7 +71,7 @@ class RenderProducts(object):
                 "ART_Renderer",
                 "Default_Scanline_Renderer",
                 "Quicksilver_Hardware_Renderer",
-            ] or renderer.startswith("V_Ray"):
+            ] or renderer.startswith("V_Ray_"):
                 render_name = self.get_render_elements_name()
                 if render_name:
                     for name in render_name:
@@ -110,7 +110,7 @@ class RenderProducts(object):
                                 filename, name, start_frame,
                                 end_frame, ext)
                         })
-            elif renderer.startswith("V_Ray"):
+            elif renderer.startswith("V_Ray_"):
                 if ext != "exr":
                     render_name = self.get_render_elements_name()
                     if render_name:
@@ -142,7 +142,7 @@ class RenderProducts(object):
             "ART_Renderer",
             "Default_Scanline_Renderer",
             "Quicksilver_Hardware_Renderer",
-        ] or renderer.startswith("V_Ray"):
+        ] or renderer.startswith("V_Ray_"):
             render_name = self.get_render_elements_name()
             if render_name:
                 for name in render_name:
@@ -182,7 +182,7 @@ class RenderProducts(object):
                             output_file, name, start_frame,
                             end_frame, img_fmt)
                     })
-        elif renderer.startswith("V_Ray"):
+        elif renderer.startswith("V_Ray_"):
             if img_fmt != "exr":
                 render_name = self.get_render_elements_name()
                 if render_name:
