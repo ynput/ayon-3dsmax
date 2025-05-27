@@ -22,6 +22,7 @@ SUPPORTED_RENDERERS = {
 }
 
 def is_supported_renderer(renderer_name: str) -> bool:
+    """Whether ayon-max supports the relevant renderer."""
     if renderer_name in SUPPORTED_RENDERERS:
         return True
     if renderer_name.startswith("V_Ray_"):
