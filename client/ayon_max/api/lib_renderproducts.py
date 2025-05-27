@@ -69,11 +69,9 @@ class RenderProducts(object):
 
             if renderer in [
                 "ART_Renderer",
-                "V_Ray_6_Hotfix_3",
-                "V_Ray_GPU_6_Hotfix_3",
                 "Default_Scanline_Renderer",
                 "Quicksilver_Hardware_Renderer",
-            ]:
+            ] or renderer.startswith("V_Ray"):
                 render_name = self.get_render_elements_name()
                 if render_name:
                     for name in render_name:
@@ -112,10 +110,7 @@ class RenderProducts(object):
                                 filename, name, start_frame,
                                 end_frame, ext)
                         })
-            elif renderer in [
-                "V_Ray_6_Hotfix_3",
-                "V_Ray_GPU_6_Hotfix_3"
-            ]:
+            elif renderer.startswith("V_Ray"):
                 if ext != "exr":
                     render_name = self.get_render_elements_name()
                     if render_name:
@@ -145,11 +140,9 @@ class RenderProducts(object):
 
         if renderer in [
             "ART_Renderer",
-            "V_Ray_6_Hotfix_3",
-            "V_Ray_GPU_6_Hotfix_3",
             "Default_Scanline_Renderer",
             "Quicksilver_Hardware_Renderer",
-        ]:
+        ] or renderer.startswith("V_Ray"):
             render_name = self.get_render_elements_name()
             if render_name:
                 for name in render_name:
@@ -189,10 +182,7 @@ class RenderProducts(object):
                             output_file, name, start_frame,
                             end_frame, img_fmt)
                     })
-        elif renderer in [
-            "V_Ray_6_Hotfix_3",
-            "V_Ray_GPU_6_Hotfix_3"
-        ]:
+        elif renderer.startswith("V_Ray"):
             if img_fmt != "exr":
                 render_name = self.get_render_elements_name()
                 if render_name:

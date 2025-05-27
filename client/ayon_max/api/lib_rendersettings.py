@@ -93,11 +93,9 @@ class RenderSettings(object):
         if renderer in [
             "ART_Renderer",
             "Redshift_Renderer",
-            "V_Ray_6_Hotfix_3",
-            "V_Ray_GPU_6_Hotfix_3",
             "Default_Scanline_Renderer",
             "Quicksilver_Hardware_Renderer",
-        ]:
+        ] or renderer.startswith("V_Ray"):
             self.render_element_layer(output, width, height, img_fmt)
 
         rt.rendSaveFile = True

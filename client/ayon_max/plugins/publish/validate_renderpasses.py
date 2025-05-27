@@ -94,11 +94,9 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
         if renderer in [
             "ART_Renderer",
             "Redshift_Renderer",
-            "V_Ray_6_Hotfix_3",
-            "V_Ray_GPU_6_Hotfix_3",
             "Default_Scanline_Renderer",
             "Quicksilver_Hardware_Renderer",
-        ]:
+        ] or renderer.startswith("V_Ray"):
             render_elem = rt.maxOps.GetCurRenderElementMgr()
             render_elem_num = render_elem.NumRenderElements()
             for i in range(render_elem_num):
@@ -183,5 +181,6 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
         container = instance.data.get("instance_node")
         # TODO: need to rename the function of render_output
         RenderSettings().render_output(container)
+        rt.renderSceneDialog.update()
         cls.log.debug("Finished repairing the render output "
                       "folder and filenames.")
