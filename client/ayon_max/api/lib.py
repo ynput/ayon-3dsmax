@@ -607,7 +607,7 @@ def render_resolution(width, height):
         rt.renderHeight = current_renderHeight
 
 
-def get_tyflow_export_operators():
+def get_tyflow_export_operators(operator_type="exportParticle"):
     """Get Tyflow Export Particles Operators.
 
     Returns:
@@ -615,6 +615,10 @@ def get_tyflow_export_operators():
 
     """
     operators = []
+    operator_prop = (
+        "exportMode" if operator_type == "exportParticle"
+        else "gridsSDF"
+    )
     members = [obj for obj in rt.Objects if rt.ClassOf(obj) == rt.tyFlow]
     for member in members:
         obj = member.baseobject
@@ -626,7 +630,7 @@ def get_tyflow_export_operators():
             node_names = rt.GetSubAnimNames(sub_anim)
             for node_name in node_names:
                 node_sub_anim = rt.GetSubAnim(sub_anim, node_name)
-                if rt.hasProperty(node_sub_anim, "exportMode"):
+                if rt.hasProperty(node_sub_anim, operator_prop):
                     operators.append(node_sub_anim)
     return operators
 
@@ -646,3 +650,30 @@ def suspended_refresh():
     finally:
         rt.enableSceneRedraw()
         rt.resumeEditing()
+
+
+@contextlib.contextmanager
+def animation_range_without_loop():
+    """Ensure animation range is played without
+    loop during context
+    """
+    previous_playbackLoop = (
+        rt.timeConfiguration.playbackLoop
+    )
+    previous_realtime_playback = (
+        rt.timeConfiguration.realTimePlayback
+    )
+    previous_current_frame = rt.currentTime.frame
+    rt.timeConfiguration.playbackLoop = False
+    rt.timeConfiguration.realTimePlayback = True
+    try:
+        yield
+
+    finally:
+        rt.timeConfiguration.playbackLoop = (
+            previous_playbackLoop
+        )
+        rt.timeConfiguration.realTimePlayback = (
+            previous_realtime_playback
+        )
+        rt.currentTime.frame = previous_current_frame

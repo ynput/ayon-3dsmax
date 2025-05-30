@@ -125,3 +125,19 @@ class ValidateTyCacheFrameRange(ValidateFrameRange):
         if rt.hasProperty(operator, "exportMode"):
             operator.frameStart = frame_start_handle
             operator.frameEnd = frame_end_handle
+
+
+class ValidateTyVDBFrameRange(ValidateFrameRange):
+    label = "Validate Frame Range (TyFlow VDB)"
+    families = ["tyflow_vdb"]
+    optional = True
+
+    @classmethod
+    def repair(cls, instance):
+        frame_range = get_frame_range()
+        frame_start_handle = frame_range["frameStartHandle"]
+        frame_end_handle = frame_range["frameEndHandle"]
+        operator = instance.data["operator"]
+        if rt.hasProperty(operator, "gridsSDF"):
+            operator.timingIntervalStart = frame_start_handle
+            operator.timingIntervalEnd = frame_end_handle

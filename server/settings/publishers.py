@@ -92,6 +92,10 @@ class PublishersModel(BaseSettingsModel):
         default_factory=BasicValidateModel,
         title="Validate Frame Range (TyCache)"
     )
+    ValidateTyVDBFrameRange: BasicValidateModel = SettingsField(
+        default_factory=BasicValidateModel,
+        title="Validate Frame Range (TyFlow VDB)"
+    )
     ValidateAttributes: ValidateAttributesModel = SettingsField(
         default_factory=ValidateAttributesModel,
         title="Validate Attributes"
@@ -160,6 +164,11 @@ DEFAULT_PUBLISH_SETTINGS = {
     },
     "ValidateTyCacheFrameRange": {
         "enabled": False,
+        "optional": True,
+        "active": True
+    },
+    "ValidateTyVDBFrameRange": {
+        "enabled": True,
         "optional": True,
         "active": True
     },
