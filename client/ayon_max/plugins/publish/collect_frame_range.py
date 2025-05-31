@@ -12,7 +12,8 @@ class CollectFrameRange(pyblish.api.InstancePlugin):
     families = ["camera", "maxrender",
                 "pointcache", "pointcloud",
                 "review", "tycache",
-                "tyspline", "redshiftproxy"]
+                "tyspline", "redshiftproxy",
+                "vdb"]
 
     def process(self, instance):
         if instance.data["productType"] == "maxrender":
@@ -23,6 +24,10 @@ class CollectFrameRange(pyblish.api.InstancePlugin):
             operator = instance.data["operator"]
             instance.data["frameStartHandle"] = rt.getProperty(operator, "frameStart")
             instance.data["frameEndHandle"] = rt.getProperty(operator, "frameEnd")
+        elif instance.data["productType"] == "vdb" and instance.data.get("is_tyflow", False):
+            operator = instance.data["operator"]
+            instance.data["frameStartHandle"] = rt.getProperty(operator, "timingIntervalStart")
+            instance.data["frameEndHandle"] = rt.getProperty(operator, "timingIntervalEnd")
         else:
             instance.data["frameStartHandle"] = int(rt.animationRange.start)
             instance.data["frameEndHandle"] = int(rt.animationRange.end)
