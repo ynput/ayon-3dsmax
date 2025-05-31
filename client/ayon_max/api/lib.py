@@ -653,7 +653,7 @@ def suspended_refresh():
 
 
 @contextlib.contextmanager
-def animation_range_without_loop():
+def animation_range_without_loop(frameStart, frameEnd):
     """Ensure animation range is played without
     loop during context
     """
@@ -663,9 +663,13 @@ def animation_range_without_loop():
     previous_realtime_playback = (
         rt.timeConfiguration.realTimePlayback
     )
+    previous_animation_range = (
+        rt.animationRange
+    )
     previous_current_frame = rt.currentTime.frame
     rt.timeConfiguration.playbackLoop = False
     rt.timeConfiguration.realTimePlayback = True
+    set_timeline(frameStart, frameEnd)
     try:
         yield
 
@@ -677,3 +681,4 @@ def animation_range_without_loop():
             previous_realtime_playback
         )
         rt.currentTime.frame = previous_current_frame
+        rt.animationRange = previous_animation_range

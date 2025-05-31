@@ -13,7 +13,7 @@ class CollectMembers(pyblish.api.InstancePlugin):
 
     def process(self, instance):
         if instance.data["productType"] in {
-            "workfile", "tyflow", "tycache", "tyspline"}:
+            "workfile", "tyflow", "tycache", "tyspline", "tyflow_vdb"}:
                 self.log.debug(
                     "Skipping Collecting Members for workfile "
                     "and tyflow product type."

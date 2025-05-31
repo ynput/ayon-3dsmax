@@ -2,14 +2,16 @@ import pyblish.api
 import re
 import copy
 from ayon_core.lib import BoolDef
+from ayon_core.pipeline.publish import AYONPyblishPluginMixin
 from ayon_max.api.lib import get_tyflow_export_operators
 from pymxs import runtime as rt
 
 
-class CollectTyFlowVDBData(pyblish.api.InstancePlugin):
+class CollectTyFlowVDBData(pyblish.api.InstancePlugin,
+                           AYONPyblishPluginMixin):
     """Collect TyFlow Attributes for VDB Export"""
 
-    order = pyblish.api.CollectorOrder + 0.005
+    order = pyblish.api.CollectorOrder + 0.0101
     label = "Collect TyFlow VDB attribute Data"
     hosts = ['max']
     families = ["tyflow_vdb"]
@@ -41,7 +43,7 @@ class CollectTyFlowVDBData(pyblish.api.InstancePlugin):
             prod_name = re.sub(r"\s+", "_", vdb_product_name)
             operator = next((
                     node for node in 
-                    get_tyflow_export_operators(operator="exportVDB")
+                    get_tyflow_export_operators(operator_type="exportVDB")
                     if node.name == vdb_product_name),
                     None
             )

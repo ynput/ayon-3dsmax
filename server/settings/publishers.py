@@ -168,7 +168,7 @@ DEFAULT_PUBLISH_SETTINGS = {
         "active": True
     },
     "ValidateTyVDBFrameRange": {
-        "enabled": True,
+        "enabled": False,
         "optional": True,
         "active": True
     },

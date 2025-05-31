@@ -55,10 +55,10 @@ class ExtractTyFlowVDB(publish.Extractor):
 
         with contextlib.ExitStack() as stack:
             stack.enter_context(maintained_selection())
-            stack.enter_context(animation_range_without_loop())
-            self._extract_tyflow_vdb(
-                operator, start_frame, end_frame, path
+            stack.enter_context(
+                animation_range_without_loop(start_frame, end_frame)
             )
+            self._extract_tyflow_vdb(operator, path)
 
         representation = {
             "name": "vdb",
@@ -92,11 +92,11 @@ class ExtractTyFlowVDB(publish.Extractor):
         """
         filenames = []
         for frame in range(int(start_frame), int(end_frame) + 1):
-            filename = f"{product_name}_{frame:05}.tyc"
+            filename = f"{product_name}_{frame:05}.vdb"
             filenames.append(filename)
         return filenames
 
-    def _extract_tyflow_vdb(self, operator, frameStart, frameEnd, filepath):
+    def _extract_tyflow_vdb(self, operator, filepath):
         """Exports VDB with the necessary export settings
 
         Args:
@@ -107,8 +107,6 @@ class ExtractTyFlowVDB(publish.Extractor):
 
         """
         export_settings = {
-            "timingIntervalStart": int(frameStart),
-            "timingIntervalEnd": int(frameEnd),
             "autoExport": True,
             "filename": filepath.replace("\\", "/"),
         }

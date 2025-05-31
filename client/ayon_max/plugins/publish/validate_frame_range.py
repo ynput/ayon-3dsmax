@@ -141,3 +141,4 @@ class ValidateTyVDBFrameRange(ValidateFrameRange):
         if rt.hasProperty(operator, "gridsSDF"):
             operator.timingIntervalStart = frame_start_handle
             operator.timingIntervalEnd = frame_end_handle
+        set_timeline(frame_start_handle, frame_end_handle)
