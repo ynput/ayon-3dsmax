@@ -27,22 +27,22 @@ class CollectTyFlowVDBData(pyblish.api.InstancePlugin):
         context = instance.context
         container_name = instance.data["instance_node"]
         container = rt.GetNodeByName(container_name)
-        tyc_product_names = [
+        vdb_product_names = [
             name for name
-            in container.modifiers[0].AYONTyCacheData.tyc_exports
+            in container.modifiers[0].AYONTyFlowVDBData.vdb_exports
         ]
         attr_values = self.get_attr_values_from_data(instance.data)
-        for tyc_product_name in tyc_product_names:
-            self.log.debug(f"Creating instance for operator:{tyc_product_name}")
-            tyc_instance = context.create_instance(tyc_product_name)
+        for vdb_product_name in vdb_product_names:
+            self.log.debug(f"Creating instance for operator:{vdb_product_name}")
+            tyc_instance = context.create_instance(vdb_product_name)
             tyc_instance[:] = instance[:]
             tyc_instance.data.update(copy.deepcopy(dict(instance.data)))
             # Replace all runs of whitespace with underscore
-            prod_name = re.sub(r"\s+", "_", tyc_product_name)
+            prod_name = re.sub(r"\s+", "_", vdb_product_name)
             operator = next((
                     node for node in 
                     get_tyflow_export_operators(operator="exportVDB")
-                    if node.name == tyc_product_name),
+                    if node.name == vdb_product_name),
                     None
             )
             tyc_instance.data.update({

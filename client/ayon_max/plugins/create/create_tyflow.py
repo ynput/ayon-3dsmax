@@ -13,7 +13,7 @@ class CreateTyFlow(plugin.MaxCacheCreator):
 
 class CreateTyVDB(plugin.MaxTyflowVDBCacheCreator):
     """Creator plugin for TyFlow VDB."""
-    identifier = "io.ayon.creators.max.tyvdb"
+    identifier = "io.ayon.creators.max.vdb"
     label = "VDB (TyFlow)"
     product_type = "tyflow_vdb"
     icon = "gear"

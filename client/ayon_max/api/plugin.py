@@ -525,7 +525,7 @@ class MaxCreator(Creator, MaxCreatorBase):
         ]
 
 
-class MaxCacheCreator(Creator, MaxCreatorBase):
+class MaxCacheCreator(MaxCreator):
     settings_category = "max"
 
     def create(self, product_name, instance_data, pre_create_data):
@@ -556,13 +556,13 @@ class MaxCacheCreator(Creator, MaxCreatorBase):
         return []
 
 
-class MaxTyflowVDBCacheCreator(Creator, MaxCreatorBase):
+class MaxTyflowVDBCacheCreator(MaxCreator):
     settings_category = "max"
 
     def create(self, product_name, instance_data, pre_create_data):
         tyflow_op_nodes = get_tyflow_export_operators(operator_type="exportVDB")
         if not tyflow_op_nodes:
-            raise CreatorError("No Export Particle Operators"
+            raise CreatorError("No Export VDB Operators"
                                " found in tyCache Editor.")
         instance_node = self.create_instance_node(
             product_name, attribute="ty_vdb_data")
