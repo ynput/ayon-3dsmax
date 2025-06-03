@@ -71,7 +71,7 @@ class RenderProducts(object):
                 "ART_Renderer",
                 "Default_Scanline_Renderer",
                 "Quicksilver_Hardware_Renderer",
-            ]:
+            ] and renderer.startswith("V_Ray_"):
                 render_name = self.get_render_elements_name()
                 if render_name:
                     for name in render_name:
@@ -110,16 +110,6 @@ class RenderProducts(object):
                                 filename, name, start_frame,
                                 end_frame, ext)
                         })
-            elif renderer.startswith("V_Ray_"):
-                if ext != "exr":
-                    render_name = self.get_render_elements_name()
-                    if render_name:
-                        for name in render_name:
-                            aovs_frames.update({
-                                f"{camera}_{name}": self.get_expected_aovs(
-                                    filename, name, start_frame,
-                                    end_frame, ext)
-                            })
 
         return aovs_frames
 
@@ -142,7 +132,7 @@ class RenderProducts(object):
             "ART_Renderer",
             "Default_Scanline_Renderer",
             "Quicksilver_Hardware_Renderer",
-        ]:
+        ] and renderer.startswith("V_Ray_"):
             render_name = self.get_render_elements_name()
             if render_name:
                 for name in render_name:
@@ -182,16 +172,6 @@ class RenderProducts(object):
                             output_file, name, start_frame,
                             end_frame, img_fmt)
                     })
-        elif renderer.startswith("V_Ray_"):
-            if img_fmt != "exr":
-                render_name = self.get_render_elements_name()
-                if render_name:
-                    for name in render_name:
-                        render_dict.update({
-                            name: self.get_expected_aovs(
-                                output_file, name, start_frame,
-                                end_frame, img_fmt)      # noqa
-                        })
 
         return render_dict
 
