@@ -13,6 +13,27 @@ from ayon_max.api.lib import (
 )
 
 
+# Note that V-Ray is handled as a special case
+# in the `is_supported_renderer` function
+SUPPORTED_RENDERERS = {
+    "ART_Renderer",
+    "Redshift_Renderer",
+    "Default_Scanline_Renderer",
+    "Quicksilver_Hardware_Renderer",
+}
+
+def is_supported_renderer(renderer_name: str) -> bool:
+    """Whether ayon-max supports the relevant renderer."""
+    if renderer_name in SUPPORTED_RENDERERS:
+        return True
+    if renderer_name.startswith("V_Ray_"):
+        # V-Ray renderer name keeps changing, like
+        # 'V_Ray_6_Hotfix_3' and 'V_Ray_GPU_6_Hotfix_3'
+        # so we consider all V-Ray releases supported
+        return True
+    return False
+
+
 class RenderSettings(object):
 
     log = Logger.get_logger("RenderSettings")
@@ -91,14 +112,7 @@ class RenderSettings(object):
         if renderer == "Arnold":
             self.arnold_setup()
 
-        if renderer in [
-            "ART_Renderer",
-            "Redshift_Renderer",
-            "V_Ray_6_Hotfix_3",
-            "V_Ray_GPU_6_Hotfix_3",
-            "Default_Scanline_Renderer",
-            "Quicksilver_Hardware_Renderer",
-        ]:
+        if is_supported_renderer(renderer):
             self.render_element_layer(output, width, height, img_fmt)
 
         multipass_enabled = get_multipass_setting(setting)
@@ -108,8 +122,7 @@ class RenderSettings(object):
 
         rt.rendSaveFile = True
 
-        if rt.renderSceneDialog.isOpen():
-            rt.renderSceneDialog.close()
+        rt.renderSceneDialog.update()
 
     def arnold_setup(self):
         # get Arnold RenderView run in the background
