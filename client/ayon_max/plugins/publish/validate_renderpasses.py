@@ -179,6 +179,5 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
         container = instance.data.get("instance_node")
         # TODO: need to rename the function of render_output
         RenderSettings().render_output(container)
-        rt.renderSceneDialog.update()
         cls.log.debug("Finished repairing the render output "
                       "folder and filenames.")
