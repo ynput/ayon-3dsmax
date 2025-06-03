@@ -71,7 +71,7 @@ class RenderProducts(object):
                 "ART_Renderer",
                 "Default_Scanline_Renderer",
                 "Quicksilver_Hardware_Renderer",
-            ] or renderer.startswith("V_Ray_"):
+            ]:
                 render_name = self.get_render_elements_name()
                 if render_name:
                     for name in render_name:
