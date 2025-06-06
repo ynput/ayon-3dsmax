@@ -61,7 +61,6 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         self._has_been_setup = True
         self._register_callbacks()
 
-
     def workfile_has_unsaved_changes(self):
         return rt.getSaveRequired()
 
@@ -149,11 +148,6 @@ attributes "OpenPypeContext"
         if not context:
             context = "{}"
         return json.loads(context)
-
-    def save_file(self, dst_path=None):
-        # Force forwards slashes to avoid segfault
-        dst_path = dst_path.replace("\\", "/")
-        rt.saveMaxFile(dst_path)
 
 
 def parse_container(container):
