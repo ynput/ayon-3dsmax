@@ -129,7 +129,7 @@ class ValidateTyCacheFrameRange(ValidateFrameRange):
 
 class ValidateTyVDBFrameRange(ValidateFrameRange):
     label = "Validate Frame Range (TyFlow VDB)"
-    families = ["tyflow_vdb"]
+    families = ["vdb_frame_validation"]
     optional = True
 
     @classmethod

@@ -48,24 +48,24 @@ class CollectTyFlowVDBData(pyblish.api.InstancePlugin,
                     None
             )
             tyc_instance.data.update({
-                "name": f"{container_name}_{prod_name}",
-                "label": f"{container_name}_{prod_name}",
-                "family": "vdb",
-                "families": ["vdb"],
-                "productName": f"{container_name}_{prod_name}",
+                "name": f"{prod_name}",
+                "label": f"{prod_name}",
+                "family": "vdbcache",
+                "families": ["vdbcache"],
+                "productName": f"{prod_name}",
                 # get the name of operator for the export
                 "operator": operator,
-                "productType": "vdb",
+                "productType": "vdbcache",
                 # make sure the tyflow vdb extractor would not be triggered
                 # when the non-tyflow vdb workflow is adopted by the user
                 # in the future
                 "is_tyflow": True,
-                "publish_attributes": {
-                    "ValidateTyVDBFrameRange": {
-                        "active": attr_values.get("has_frame_range_validator")}
-                }
             })
             instance.append(tyc_instance)
+            if attr_values.get("has_frame_range_validator",
+                               self.validate_tyvdb_frame_range):
+
+                instance.data["families"] += "vdb_frame_validation"
 
     @classmethod
     def get_attribute_defs(cls):
