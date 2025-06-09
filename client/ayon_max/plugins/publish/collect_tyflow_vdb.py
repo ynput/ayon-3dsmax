@@ -65,7 +65,7 @@ class CollectTyFlowVDBData(pyblish.api.InstancePlugin,
             if attr_values.get("has_frame_range_validator",
                                self.validate_tyvdb_frame_range):
 
-                instance.data["families"] += "vdb_frame_validation"
+                instance.data["families"].append("vdb_frame_validation")
 
     @classmethod
     def get_attribute_defs(cls):

@@ -130,7 +130,6 @@ class ValidateTyCacheFrameRange(ValidateFrameRange):
 class ValidateTyVDBFrameRange(ValidateFrameRange):
     label = "Validate Frame Range (TyFlow VDB)"
     families = ["vdb_frame_validation"]
-    optional = True
 
     @classmethod
     def repair(cls, instance):
