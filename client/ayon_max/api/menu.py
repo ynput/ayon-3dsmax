@@ -5,6 +5,10 @@ from qtpy import QtWidgets, QtCore
 from pymxs import runtime as rt
 
 from ayon_core.tools.utils import host_tools
+from ayon_core.pipeline import (
+    get_current_folder_path,
+    get_current_task_name
+)
 from ayon_max.api import lib
 
 
@@ -88,6 +92,11 @@ class AYONMenu(object):
     def _build_ayon_menu(self) -> QtWidgets.QAction:
         """Build items in AYON menu."""
         ayon_menu = self._get_or_create_ayon_menu()
+
+        context_label = self.get_context_label()
+        context_action = QtWidgets.QLabel(f"{context_label}", ayon_menu)
+        ayon_menu.addAction(context_action)
+
         load_action = QtWidgets.QAction("Load...", ayon_menu)
         load_action.triggered.connect(self.load_callback)
         ayon_menu.addAction(load_action)
@@ -129,6 +138,12 @@ class AYONMenu(object):
         ayon_menu.addAction(unit_scale_action)
 
         return ayon_menu
+
+    def get_context_label(self):
+        return "{}, {}".format(
+            get_current_folder_path(),
+            get_current_task_name()
+        )
 
     def load_callback(self):
         """Callback to show Loader tool."""
