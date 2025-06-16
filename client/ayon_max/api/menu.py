@@ -94,7 +94,8 @@ class AYONMenu(object):
         ayon_menu = self._get_or_create_ayon_menu()
 
         context_label = self.get_context_label()
-        context_action = QtWidgets.QLabel(f"{context_label}", ayon_menu)
+        context_action = QtWidgets.QAction(f"{context_label}", ayon_menu)
+        context_action.setEnabled(False)
         ayon_menu.addAction(context_action)
 
         load_action = QtWidgets.QAction("Load...", ayon_menu)
