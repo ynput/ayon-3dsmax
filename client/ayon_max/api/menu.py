@@ -88,6 +88,12 @@ class AYONMenu(object):
     def _build_ayon_menu(self) -> QtWidgets.QAction:
         """Build items in AYON menu."""
         ayon_menu = self._get_or_create_ayon_menu()
+
+        context_label = lib.get_context_label()
+        context_action = QtWidgets.QAction(f"{context_label}", ayon_menu)
+        context_action.setEnabled(False)
+        ayon_menu.addAction(context_action)
+
         load_action = QtWidgets.QAction("Load...", ayon_menu)
         load_action.triggered.connect(self.load_callback)
         ayon_menu.addAction(load_action)

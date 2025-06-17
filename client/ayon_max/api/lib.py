@@ -8,7 +8,9 @@ from typing import Any, Dict, Union
 
 from ayon_core.pipeline import (
     get_current_project_name,
-    colorspace
+    get_current_folder_path,
+    get_current_task_name,
+    colorspace,
 )
 from ayon_core.tools.utils import SimplePopup
 from ayon_core.settings import get_project_settings
@@ -446,6 +448,14 @@ def check_colorspace():
                 dialog.setStyleSheet(load_stylesheet())
                 dialog.on_clicked.connect(reset_colorspace)
                 dialog.show()
+
+
+def get_context_label():
+    return "{}, {}".format(
+        get_current_folder_path(),
+        get_current_task_name()
+    )
+
 
 def unique_namespace(namespace, format="%02d",
                      prefix="", suffix="", con_suffix="CON"):
