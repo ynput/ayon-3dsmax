@@ -89,6 +89,7 @@ class MaxSceneLoader(load.LoaderPlugin):
         "useSceneMtlDups": "Use Scene Material",
         "renameMtlDups": "Merge and Rename Incoming Material"
         }
+
     @classmethod
     def get_options(cls, contexts):
         return [
