@@ -24,7 +24,7 @@ class CollectFrameRange(pyblish.api.InstancePlugin):
             operator = instance.data["operator"]
             instance.data["frameStartHandle"] = rt.getProperty(operator, "frameStart")
             instance.data["frameEndHandle"] = rt.getProperty(operator, "frameEnd")
-        elif instance.data["productType"] == "vdb" and instance.data.get("is_tyflow", False):
+        elif "tyflow_vdb" in instance.data["families"]:
             operator = instance.data["operator"]
             instance.data["frameStartHandle"] = rt.getProperty(operator, "timingIntervalStart")
             instance.data["frameEndHandle"] = rt.getProperty(operator, "timingIntervalEnd")

@@ -13,7 +13,10 @@ class CreateTyFlow(plugin.MaxCacheCreator):
 
 class CreateTyVDB(plugin.MaxTyflowVDBCacheCreator):
     """Creator plugin for TyFlow VDB."""
-    identifier = "io.ayon.creators.max.vdb"
+    identifier = "io.ayon.creators.max.vdbcache"
     label = "VDB (TyFlow)"
-    product_type = "tyflow_vdb"
+    product_type = "vdbcache"
     icon = "gear"
+
+    def get_publish_families(self):
+        return ["vdbcache", "tyflow_vdb"]

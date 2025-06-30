@@ -567,6 +567,7 @@ class MaxTyflowVDBCacheCreator(MaxCreator):
         instance_node = self.create_instance_node(
             product_name, attribute="ty_vdb_data")
         instance_data["instance_node"] = instance_node.name
+        instance_data["families"] = self.get_publish_families()
         instance = CreatedInstance(
             self.product_type,
             product_name,
@@ -585,4 +586,19 @@ class MaxTyflowVDBCacheCreator(MaxCreator):
         return instance
 
     def get_pre_create_attr_defs(self):
+        return []
+
+    def get_publish_families(self):
+        """Return families for the instances of this creator.
+
+        Allow a Creator to define multiple families so that a creator can
+        e.g. specify `vdb` and `tyflow_vdb`.
+
+        There is no need to override this method if you only have the
+        primary family defined by the `product_type` property as that will
+        always be set.
+
+        Returns:
+            List[str]: families for instances of this creator
+        """
         return []

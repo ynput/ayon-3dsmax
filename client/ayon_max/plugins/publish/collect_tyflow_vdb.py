@@ -14,7 +14,7 @@ class CollectTyFlowVDBData(pyblish.api.InstancePlugin,
     order = pyblish.api.CollectorOrder + 0.0101
     label = "Collect TyFlow VDB attribute Data"
     hosts = ['max']
-    families = ["tyflow_vdb"]
+    families = ["vabcache"]
     validate_tyvdb_frame_range = True
 
     @classmethod
@@ -51,15 +51,10 @@ class CollectTyFlowVDBData(pyblish.api.InstancePlugin,
                 "name": f"{prod_name}",
                 "label": f"{prod_name}",
                 "family": "vdbcache",
-                "families": ["vdbcache"],
                 "productName": f"{prod_name}",
                 # get the name of operator for the export
                 "operator": operator,
-                "productType": "vdbcache",
-                # make sure the tyflow vdb extractor would not be triggered
-                # when the non-tyflow vdb workflow is adopted by the user
-                # in the future
-                "is_tyflow": True,
+                "productType": "vdbcache"
             })
             instance.append(tyc_instance)
             if attr_values.get("has_frame_range_validator",

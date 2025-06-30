@@ -29,15 +29,9 @@ class ExtractTyFlowVDB(publish.Extractor):
     order = pyblish.api.ExtractorOrder - 0.2
     label = "Extract VDB (TyFlow)"
     hosts = ["max"]
-    families = ["vdb"]
+    families = ["tyflow_vdb"]
 
     def process(self, instance):
-        if not instance.data.get("is_tyflow", False):
-            self.log.debug(
-                "Skipping instances due to non-tyflow VDB workflow used."
-            )
-            return
-
         self.log.debug("Extracting VDB...")
 
         stagingdir = self.staging_dir(instance)
