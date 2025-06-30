@@ -7,7 +7,10 @@ from ayon_core.pipeline.publish import (
     PublishValidationError,
     OptionalPyblishPluginMixin
 )
-from ayon_max.api.lib_rendersettings import RenderSettings
+from ayon_max.api.lib_rendersettings import (
+    RenderSettings,
+    is_supported_renderer
+)
 
 
 class ValidateRenderPasses(OptionalPyblishPluginMixin,
@@ -91,14 +94,7 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
             instance, ext.lstrip("."))
         invalid.extend(invalid_image_format)
         renderer = instance.data["renderer"]
-        if renderer in [
-            "ART_Renderer",
-            "Redshift_Renderer",
-            "V_Ray_6_Hotfix_3",
-            "V_Ray_GPU_6_Hotfix_3",
-            "Default_Scanline_Renderer",
-            "Quicksilver_Hardware_Renderer",
-        ]:
+        if is_supported_renderer(renderer):
             render_elem = rt.maxOps.GetCurRenderElementMgr()
             render_elem_num = render_elem.NumRenderElements()
             for i in range(render_elem_num):

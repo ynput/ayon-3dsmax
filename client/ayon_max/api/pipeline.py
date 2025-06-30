@@ -58,9 +58,9 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
 
         register_event_callback("workfile.open.before", on_before_open)
         register_event_callback("workfile.open.after", on_after_open)
+        register_event_callback("taskChanged", self.on_task_changed)
         self._has_been_setup = True
         self._register_callbacks()
-
 
     def workfile_has_unsaved_changes(self):
         return rt.getSaveRequired()
@@ -150,10 +150,16 @@ attributes "OpenPypeContext"
             context = "{}"
         return json.loads(context)
 
-    def save_file(self, dst_path=None):
-        # Force forwards slashes to avoid segfault
-        dst_path = dst_path.replace("\\", "/")
-        rt.saveMaxFile(dst_path)
+    def on_task_changed(self):
+        if lib.is_headless():
+            return
+
+        ayon_menu = self.menu.menu
+        if ayon_menu is not None:
+            actions = ayon_menu.actions()
+            context_action = actions[0]
+            context_label = lib.get_context_label()
+            context_action.setText(f"{context_label}")
 
 
 def parse_container(container):
