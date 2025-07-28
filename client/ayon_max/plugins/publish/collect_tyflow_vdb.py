@@ -11,10 +11,10 @@ class CollectTyFlowVDBData(pyblish.api.InstancePlugin,
                            AYONPyblishPluginMixin):
     """Collect TyFlow Attributes for VDB Export"""
 
-    order = pyblish.api.CollectorOrder + 0.0101
+    order = pyblish.api.CollectorOrder + 0.005
     label = "Collect TyFlow VDB attribute Data"
     hosts = ['max']
-    families = ["vabcache"]
+    families = ["tyflow_vdb"]
     validate_tyvdb_frame_range = True
 
     @classmethod
@@ -61,6 +61,9 @@ class CollectTyFlowVDBData(pyblish.api.InstancePlugin,
                                self.validate_tyvdb_frame_range):
 
                 instance.data["families"].append("vdb_frame_validation")
+
+        # Skip integrating original instance.
+        instance.data["integrate"] = False
 
     @classmethod
     def get_attribute_defs(cls):

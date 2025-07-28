@@ -13,7 +13,7 @@ class CollectFrameRange(pyblish.api.InstancePlugin):
                 "pointcache", "pointcloud",
                 "review", "tycache",
                 "tyspline", "redshiftproxy",
-                "vdb"]
+                "vdbcache"]
 
     def process(self, instance):
         if instance.data["productType"] == "maxrender":
