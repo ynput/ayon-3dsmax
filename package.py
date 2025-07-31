@@ -3,7 +3,6 @@ title = "Max"
 version = "0.2.11+dev"
 app_host_name = "max"
 client_dir = "ayon_max"
-
 project_can_override_addon_version = True
 
 ayon_server_version = ">=1.1.2"
