@@ -26,6 +26,8 @@ class CollectRender(pyblish.api.InstancePlugin):
         current_file = os.path.join(folder, file)
         filepath = current_file.replace("\\", "/")
         context.data['currentFile'] = current_file
+        renderer_class = get_current_renderer()
+        renderer = str(renderer_class).split(":")[0]
 
         files_by_aov = RenderProducts().get_beauty(instance.name)
         aovs = RenderProducts().get_aovs(instance.name)
@@ -45,6 +47,13 @@ class CollectRender(pyblish.api.InstancePlugin):
             if not cameras:
                 raise KnownPublishError("There should be at least"
                                         " one renderable camera in container")
+            if renderer.startswith("V_Ray_"):
+                # V-Ray raw render output and render element output are read-only
+                # data. They are not allowed to be edited.
+                raise KnownPublishError(
+                    "Multi-camera options are not supported a"
+                    "for V-Ray render due to API limitation"
+                )
             sel_cam = [
                 c.name for c in cameras
                 if rt.classOf(c) in rt.Camera.classes]
@@ -89,8 +98,6 @@ class CollectRender(pyblish.api.InstancePlugin):
         instance.data["renderProducts"] = colorspace.ARenderProduct()
         instance.data["publishJobState"] = "Suspended"
         instance.data["attachTo"] = []
-        renderer_class = get_current_renderer()
-        renderer = str(renderer_class).split(":")[0]
         product_type = "maxrender"
         # also need to get the render dir for conversion
         data = {
