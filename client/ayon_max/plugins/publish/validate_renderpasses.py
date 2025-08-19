@@ -73,6 +73,14 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
                 with the project name
         """
         invalid = []
+        renderer = instance.data["renderer"]
+        if renderer.startswith("V_Ray_"):
+            cls.log.debug(
+                "Renderpass validation does not support V-Ray yet as render "
+                "output is only read-only property, not for editing"
+                " validation skipped...")
+            return invalid
+
         file = rt.maxFileName
         workfile_name, ext = os.path.splitext(file)
         if workfile_name not in rt.rendOutputFilename:
@@ -93,7 +101,6 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
         invalid_image_format = cls.get_invalid_image_format(
             instance, ext.lstrip("."))
         invalid.extend(invalid_image_format)
-        renderer = instance.data["renderer"]
         if is_supported_renderer(renderer):
             render_elem = rt.maxOps.GetCurRenderElementMgr()
             render_elem_num = render_elem.NumRenderElements()
