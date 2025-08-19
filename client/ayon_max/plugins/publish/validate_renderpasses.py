@@ -77,7 +77,7 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
         if renderer.startswith("V_Ray_"):
             cls.log.debug(
                 "Renderpass validation does not support V-Ray yet as render "
-                "output is only read-only property, not for editing"
+                "output is only read-only property, not for editing."
                 " validation skipped...")
             return invalid
 
