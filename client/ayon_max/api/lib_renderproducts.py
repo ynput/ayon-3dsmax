@@ -287,7 +287,9 @@ class RenderProducts(object):
 
             for frame_num in range(start_frame, end_frame):
                 frame = f"{frame_num:04d}"
-                render_element = f"{raw_directory}/{raw_fname}.{n}.{frame}.{fmt}"
+                render_element = (
+                    f"{raw_directory}/{raw_fname}.{name}.{frame}.{fmt}"
+                )
                 render_elements.append(render_element.replace("\\", "/"))
         else:
             for frame_num in range(start_frame, end_frame):
