@@ -93,7 +93,7 @@ class RenderProducts(object):
                             aovs_frames.update({
                                 f"{camera}_{name}": self.get_expected_aovs(
                                 filename, name, start_frame,
-                                end_frame, ext)
+                                end_frame, ext, renderer)
                         })
             elif renderer == "Redshift_Renderer":
                 render_name = self.get_render_elements_name()
@@ -123,7 +123,7 @@ class RenderProducts(object):
                         aovs_frames.update({
                             f"{camera}_{name}": self.get_expected_arnold_product(   # noqa
                                 filename, name, start_frame,
-                                end_frame, ext)
+                                end_frame, ext, renderer)
                         })
 
         return aovs_frames
@@ -147,7 +147,7 @@ class RenderProducts(object):
             "ART_Renderer",
             "Default_Scanline_Renderer",
             "Quicksilver_Hardware_Renderer",
-        ] and renderer.startswith("V_Ray_"):
+        ]:
             render_name = self.get_render_elements_name()
             if render_name:
                 for name in render_name:
@@ -162,6 +162,9 @@ class RenderProducts(object):
                 render_name = self.get_render_elements_name()
                 if renderer_class.output_splitAlpha:
                     render_name.append("Alpha")
+                # Add RGB_Color suffix if splitgbuffer is enabled
+                if renderer_class.output_splitRGB:
+                    render_name.append("RGB_Color")
 
                 if render_name:
                     for name in render_name:
@@ -214,11 +217,6 @@ class RenderProducts(object):
         if renderer.startswith("V_Ray_"):
             vr_renderer = get_current_renderer()
             raw_directory, raw_fname = self.get_vray_render_files(vr_renderer)
-
-            # Add RGB_Color suffix if splitgbuffer is enabled
-            if vr_renderer.output_splitgbuffer and vr_renderer.output_splitRGB:
-                raw_fname = f"{raw_fname}.RGB_Color"
-
             for frame_num in range(start_frame, end_frame):
                 frame = f"{frame_num:04d}"
                 output_path = f"{raw_directory}/{raw_fname}.{frame}.{fmt}"

@@ -112,12 +112,12 @@ class RenderSettings(object):
             self.render_element_layer(output, width, height, img_fmt)
 
         elif renderer.startswith("V_Ray_"):
-            if not renderer.output_saverawfile:
+            if not renderer_class.output_saverawfile:
                 raise RuntimeError(
                     "Make sure 'V-Ray raw image file` turned on "
                     "for V-Ray renderer"
                 )
-            if not renderer.output_rawfilename:
+            if not renderer_class.output_rawfilename:
                 raise RuntimeError(
                     "Make sure 'V-Ray raw image file output` has "
                     "been filled for V-Ray renderer"
