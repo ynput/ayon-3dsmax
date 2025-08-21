@@ -155,7 +155,6 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
         if renderpass is not None and render_filename is not None:
             renderpass_token = f"{renderpass}.{ext}"
             if not render_filename.endswith(renderpass_token):
-                cls.log.error(f"{render_filename}: {renderpass_token}")
                 cls.log.error(
                     f"Filename for {renderpass} should "
                     f"end with {renderpass}: {render_filename}"
