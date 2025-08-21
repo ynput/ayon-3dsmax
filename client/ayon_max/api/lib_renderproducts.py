@@ -307,6 +307,9 @@ class RenderProducts(object):
             str, str: The raw directory and filename for V-Ray renderer.
         """
         raw_filepath = vr_renderer.output_rawfilename
+        if not raw_filepath:
+            raw_filepath = rt.rendOutputFilename
+
         raw_directory = os.path.dirname(raw_filepath)
         raw_filename = os.path.basename(raw_filepath)
         raw_fname, _ = os.path.splitext(raw_filename)
