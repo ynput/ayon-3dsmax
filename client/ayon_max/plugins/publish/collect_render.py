@@ -51,7 +51,7 @@ class CollectRender(pyblish.api.InstancePlugin):
                 # V-Ray raw render output and render element output are read-only
                 # data. They are not allowed to be edited.
                 raise KnownPublishError(
-                    "Multi-camera options are not supported a"
+                    "Multi-camera options are not supported "
                     "for V-Ray render due to API limitation"
                 )
             sel_cam = [
