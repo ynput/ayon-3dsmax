@@ -88,7 +88,6 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
                     "\\", "/").split("/")[-1]
             invalid.append(("Invalid Render Output Folder",
                             invalid_folder_name))
-
         beauty_fname = os.path.basename(rt.rendOutputFilename)
         beauty_name, ext = os.path.splitext(beauty_fname)
         invalid_filenames = cls.get_invalid_filenames(
