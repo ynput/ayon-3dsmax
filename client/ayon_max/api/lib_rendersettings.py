@@ -114,10 +114,12 @@ class RenderSettings(object):
         elif renderer.startswith("V_Ray_"):
             if img_fmt == "exr":
                 renderer_class.V_Ray_settings.output_saverawfile = True
-                renderer_class.output_rawfilename = rt.rendOutputFilename
+                renderer_class.V_Ray_settings.output_rawfilename = (
+                    rt.rendOutputFilename
+                )
 
             else:
-                renderer_class.output_splitfilename = rt.rendOutputFilename
+                renderer_class.V_Ray_settings.output_splitfilename = rt.rendOutputFilename
                 self.render_element_layer(output, width, height, img_fmt)
         # TODO: supports multipass for different renderers
         elif renderer == "Redshift_Renderer":
