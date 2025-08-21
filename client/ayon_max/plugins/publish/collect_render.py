@@ -47,13 +47,6 @@ class CollectRender(pyblish.api.InstancePlugin):
             if not cameras:
                 raise KnownPublishError("There should be at least"
                                         " one renderable camera in container")
-            if renderer.startswith("V_Ray_"):
-                # V-Ray raw render output and render element output are read-only
-                # data. They are not allowed to be edited.
-                raise KnownPublishError(
-                    "Multi-camera options are not supported a"
-                    "for V-Ray render due to API limitation"
-                )
             sel_cam = [
                 c.name for c in cameras
                 if rt.classOf(c) in rt.Camera.classes]

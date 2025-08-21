@@ -281,7 +281,8 @@ class RenderProducts(object):
 
         if renderer.startswith("V_Ray_"):
             vr_renderer = get_current_renderer()
-            raw_directory, raw_fname = self.get_vray_render_files(vr_renderer)
+            raw_directory, raw_fname = self.get_vray_render_files(
+                vr_renderer, is_render_element=True)
 
             for frame_num in range(start_frame, end_frame):
                 frame = f"{frame_num:04d}"
@@ -297,18 +298,20 @@ class RenderProducts(object):
 
         return render_elements
 
-    def get_vray_render_files(self, vr_renderer):
+    def get_vray_render_files(self, vr_renderer, is_render_element=False):
         """Get the raw directory and filename for V-Ray renderer.
 
         Args:
             vr_renderer (str): The V-Ray renderer instance.
+            is_render_element (bool): whether type of output are
+            render element files.
 
         Returns:
             str, str: The raw directory and filename for V-Ray renderer.
         """
-        raw_filepath = vr_renderer.output_rawfilename
-        if not raw_filepath:
-            raw_filepath = rt.rendOutputFilename
+        raw_filepath = vr_renderer.V_Ray_settings.output_rawfilename
+        if not raw_filepath or is_render_element:
+            raw_filepath = vr_renderer.V_Ray_settings.output_splitfilename
 
         raw_directory = os.path.dirname(raw_filepath)
         raw_filename = os.path.basename(raw_filepath)

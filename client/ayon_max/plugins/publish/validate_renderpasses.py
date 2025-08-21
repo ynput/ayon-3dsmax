@@ -74,17 +74,10 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
         """
         invalid = []
         renderer = instance.data["renderer"]
-        beauty_fname = os.path.basename(rt.rendOutputFilename)
-        beauty_name, ext = os.path.splitext(beauty_fname)
-        if renderer.startswith("V_Ray_") and ext == "exr":
-            cls.log.debug(
-                "Renderpass validation does not support V-Ray yet as render "
-                "output is only read-only property, not for editing."
-                " validation skipped...")
-            return invalid
 
         file = rt.maxFileName
         workfile_name, ext = os.path.splitext(file)
+        # we can remove this by using template $scene token afterwards
         if workfile_name not in rt.rendOutputFilename:
             cls.log.error(
                 "Render output folder must include"
@@ -95,6 +88,9 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
                     "\\", "/").split("/")[-1]
             invalid.append(("Invalid Render Output Folder",
                             invalid_folder_name))
+
+        beauty_fname = os.path.basename(rt.rendOutputFilename)
+        beauty_name, ext = os.path.splitext(beauty_fname)
         invalid_filenames = cls.get_invalid_filenames(
             instance, beauty_name, ext)
         invalid.extend(invalid_filenames)
@@ -119,6 +115,7 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
                     render_filename=render_filename)
                 invalid.extend(invalid_filenames)
                 invalid.extend(invalid_image_format)
+
         elif renderer == "Arnold":
             cls.log.debug(
                 "Renderpass validation does not support Arnold yet,"
