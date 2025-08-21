@@ -162,9 +162,9 @@ class RenderProducts(object):
                 render_name = self.get_render_elements_name()
                 if renderer_class.output_splitAlpha:
                     render_name.append("Alpha")
-                # Add RGB_Color suffix if splitgbuffer is enabled
+                # Add RGB_color suffix if splitgbuffer is enabled
                 if renderer_class.output_splitRGB:
-                    render_name.append("RGB_Color")
+                    render_name.append("RGB_color")
 
                 if render_name:
                     for name in render_name:
