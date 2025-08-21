@@ -214,7 +214,7 @@ class RenderProducts(object):
         """Get expected beauty render output file paths for each frame."""
         beauty_frame_range = []
 
-        if renderer.startswith("V_Ray_"):
+        if renderer.startswith("V_Ray_") and fmt == "exr":
             vr_renderer = get_current_renderer()
             raw_directory, raw_fname = self.get_vray_render_files(vr_renderer)
             for frame_num in range(start_frame, end_frame):

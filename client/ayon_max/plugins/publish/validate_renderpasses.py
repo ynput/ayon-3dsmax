@@ -74,7 +74,9 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
         """
         invalid = []
         renderer = instance.data["renderer"]
-        if renderer.startswith("V_Ray_"):
+        beauty_fname = os.path.basename(rt.rendOutputFilename)
+        beauty_name, ext = os.path.splitext(beauty_fname)
+        if renderer.startswith("V_Ray_") and ext == "exr":
             cls.log.debug(
                 "Renderpass validation does not support V-Ray yet as render "
                 "output is only read-only property, not for editing."
@@ -93,8 +95,6 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
                     "\\", "/").split("/")[-1]
             invalid.append(("Invalid Render Output Folder",
                             invalid_folder_name))
-        beauty_fname = os.path.basename(rt.rendOutputFilename)
-        beauty_name, ext = os.path.splitext(beauty_fname)
         invalid_filenames = cls.get_invalid_filenames(
             instance, beauty_name, ext)
         invalid.extend(invalid_filenames)

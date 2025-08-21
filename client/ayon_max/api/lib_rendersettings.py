@@ -112,16 +112,19 @@ class RenderSettings(object):
             self.render_element_layer(output, width, height, img_fmt)
 
         elif renderer.startswith("V_Ray_"):
-            if not renderer_class.output_saverawfile:
-                raise RuntimeError(
-                    "Make sure 'V-Ray raw image file` turned on "
-                    "for V-Ray renderer"
-                )
-            if not renderer_class.output_rawfilename:
-                raise RuntimeError(
-                    "Make sure 'V-Ray raw image file output` has "
-                    "been filled for V-Ray renderer"
-                )
+            if img_fmt == "exr":
+                if not renderer_class.output_saverawfile:
+                    raise RuntimeError(
+                        "Make sure 'V-Ray raw image file` turned on "
+                        "for V-Ray renderer"
+                    )
+                if not renderer_class.output_rawfilename:
+                    raise RuntimeError(
+                        "Make sure 'V-Ray raw image file output` has "
+                        "been filled for V-Ray renderer"
+                    )
+            else:
+                self.render_element_layer(output, width, height, img_fmt)
         # TODO: supports multipass for different renderers
         elif renderer == "Redshift_Renderer":
             rt.renderers.current.separateAovFiles = multipass_enabled
