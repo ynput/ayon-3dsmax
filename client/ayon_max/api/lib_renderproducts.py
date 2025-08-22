@@ -219,7 +219,7 @@ class RenderProducts(object):
             raw_directory, raw_fname = self.get_vray_render_files(vr_renderer)
             for frame_num in range(start_frame, end_frame):
                 frame = f"{frame_num:04d}"
-                output_path = f"{raw_directory}/{raw_fname}.{frame}{fmt}"
+                output_path = f"{raw_directory}/{raw_fname}{frame}.{fmt}"
                 beauty_frame_range.append(output_path.replace("\\", "/"))
         else:
             for frame_num in range(start_frame, end_frame):
