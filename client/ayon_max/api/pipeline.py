@@ -58,6 +58,7 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
 
         register_event_callback("workfile.open.before", on_before_open)
         register_event_callback("workfile.open.after", on_after_open)
+        register_event_callback("before.save", before_save)
         register_event_callback("taskChanged", self.on_task_changed)
         self._has_been_setup = True
         self._register_callbacks()
@@ -264,6 +265,21 @@ def on_after_open():
     """Check and set up unit scale after opening workfile if user enabled.
     """
     lib.validate_unit_scale()
+
+
+def before_save(event):
+    """Check and set up project before saving workfile
+    """
+    max_filename_before: str = rt.maxFileName
+    max_filename_after: str = event.get("filename")
+
+    if not max_filename_before:
+        # Saving from a new unsaved file, no need to check for changes.
+        return
+
+    if max_filename_before != max_filename_after:
+        print(f"Detected scene name change from {max_filename_before} to "
+              f"{max_filename_after}")
 
 
 def load_custom_attribute_data():

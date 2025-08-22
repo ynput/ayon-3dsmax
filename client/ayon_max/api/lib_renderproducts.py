@@ -84,17 +84,19 @@ class RenderProducts(object):
                                 end_frame, ext, renderer)
                         })
             elif renderer.startswith("V_Ray_"):
-                if renderer_class.output_splitgbuffer:
-                    render_name = self.get_render_elements_name()
-                    if renderer_class.output_splitAlpha:
-                        render_name.append("Alpha")
-                    if render_name:
-                        for name in render_name:
-                            aovs_frames.update({
-                                f"{camera}_{name}": self.get_expected_aovs(
-                                filename, name, start_frame,
-                                end_frame, ext, renderer)
-                        })
+                if not renderer_class.output_splitgbuffer:
+                    return aovs_frames
+
+                render_name = self.get_render_elements_name()
+                if renderer_class.output_splitAlpha:
+                    render_name.append("Alpha")
+                if render_name:
+                    for name in render_name:
+                        aovs_frames.update({
+                            f"{camera}_{name}": self.get_expected_aovs(
+                            filename, name, start_frame,
+                            end_frame, ext, renderer)
+                    })
             elif renderer == "Redshift_Renderer":
                 render_name = self.get_render_elements_name()
                 if render_name:
@@ -123,7 +125,7 @@ class RenderProducts(object):
                         aovs_frames.update({
                             f"{camera}_{name}": self.get_expected_arnold_product(   # noqa
                                 filename, name, start_frame,
-                                end_frame, ext, renderer)
+                                end_frame, ext)
                         })
 
         return aovs_frames
@@ -158,22 +160,24 @@ class RenderProducts(object):
                             renderer)
                     })
         elif renderer.startswith("V_Ray_"):
-            if renderer_class.output_splitgbuffer:
-                render_name = self.get_render_elements_name()
-                if renderer_class.output_splitAlpha:
-                    render_name.append("Alpha")
-                # Add RGB_color suffix if splitgbuffer is enabled
-                if renderer_class.output_splitRGB:
-                    render_name.append("RGB_color")
+            if not renderer_class.output_splitgbuffer:
+                return render_dict
 
-                if render_name:
-                    for name in render_name:
-                        render_dict.update({
-                            name: self.get_expected_aovs(
-                                output_file, name, start_frame,
-                                end_frame, img_fmt,
-                                renderer)
-                        })
+            render_name = self.get_render_elements_name()
+            if renderer_class.output_splitAlpha:
+                render_name.append("Alpha")
+            # Add RGB_color suffix if splitgbuffer is enabled
+            if renderer_class.output_splitRGB:
+                render_name.append("RGB_color")
+
+            if render_name:
+                for name in render_name:
+                    render_dict.update({
+                        name: self.get_expected_aovs(
+                            output_file, name, start_frame,
+                            end_frame, img_fmt,
+                            renderer)
+                    })
         elif renderer == "Redshift_Renderer":
             render_name = self.get_render_elements_name()
             if render_name:
@@ -214,13 +218,14 @@ class RenderProducts(object):
         """Get expected beauty render output file paths for each frame."""
         beauty_frame_range = []
 
-        if renderer.startswith("V_Ray_") and fmt == "exr":
+        if renderer.startswith("V_Ray_"):
             vr_renderer = get_current_renderer()
-            raw_directory, raw_fname = self.get_vray_render_files(vr_renderer)
-            for frame_num in range(start_frame, end_frame):
-                frame = f"{frame_num:04d}"
-                output_path = f"{raw_directory}/{raw_fname}{frame}.{fmt}"
-                beauty_frame_range.append(output_path.replace("\\", "/"))
+            if fmt == "exr":
+                raw_directory, raw_fname = self.get_vray_render_files(vr_renderer)
+                for frame_num in range(start_frame, end_frame):
+                    frame = f"{frame_num:04d}"
+                    output_path = f"{raw_directory}/{raw_fname}.{frame}.{fmt}"
+                    beauty_frame_range.append(output_path.replace("\\", "/"))
         else:
             for frame_num in range(start_frame, end_frame):
                 frame = f"{frame_num:04d}"
@@ -287,7 +292,7 @@ class RenderProducts(object):
             for frame_num in range(start_frame, end_frame):
                 frame = f"{frame_num:04d}"
                 render_element = (
-                    f"{raw_directory}/{raw_fname}.{name}.{frame}.{fmt}"
+                    f"{raw_directory}/{raw_fname}{name}.{frame}.{fmt}"
                 )
                 render_elements.append(render_element.replace("\\", "/"))
         else:
@@ -316,7 +321,7 @@ class RenderProducts(object):
         raw_directory = os.path.dirname(raw_filepath)
         raw_filename = os.path.basename(raw_filepath)
         raw_fname, _ = os.path.splitext(raw_filename)
-        return raw_directory, raw_fname
+        return raw_directory, raw_fname.strip(".")
 
     def image_format(self):
         return self._project_settings["max"]["RenderSettings"]["image_format"]  # noqa
