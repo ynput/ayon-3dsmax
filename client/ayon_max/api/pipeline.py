@@ -280,6 +280,9 @@ def before_save(event):
     if max_filename_before != max_filename_after:
         print(f"Detected scene name change from {max_filename_before} to "
               f"{max_filename_after}")
+    max_filename_before = os.path.splitext(max_filename_before)[0]
+    max_filename_after = os.path.splitext(max_filename_after)[0]
+    lib.reset_render_outputs(max_filename_before, max_filename_after)
 
 
 def load_custom_attribute_data():
