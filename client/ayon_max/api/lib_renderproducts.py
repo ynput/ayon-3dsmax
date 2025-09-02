@@ -314,9 +314,9 @@ class RenderProducts(object):
         Returns:
             str, str: The raw directory and filename for V-Ray renderer.
         """
-        raw_filepath = vr_renderer.V_Ray_settings.output_rawfilename
+        raw_filepath = vr_renderer.output_rawfilename
         if not raw_filepath or is_render_element:
-            raw_filepath = vr_renderer.V_Ray_settings.output_splitfilename
+            raw_filepath = vr_renderer.output_splitfilename
 
         raw_directory = os.path.dirname(raw_filepath)
         raw_filename = os.path.basename(raw_filepath)

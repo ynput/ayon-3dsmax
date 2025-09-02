@@ -112,17 +112,17 @@ class RenderSettings(object):
             self.render_element_layer(output, width, height, img_fmt)
 
         elif renderer.startswith("V_Ray_"):
-            renderer_class.V_Ray_settings.output_splitgbuffer = multipass_enabled
+            if "GPU" in renderer:
+                vr_settings = renderer_class.V_Ray_settings
+            else:
+                vr_settings = renderer_class
+            vr_settings.output_splitgbuffer = multipass_enabled
             if img_fmt == "exr":
-                renderer_class.V_Ray_settings.output_saverawfile = True
-                renderer_class.V_Ray_settings.output_rawfilename = (
-                    rt.rendOutputFilename
-                )
+                vr_settings.output_saverawfile = True
+                vr_settings.output_rawfilename = rt.rendOutputFilename
 
             if multipass_enabled:
-                renderer_class.V_Ray_settings.output_splitfilename = (
-                    rt.rendOutputFilename
-                )
+                vr_settings.output_splitfilename = rt.rendOutputFilename
             self.render_element_layer(output, width, height, img_fmt)
         # TODO: supports multipass for different renderers
         elif renderer == "Redshift_Renderer":

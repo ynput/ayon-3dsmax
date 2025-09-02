@@ -677,12 +677,13 @@ def reset_render_outputs(max_filename_before, max_filename_after):
 
     renderer = get_current_renderer()
     if str(renderer).startswith("V_Ray_"):
-        if renderer.V_Ray_settings.output_saverawfile:
-            renderer.V_Ray_settings.output_rawfilename = (
-                rt.rendOutputFilename
-            )
+        if "GPU" in renderer:
+            vr_settings = renderer.V_Ray_settings
+        else:
+            vr_settings = renderer
 
-        if renderer.V_Ray_settings.output_splitgbuffer:
-            renderer.V_Ray_settings.output_splitfilename = (
-                rt.rendOutputFilename
-            )
+        if vr_settings.output_saverawfile:
+            vr_settings.output_rawfilename = rt.rendOutputFilename
+
+        if vr_settings.output_splitgbuffer:
+            vr_settings.output_splitfilename = rt.rendOutputFilename
