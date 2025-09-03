@@ -659,3 +659,34 @@ def suspended_refresh():
     finally:
         rt.enableSceneRedraw()
         rt.resumeEditing()
+
+
+def reset_render_outputs(max_filename_before, max_filename_after):
+    render_output_before = rt.rendOutputFilename
+    rt.rendOutputFilename = render_output_before.replace(
+        max_filename_before, max_filename_after
+    )
+    render_elem = rt.maxOps.GetCurRenderElementMgr()
+    render_elem_num = render_elem.NumRenderElements()
+    if render_elem_num < 0:
+        return
+
+    for i in range(render_elem_num):
+        render_element_filepath = render_elem.GetRenderElementFilename(i)
+        new_render_element_filepath = render_element_filepath.replace(
+            max_filename_before, max_filename_after)
+        render_elem.SetRenderElementFileName(
+            i, new_render_element_filepath)
+
+    renderer = get_current_renderer()
+    if str(renderer).startswith("V_Ray_"):
+        if "GPU" in renderer:
+            vr_settings = renderer.V_Ray_settings
+        else:
+            vr_settings = renderer
+
+        if vr_settings.output_saverawfile:
+            vr_settings.output_rawfilename = rt.rendOutputFilename
+
+        if vr_settings.output_splitgbuffer:
+            vr_settings.output_splitfilename = rt.rendOutputFilename

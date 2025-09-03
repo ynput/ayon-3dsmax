@@ -26,11 +26,6 @@ def is_supported_renderer(renderer_name: str) -> bool:
     """Whether ayon-max supports the relevant renderer."""
     if renderer_name in SUPPORTED_RENDERERS:
         return True
-    if renderer_name.startswith("V_Ray_"):
-        # V-Ray renderer name keeps changing, like
-        # 'V_Ray_6_Hotfix_3' and 'V_Ray_GPU_6_Hotfix_3'
-        # so we consider all V-Ray releases supported
-        return True
     return False
 
 
@@ -106,21 +101,35 @@ class RenderSettings(object):
         output_filename = output_filename.replace("{aov_separator}",
                                                   aov_separator)
         rt.rendOutputFilename = output_filename
+        multipass_enabled = get_multipass_setting(setting)
         if renderer == "VUE_File_Renderer":
             return
         # TODO: Finish the arnold render setup
-        if renderer == "Arnold":
+        elif renderer == "Arnold":
             self.arnold_setup()
 
-        if is_supported_renderer(renderer):
+        elif is_supported_renderer(renderer):
             self.render_element_layer(output, width, height, img_fmt)
 
-        multipass_enabled = get_multipass_setting(setting)
+        elif renderer.startswith("V_Ray_"):
+            if "GPU" in renderer:
+                vr_settings = renderer_class.V_Ray_settings
+            else:
+                vr_settings = renderer_class
+            vr_settings.output_splitgbuffer = multipass_enabled
+            if img_fmt == "exr":
+                vr_settings.output_saverawfile = True
+                vr_settings.output_rawfilename = rt.rendOutputFilename
+
+            if multipass_enabled:
+                vr_settings.output_splitfilename = rt.rendOutputFilename
+            self.render_element_layer(output, width, height, img_fmt)
         # TODO: supports multipass for different renderers
-        if renderer == "Redshift_Renderer":
+        elif renderer == "Redshift_Renderer":
             rt.renderers.current.separateAovFiles = multipass_enabled
 
-        rt.rendSaveFile = True
+        # prevent rendering extra files when using V-Ray
+        rt.rendSaveFile = True if not renderer.startswith("V_Ray_") else False
 
         rt.renderSceneDialog.update()
 
