@@ -191,11 +191,31 @@ def set_render_frame_range(start_frame, end_frame):
         rt.rendEnd = int(end_frame)
 
 
-def get_multipass_setting(project_setting=None):
-    return (project_setting["max"]
-                           ["RenderSettings"]
-                           ["multipass"])
+def get_multipass_setting(renderer, project_setting=None):
+    """Get the multipass setting for the given renderer.
 
+    Args:
+        renderer (str): The name of the renderer.
+        project_setting (dict, optional): The project settings. Defaults to None.
+
+    Returns:
+        bool: True if multipass is enabled, False otherwise.
+    """
+    render_settings = (
+        project_setting["max"]["RenderSettings"]
+    )
+    if renderer.startswith("V_Ray_"):
+        vray_render_setting = render_settings.get("vray_render_settings", {})
+        return (
+            vray_render_setting.get("separate_render_channels", False)
+        )
+    elif renderer == "Redshift_Renderer":
+        redshift_render_setting = render_settings.get("redshift_render_settings", {})
+        return (
+            redshift_render_setting.get("separate_aov_files", False)
+        )
+
+    return False
 
 def set_scene_resolution(width: int, height: int):
     """Set the render resolution

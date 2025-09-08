@@ -101,7 +101,7 @@ class RenderSettings(object):
         output_filename = output_filename.replace("{aov_separator}",
                                                   aov_separator)
         rt.rendOutputFilename = output_filename
-        multipass_enabled = get_multipass_setting(setting)
+        multipass_enabled = get_multipass_setting(renderer, setting)
         if renderer == "VUE_File_Renderer":
             return
         # TODO: Finish the arnold render setup
