@@ -201,6 +201,10 @@ def get_multipass_setting(renderer, project_setting=None):
     Returns:
         bool: True if multipass is enabled, False otherwise.
     """
+    if project_setting is None:
+        project_setting = get_project_settings(
+            get_current_project_name()
+        )
     render_settings = (
         project_setting["max"]["RenderSettings"]
     )
