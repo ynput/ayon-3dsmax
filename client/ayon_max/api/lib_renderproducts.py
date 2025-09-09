@@ -288,12 +288,14 @@ class RenderProducts(object):
             vr_renderer = get_current_renderer()
             raw_directory, raw_fname = self.get_vray_render_files(
                 vr_renderer, is_render_element=True)
+            if vr_renderer.output_separateFolders:
+                formated_output = f"{raw_directory}/{name}/{raw_fname}.{name}"
+            else:
+                formated_output = f"{raw_directory}/{raw_fname}.{name}"
 
             for frame_num in range(start_frame, end_frame):
                 frame = f"{frame_num:04d}"
-                render_element = (
-                    f"{raw_directory}/{raw_fname}{name}.{frame}.{fmt}"
-                )
+                render_element = f"{formated_output}.{frame}.{fmt}"
                 render_elements.append(render_element.replace("\\", "/"))
         else:
             for frame_num in range(start_frame, end_frame):
