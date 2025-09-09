@@ -316,7 +316,10 @@ class RenderProducts(object):
         """
         raw_filepath = vr_renderer.output_rawfilename
         if not raw_filepath or is_render_element:
-            raw_filepath = vr_renderer.output_splitfilename
+            if "GPU" in str(vr_renderer):
+                raw_filepath = vr_renderer.V_Ray_settings.output_rawfilename
+            else:
+                raw_filepath = vr_renderer.output_splitfilename
 
         raw_directory = os.path.dirname(raw_filepath)
         raw_filename = os.path.basename(raw_filepath)
