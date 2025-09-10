@@ -100,18 +100,21 @@ class RenderSettings(object):
         output_filename = f"{output}..{img_fmt}"
         output_filename = output_filename.replace("{aov_separator}",
                                                   aov_separator)
-        rt.rendOutputFilename = output_filename
         multipass_enabled = get_multipass_setting(renderer, setting)
         if renderer == "VUE_File_Renderer":
+            rt.rendOutputFilename = output_filename
             return
         # TODO: Finish the arnold render setup
         elif renderer == "Arnold":
+            rt.rendOutputFilename = output_filename
             self.arnold_setup()
 
         elif is_supported_renderer(renderer):
+            rt.rendOutputFilename = output_filename
             self.render_element_layer(output, width, height, img_fmt)
 
         elif renderer.startswith("V_Ray_"):
+            rt.rendOutputFilename = f"{output}_tmp..{img_fmt}"
             if "GPU" in renderer:
                 vr_settings = renderer_class.V_Ray_settings
             else:
@@ -126,6 +129,7 @@ class RenderSettings(object):
             self.render_element_layer(output, width, height, img_fmt)
         # TODO: supports multipass for different renderers
         elif renderer == "Redshift_Renderer":
+            rt.rendOutputFilename = output_filename
             rt.renderers.current.separateAovFiles = multipass_enabled
 
         # prevent rendering extra files when using V-Ray
