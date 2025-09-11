@@ -23,6 +23,18 @@ def image_format_enum():
     ]
 
 
+class VRaySettingsModel(BaseSettingsModel):
+    separate_render_channels: bool = SettingsField(
+        title="Separate Render Channels"
+    )
+
+
+class RedshiftSettingsModel(BaseSettingsModel):
+    separate_aov_files: bool = SettingsField(
+        title="Separate AOV Files"
+    )
+
+
 class RenderSettingsModel(BaseSettingsModel):
     default_render_image_folder: str = SettingsField(
         title="Default render image folder"
@@ -36,12 +48,22 @@ class RenderSettingsModel(BaseSettingsModel):
         enum_resolver=image_format_enum,
         title="Output Image Format"
     )
-    multipass: bool = SettingsField(title="multipass")
+    vray_render_settings: VRaySettingsModel = SettingsField(
+        title="V-Ray Render Settings"
+    )
+    redshift_render_settings: RedshiftSettingsModel = SettingsField(
+        title="Redshift Render Settings"
+    )
 
 
 DEFAULT_RENDER_SETTINGS = {
     "default_render_image_folder": "renders/3dsmax",
     "aov_separator": "underscore",
     "image_format": "exr",
-    "multipass": True
+    "vray_render_settings": {
+        "separate_render_channels": True
+    },
+    "redshift_render_settings": {
+        "separate_aov_files": True
+    }
 }
