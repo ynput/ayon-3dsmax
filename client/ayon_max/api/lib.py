@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Library of functions useful for 3dsmax pipeline."""
+import os
 import contextlib
 import logging
 import json
@@ -445,13 +446,15 @@ def reset_colorspace():
     """
     if int(get_max_version()) < 2024:
         return
-
-    max_config_data = colorspace.get_current_context_imageio_config_preset()
-    if max_config_data:
-        ocio_config_path = max_config_data["path"]
-        colorspace_mgr = rt.ColorPipelineMgr
-        colorspace_mgr.Mode = rt.Name("OCIO_Custom")
-        colorspace_mgr.OCIOConfigPath = ocio_config_path
+    colorspace_mgr = rt.ColorPipelineMgr
+    ocio_config_path = os.getenv("OCIO")
+    colorspace_mgr.Mode = rt.Name("OCIO_EnvVar")
+    if not ocio_config_path:
+        max_config_data = colorspace.get_current_context_imageio_config_preset()
+        if max_config_data:
+            ocio_config_path = max_config_data["path"]
+            colorspace_mgr.Mode = rt.Name("OCIO_Custom")
+            colorspace_mgr.OCIOConfigPath = ocio_config_path
 
 
 def check_colorspace():

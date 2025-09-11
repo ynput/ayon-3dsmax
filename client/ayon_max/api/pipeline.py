@@ -198,6 +198,8 @@ def ls():
 
 
 def on_new():
+    if not os.path.exists(rt.ColorPipelineMgr.OCIOConfigPath):
+        lib.reset_colorspace()
     last_workfile = os.getenv("AYON_LAST_WORKFILE")
     if os.getenv("AVALON_OPEN_LAST_WORKFILE") != "1"  \
         or not os.path.exists(last_workfile):
