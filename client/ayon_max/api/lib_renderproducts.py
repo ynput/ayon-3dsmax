@@ -309,7 +309,7 @@ class RenderProducts(object):
         """Get the raw directory and filename for V-Ray renderer.
 
         Args:
-            vr_renderer (str): The V-Ray renderer instance.
+            vr_renderer (rt.renderers.production): The V-Ray renderer instance.
             is_render_element (bool): whether type of output are
             render element files.
 
