@@ -692,7 +692,7 @@ def reset_render_outputs(max_filename_before, max_filename_after):
     )
     render_elem = rt.maxOps.GetCurRenderElementMgr()
     render_elem_num = render_elem.NumRenderElements()
-    if render_elem_num < 0:
+    if render_elem_num <= 0:
         return
 
     for i in range(render_elem_num):
