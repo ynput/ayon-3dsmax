@@ -77,7 +77,7 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
 
         file = rt.maxFileName
         workfile_name, ext = os.path.splitext(file)
-        # we can remove this by using template $scene token afterwards
+        # TODO: Remove this check once render output uses the $scene token template. See issue #123.
         if workfile_name not in rt.rendOutputFilename:
             cls.log.error(
                 "Render output folder must include"
