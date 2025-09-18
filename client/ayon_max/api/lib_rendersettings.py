@@ -26,11 +26,6 @@ def is_supported_renderer(renderer_name: str) -> bool:
     """Whether ayon-max supports the relevant renderer."""
     if renderer_name in SUPPORTED_RENDERERS:
         return True
-    if renderer_name.startswith("V_Ray_"):
-        # V-Ray renderer name keeps changing, like
-        # 'V_Ray_6_Hotfix_3' and 'V_Ray_GPU_6_Hotfix_3'
-        # so we consider all V-Ray releases supported
-        return True
     return False
 
 
@@ -105,22 +100,40 @@ class RenderSettings(object):
         output_filename = f"{output}..{img_fmt}"
         output_filename = output_filename.replace("{aov_separator}",
                                                   aov_separator)
-        rt.rendOutputFilename = output_filename
+        multipass_enabled = get_multipass_setting(renderer, setting)
         if renderer == "VUE_File_Renderer":
+            rt.rendOutputFilename = output_filename
             return
         # TODO: Finish the arnold render setup
-        if renderer == "Arnold":
+        elif renderer == "Arnold":
+            rt.rendOutputFilename = output_filename
             self.arnold_setup()
 
-        if is_supported_renderer(renderer):
+        elif is_supported_renderer(renderer):
+            rt.rendOutputFilename = output_filename
             self.render_element_layer(output, width, height, img_fmt)
 
-        multipass_enabled = get_multipass_setting(setting)
+        elif renderer.startswith("V_Ray_"):
+            rt.rendOutputFilename = f"{output}_tmp..{img_fmt}"
+            if "GPU" in renderer:
+                vr_settings = renderer_class.V_Ray_settings
+            else:
+                vr_settings = renderer_class
+            vr_settings.output_splitgbuffer = multipass_enabled
+            if img_fmt == "exr":
+                vr_settings.output_saverawfile = True
+                vr_settings.output_rawfilename = f"{output}.{img_fmt}"
+
+            if multipass_enabled:
+                vr_settings.output_splitfilename = f"{output}.{img_fmt}"
+            self.render_element_layer(output, width, height, img_fmt)
         # TODO: supports multipass for different renderers
-        if renderer == "Redshift_Renderer":
+        elif renderer == "Redshift_Renderer":
+            rt.rendOutputFilename = output_filename
             rt.renderers.current.separateAovFiles = multipass_enabled
 
-        rt.rendSaveFile = True
+        # prevent rendering extra files when using V-Ray
+        rt.rendSaveFile = True if not renderer.startswith("V_Ray_") else False
 
         rt.renderSceneDialog.update()
 
