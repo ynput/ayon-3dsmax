@@ -44,6 +44,30 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         self._op_events = {}
         self._has_been_setup = False
 
+    def get_app_information(self):
+        from ayon_core.host import ApplicationInformation
+
+        (
+            _rel_number,
+            _api_version,
+            _rel_rev_number,
+
+            _major_version,
+            update_version,
+            hotfix_number,
+            _build_number,
+
+            year_version,
+            _product_version,
+        ) = rt.maxVersion()
+        version_parts = [str(year_version)]
+        if update_version or hotfix_number:
+            version_parts.append(str(update_version))
+            if hotfix_number:
+               version_parts.append(str(hotfix_number))
+        version = ".".join(version_parts)
+        return ApplicationInformation("3ds Max", version)
+
     def install(self):
         pyblish.api.register_host("max")
 
