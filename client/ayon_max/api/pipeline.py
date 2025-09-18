@@ -66,7 +66,10 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
             if hotfix_number:
                version_parts.append(str(hotfix_number))
         version = ".".join(version_parts)
-        return ApplicationInformation("3ds Max", version)
+        return ApplicationInformation(
+            app_name="3ds Max",
+            app_version=version,
+        )
 
     def install(self):
         pyblish.api.register_host("max")
