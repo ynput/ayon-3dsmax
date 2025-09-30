@@ -20,7 +20,8 @@ class RenderProducts(object):
                 get_current_project_name()
             )
 
-    def get_beauty(self, container):
+    def get_beauty(self, container, renderer):
+        """Get beauty render output file path."""
         render_dir = os.path.dirname(rt.rendOutputFilename)
 
         output_file = os.path.join(render_dir, container)
@@ -30,15 +31,16 @@ class RenderProducts(object):
 
         start_frame = int(rt.rendStart)
         end_frame = int(rt.rendEnd) + 1
-
         return {
             "beauty": self.get_expected_beauty(
-                output_file, start_frame, end_frame, img_fmt
+                output_file, start_frame, end_frame, img_fmt,
+                renderer
             )
         }
 
     def get_multiple_beauty(self, outputs, cameras):
         beauty_output_frames = dict()
+        renderer = get_current_renderer()
         for output, camera in zip(outputs, cameras):
             camera = camera.replace(":", "_")
             filename, ext = os.path.splitext(output)
@@ -47,7 +49,8 @@ class RenderProducts(object):
             start_frame = int(rt.rendStart)
             end_frame = int(rt.rendEnd) + 1
             new_beauty = self.get_expected_beauty(
-                filename, start_frame, end_frame, ext
+                filename, start_frame, end_frame, ext,
+                renderer
             )
             beauty_output = ({
                 f"{camera}_beauty": new_beauty
@@ -71,15 +74,29 @@ class RenderProducts(object):
                 "ART_Renderer",
                 "Default_Scanline_Renderer",
                 "Quicksilver_Hardware_Renderer",
-            ] and renderer.startswith("V_Ray_"):
+            ]:
                 render_name = self.get_render_elements_name()
                 if render_name:
                     for name in render_name:
                         aovs_frames.update({
                             f"{camera}_{name}": self.get_expected_aovs(
                                 filename, name, start_frame,
-                                end_frame, ext)
+                                end_frame, ext, renderer)
                         })
+            elif renderer.startswith("V_Ray_"):
+                if not renderer_class.output_splitgbuffer:
+                    return aovs_frames
+
+                render_name = self.get_render_elements_name()
+                if renderer_class.output_splitAlpha:
+                    render_name.append("Alpha")
+                if render_name:
+                    for name in render_name:
+                        aovs_frames.update({
+                            f"{camera}_{name}": self.get_expected_aovs(
+                            filename, name, start_frame,
+                            end_frame, ext, renderer)
+                    })
             elif renderer == "Redshift_Renderer":
                 render_name = self.get_render_elements_name()
                 if render_name:
@@ -92,14 +109,14 @@ class RenderProducts(object):
                                 aovs_frames.update({
                                     f"{camera}_{name}": self.get_expected_aovs(
                                         filename, name, start_frame,
-                                        end_frame, ext)
+                                        end_frame, ext, renderer)
                                 })
                     else:
                         for name in render_name:
                             aovs_frames.update({
                                 f"{camera}_{name}": self.get_expected_aovs(
                                     filename, name, start_frame,
-                                    end_frame, ext)
+                                    end_frame, ext, renderer)
                             })
             elif renderer == "Arnold":
                 render_name = self.get_arnold_product_name()
@@ -132,14 +149,34 @@ class RenderProducts(object):
             "ART_Renderer",
             "Default_Scanline_Renderer",
             "Quicksilver_Hardware_Renderer",
-        ] and renderer.startswith("V_Ray_"):
+        ]:
             render_name = self.get_render_elements_name()
             if render_name:
                 for name in render_name:
                     render_dict.update({
                         name: self.get_expected_aovs(
                             output_file, name, start_frame,
-                            end_frame, img_fmt)
+                            end_frame, img_fmt,
+                            renderer)
+                    })
+        elif renderer.startswith("V_Ray_"):
+            if not renderer_class.output_splitgbuffer:
+                return render_dict
+
+            render_name = self.get_render_elements_name()
+            if renderer_class.output_splitAlpha:
+                render_name.append("Alpha")
+            # Add RGB_color suffix if splitgbuffer is enabled
+            if renderer_class.output_splitRGB:
+                render_name.append("RGB_color")
+
+            if render_name:
+                for name in render_name:
+                    render_dict.update({
+                        name: self.get_expected_aovs(
+                            output_file, name, start_frame,
+                            end_frame, img_fmt,
+                            renderer)
                     })
         elif renderer == "Redshift_Renderer":
             render_name = self.get_render_elements_name()
@@ -153,14 +190,16 @@ class RenderProducts(object):
                             render_dict.update({
                                 name: self.get_expected_aovs(
                                     output_file, name, start_frame,
-                                    end_frame, img_fmt)
+                                    end_frame, img_fmt,
+                                    renderer)
                             })
                 else:
                     for name in render_name:
                         render_dict.update({
                             name: self.get_expected_aovs(
                                 output_file, name, start_frame,
-                                end_frame, img_fmt)
+                                end_frame, img_fmt,
+                                renderer)
                         })
 
         elif renderer == "Arnold":
@@ -175,13 +214,23 @@ class RenderProducts(object):
 
         return render_dict
 
-    def get_expected_beauty(self, folder, start_frame, end_frame, fmt):
+    def get_expected_beauty(self, folder, start_frame, end_frame, fmt, renderer):
+        """Get expected beauty render output file paths for each frame."""
         beauty_frame_range = []
-        for f in range(start_frame, end_frame):
-            frame = "%04d" % f
-            beauty_output = f"{folder}.{frame}.{fmt}"
-            beauty_output = beauty_output.replace("\\", "/")
-            beauty_frame_range.append(beauty_output)
+
+        if renderer.startswith("V_Ray_"):
+            vr_renderer = get_current_renderer()
+            if fmt == "exr":
+                raw_directory, raw_fname = self.get_vray_render_files(vr_renderer)
+                for frame_num in range(start_frame, end_frame):
+                    frame = f"{frame_num:04d}"
+                    output_path = f"{raw_directory}/{raw_fname}.{frame}.{fmt}"
+                    beauty_frame_range.append(output_path.replace("\\", "/"))
+        else:
+            for frame_num in range(start_frame, end_frame):
+                frame = f"{frame_num:04d}"
+                output_path = f"{folder}.{frame}.{fmt}"
+                beauty_frame_range.append(output_path.replace("\\", "/"))
 
         return beauty_frame_range
 
@@ -231,17 +280,53 @@ class RenderProducts(object):
 
         return render_name
 
-    def get_expected_aovs(self, folder, name,
-                          start_frame, end_frame, fmt):
-        """Get all the expected render element output files. """
+    def get_expected_aovs(self, folder, name, start_frame, end_frame, fmt, renderer):
+        """Get all the expected render element output files."""
         render_elements = []
-        for f in range(start_frame, end_frame):
-            frame = "%04d" % f
-            render_element = f"{folder}_{name}.{frame}.{fmt}"
-            render_element = render_element.replace("\\", "/")
-            render_elements.append(render_element)
+
+        if renderer.startswith("V_Ray_"):
+            vr_renderer = get_current_renderer()
+            raw_directory, raw_fname = self.get_vray_render_files(
+                vr_renderer, is_render_element=True)
+            if vr_renderer.output_separateFolders:
+                formated_output = f"{raw_directory}/{name}/{raw_fname}.{name}"
+            else:
+                formated_output = f"{raw_directory}/{raw_fname}.{name}"
+
+            for frame_num in range(start_frame, end_frame):
+                frame = f"{frame_num:04d}"
+                render_element = f"{formated_output}.{frame}.{fmt}"
+                render_elements.append(render_element.replace("\\", "/"))
+        else:
+            for frame_num in range(start_frame, end_frame):
+                frame = f"{frame_num:04d}"
+                render_element = f"{folder}_{name}.{frame}.{fmt}"
+                render_elements.append(render_element.replace("\\", "/"))
 
         return render_elements
+
+    def get_vray_render_files(self, vr_renderer, is_render_element=False):
+        """Get the raw directory and filename for V-Ray renderer.
+
+        Args:
+            vr_renderer (rt.renderers.production): The V-Ray renderer instance.
+            is_render_element (bool): whether type of output are
+            render element files.
+
+        Returns:
+            str, str: The raw directory and filename for V-Ray renderer.
+        """
+        raw_filepath = vr_renderer.output_rawfilename
+        if not raw_filepath or is_render_element:
+            if "GPU" in str(vr_renderer):
+                raw_filepath = vr_renderer.V_Ray_settings.output_rawfilename
+            else:
+                raw_filepath = vr_renderer.output_splitfilename
+
+        raw_directory = os.path.dirname(raw_filepath)
+        raw_filename = os.path.basename(raw_filepath)
+        raw_fname, _ = os.path.splitext(raw_filename)
+        return raw_directory, raw_fname.strip(".")
 
     def image_format(self):
         return self._project_settings["max"]["RenderSettings"]["image_format"]  # noqa

@@ -192,11 +192,35 @@ def set_render_frame_range(start_frame, end_frame):
         rt.rendEnd = int(end_frame)
 
 
-def get_multipass_setting(project_setting=None):
-    return (project_setting["max"]
-                           ["RenderSettings"]
-                           ["multipass"])
+def get_multipass_setting(renderer, project_setting=None):
+    """Get the multipass setting for the given renderer.
 
+    Args:
+        renderer (str): The name of the renderer.
+        project_setting (dict, optional): The project settings. Defaults to None.
+
+    Returns:
+        bool: True if multipass is enabled, False otherwise.
+    """
+    if project_setting is None:
+        project_setting = get_project_settings(
+            get_current_project_name()
+        )
+    render_settings = (
+        project_setting["max"]["RenderSettings"]
+    )
+    if renderer.startswith("V_Ray_"):
+        vray_render_setting = render_settings.get("vray_render_settings", {})
+        return (
+            vray_render_setting.get("separate_render_channels", False)
+        )
+    elif renderer == "Redshift_Renderer":
+        redshift_render_setting = render_settings.get("redshift_render_settings", {})
+        return (
+            redshift_render_setting.get("separate_aov_files", False)
+        )
+
+    return False
 
 def set_scene_resolution(width: int, height: int):
     """Set the render resolution
@@ -659,3 +683,34 @@ def suspended_refresh():
     finally:
         rt.enableSceneRedraw()
         rt.resumeEditing()
+
+
+def reset_render_outputs(max_filename_before, max_filename_after):
+    render_output_before = rt.rendOutputFilename
+    rt.rendOutputFilename = render_output_before.replace(
+        max_filename_before, max_filename_after
+    )
+    render_elem = rt.maxOps.GetCurRenderElementMgr()
+    render_elem_num = render_elem.NumRenderElements()
+    if render_elem_num <= 0:
+        return
+
+    for i in range(render_elem_num):
+        render_element_filepath = render_elem.GetRenderElementFilename(i)
+        new_render_element_filepath = render_element_filepath.replace(
+            max_filename_before, max_filename_after)
+        render_elem.SetRenderElementFileName(
+            i, new_render_element_filepath)
+
+    renderer = get_current_renderer()
+    if str(renderer).startswith("V_Ray_"):
+        if "GPU" in renderer:
+            vr_settings = renderer.V_Ray_settings
+        else:
+            vr_settings = renderer
+
+        if vr_settings.output_saverawfile:
+            vr_settings.output_rawfilename = rt.rendOutputFilename
+
+        if vr_settings.output_splitgbuffer:
+            vr_settings.output_splitfilename = rt.rendOutputFilename
