@@ -53,19 +53,14 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
             _rel_rev_number,
 
             _major_version,
-            update_version,
-            hotfix_number,
+            _update_version,
+            _hotfix_number,
             _build_number,
 
             year_version,
-            _product_version,
+            product_version,
         ) = rt.maxVersion()
-        version_parts = [str(year_version)]
-        if update_version or hotfix_number:
-            version_parts.append(str(update_version))
-            if hotfix_number:
-               version_parts.append(str(hotfix_number))
-        version = ".".join(version_parts)
+        version = f"{year_version}{product_version}"
         return ApplicationInformation(
             app_name="3ds Max",
             app_version=version,
