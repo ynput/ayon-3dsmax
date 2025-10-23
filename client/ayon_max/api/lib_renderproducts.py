@@ -89,7 +89,6 @@ class RenderProducts(object):
 
                 render_name = self.get_render_elements_name()
                 render_name = self._add_vray_additional_outputs(render_name, renderer_class)
-                
                 if render_name:
                     for name in render_name:
                         aovs_frames.update({
