@@ -88,8 +88,7 @@ class RenderProducts(object):
                     return aovs_frames
 
                 render_name = self.get_render_elements_name()
-                if renderer_class.output_splitAlpha:
-                    render_name.append("Alpha")
+                render_name = self._add_vray_additional_outputs(render_name, renderer_class)
                 if render_name:
                     for name in render_name:
                         aovs_frames.update({
@@ -164,11 +163,7 @@ class RenderProducts(object):
                 return render_dict
 
             render_name = self.get_render_elements_name()
-            if renderer_class.output_splitAlpha:
-                render_name.append("Alpha")
-            # Add RGB_color suffix if splitgbuffer is enabled
-            if renderer_class.output_splitRGB:
-                render_name.append("RGB_color")
+            render_name = self._add_vray_additional_outputs(render_name, renderer_class)
 
             if render_name:
                 for name in render_name:
@@ -270,13 +265,30 @@ class RenderProducts(object):
         render_elem = rt.maxOps.GetCurRenderElementMgr()
         render_elem_num = render_elem.NumRenderElements()
         if render_elem_num < 1:
-            return
+            return render_name
         # get render elements from the renders
         for i in range(render_elem_num):
             renderlayer_name = render_elem.GetRenderElement(i)
             if renderlayer_name.enabled:
-                target, renderpass = str(renderlayer_name).split(":")
+                _, renderpass = str(renderlayer_name).split(":")
                 render_name.append(renderpass)
+
+        return render_name
+
+    def _add_vray_additional_outputs(self, render_name, renderer_class):
+        """Add additional V-Ray outputs like Alpha and RGB_color to render names.
+
+        Args:
+            render_name (list): List of existing render element names
+            renderer_class: V-Ray renderer instance
+
+        Returns:
+            list: Updated list with additional outputs
+        """
+        if renderer_class.output_splitAlpha:
+            render_name.append("Alpha")
+        if hasattr(renderer_class, 'output_splitRGB') and renderer_class.output_splitRGB:
+            render_name.append("RGB_color")
 
         return render_name
 
