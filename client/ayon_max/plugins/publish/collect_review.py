@@ -25,6 +25,13 @@ class CollectReview(pyblish.api.InstancePlugin,
 
         def is_camera(node):
             is_camera_class = rt.classOf(node) in rt.Camera.classes
+            if rt.classOf(node) == rt.AlembicContainer and not is_camera_class:
+                for n in node.children:
+                    class_type = rt.classOf(n)
+                    self.log.debug(f"Checking child node {class_type} of AlembicContainer")
+                    is_camera_class = rt.classOf(n) in rt.Camera.classes
+                    return is_camera_class
+
             return is_camera_class and rt.isProperty(node, "fov")
 
         # Use first camera in instance
@@ -37,7 +44,11 @@ class CollectReview(pyblish.api.InstancePlugin,
                 )
             camera = cameras[0]
             camera_name = camera.name
-            focal_length = camera.fov
+            # use default focal length if not found
+            # implement this specificallyfor imported cameras
+            focal_length = (
+                camera.fov if hasattr(camera, 'fov') else 45.0
+            )
         else:
             raise KnownPublishError(
                 "Unable to find a valid camera in 'Review' container."
