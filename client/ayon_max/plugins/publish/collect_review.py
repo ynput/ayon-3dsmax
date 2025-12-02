@@ -25,14 +25,27 @@ class CollectReview(pyblish.api.InstancePlugin,
 
         def is_camera(node):
             is_camera_class = rt.classOf(node) in rt.Camera.classes
-            if rt.classOf(node) == rt.AlembicContainer and not is_camera_class:
-                for n in node.children:
-                    class_type = rt.classOf(n)
-                    self.log.debug(f"Checking child node {class_type} of AlembicContainer")
-                    is_camera_class = rt.classOf(n) in rt.Camera.classes
+            if hasattr(node, "children") and not is_camera_class:
+                for node_children in node.children:
+                    is_camera_class = rt.classOf(node_children) in rt.Camera.classes
                     return is_camera_class
 
-            return is_camera_class and rt.isProperty(node, "fov")
+            return is_camera_class
+
+        def get_focal_length(camera_node):
+            """Get focal length from camera node or its children."""
+            # Check direct FOV attribute
+            if hasattr(camera_node, 'fov'):
+                return camera_node.fov
+
+            # Check children for FOV attribute
+            if hasattr(camera_node, "children"):
+                for child in camera_node.children:
+                    if hasattr(child, 'fov'):
+                        return child.fov
+
+            # Return default focal length
+            return 45.0
 
         # Use first camera in instance
         cameras = [node for node in nodes if is_camera(node)]
@@ -45,10 +58,8 @@ class CollectReview(pyblish.api.InstancePlugin,
             camera = cameras[0]
             camera_name = camera.name
             # use default focal length if not found
-            # implement this specificallyfor imported cameras
-            focal_length = (
-                camera.fov if hasattr(camera, 'fov') else 45.0
-            )
+            # implement this specifically for imported cameras
+            focal_length = get_focal_length(camera)
         else:
             raise KnownPublishError(
                 "Unable to find a valid camera in 'Review' container."

@@ -41,16 +41,14 @@ class ValidateCameraContent(pyblish.api.InstancePlugin):
 
     @staticmethod
     def _is_valid_member(node, rt):
-        """Check if a node is a valid camera or alembic container with cameras."""
+        """Check if a node is a valid camera or container with only cameras."""
         # Direct camera check
         if rt.classof(node) in rt.Camera.classes:
             return True
-
-        # Alembic container check
-        if rt.classOf(node) == rt.AlembicContainer:
-            return any(
+        # Check if node has children - all must be cameras
+        if hasattr(node, "children") and node.children:
+            return all(
                 rt.classof(child) in rt.Camera.classes
                 for child in node.children
             )
-
         return False
