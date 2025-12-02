@@ -156,7 +156,7 @@ class RenderSettings(object):
         amw.close()
         aovmgr = renderers.current.AOVManager
         aovmgr.drivers = #()
-        aovmgr.outputPath = {output}
+        aovmgr.outputPath = "{output}"
         img_fmt = "{img_fmt}"
         if img_fmt == "png" then driver = ArnoldPNGDriver()
         if img_fmt == "jpg" then driver = ArnoldJPEGDriver()
