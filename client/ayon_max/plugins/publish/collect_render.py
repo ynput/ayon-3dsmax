@@ -11,6 +11,19 @@ from ayon_max.api.lib_rendersettings import RenderSettings
 from ayon_max.api.lib_renderproducts import RenderProducts
 
 
+def get_camera_from_node(members):
+    """Get camera from instance members."""
+    cameras = []
+    for member in members:
+        if rt.classOf(member) in rt.Camera.classes:
+            cameras.append(member)
+        if hasattr(member, "children"):
+            for child in member.children:
+                if rt.classOf(child) in rt.Camera.classes:
+                    cameras.append(child)
+    return cameras
+
+
 class CollectRender(pyblish.api.InstancePlugin):
     """Collect Render for Deadline"""
 
@@ -34,11 +47,9 @@ class CollectRender(pyblish.api.InstancePlugin):
         files_by_aov.update(aovs)
 
         camera = rt.viewport.GetCamera()
-        if instance.data.get("members"):
-            camera_list = [member for member in instance.data["members"]
-                           if rt.ClassOf(member) == rt.Camera.Classes]
-            if camera_list:
-                camera = camera_list[-1]
+        camera_list = get_camera_from_node(instance.data.get("members"))
+        if camera_list:
+            camera = camera_list[-1]
 
         instance.data["cameras"] = [camera.name] if camera else None        # noqa
 
@@ -47,9 +58,7 @@ class CollectRender(pyblish.api.InstancePlugin):
             if not cameras:
                 raise KnownPublishError("There should be at least"
                                         " one renderable camera in container")
-            sel_cam = [
-                c.name for c in cameras
-                if rt.classOf(c) in rt.Camera.classes]
+            sel_cam = get_camera_from_node(cameras)
 
             container_name = instance.data.get("instance_node")
             render_dir = os.path.dirname(rt.rendOutputFilename)

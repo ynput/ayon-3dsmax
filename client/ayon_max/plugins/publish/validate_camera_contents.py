@@ -14,8 +14,6 @@ class ValidateCameraContent(pyblish.api.InstancePlugin):
     families = ["camera", "review"]
     hosts = ["max"]
     label = "Camera Contents"
-    camera_type = ["$Free_Camera", "$Target_Camera",
-                   "$Physical_Camera", "$Target"]
 
     def process(self, instance):
         invalid = self.get_invalid(instance)
@@ -25,19 +23,32 @@ class ValidateCameraContent(pyblish.api.InstancePlugin):
                                           f"Invalid content {invalid}"))
 
     def get_invalid(self, instance):
-        """
-        Get invalid nodes if the instance is not camera
-        """
-        invalid = []
+        """Get invalid nodes that are not cameras or valid containers."""
+        from pymxs import runtime as rt
+
         container = instance.data["instance_node"]
         self.log.info(f"Validating camera content for {container}")
 
-        selection_list = instance.data["members"]
-        for sel in selection_list:
-            # to avoid Attribute Error from pymxs wrapper
-            sel_tmp = str(sel)
-            found = any(sel_tmp.startswith(cam) for cam in self.camera_type)
-            if not found:
-                self.log.error("Camera not found")
-                invalid.append(sel)
+        invalid = []
+        members = instance.data["members"]
+
+        for member in members:
+            if self._is_valid_member(member, rt):
+                continue
+            invalid.append(member)
+
         return invalid
+
+    @staticmethod
+    def _is_valid_member(node, rt):
+        """Check if a node is a valid camera or container with only cameras."""
+        # Direct camera check
+        if rt.classof(node) in rt.Camera.classes:
+            return True
+        # Check if node has children - all must be cameras
+        if hasattr(node, "children") and node.children:
+            return all(
+                rt.classof(child) in rt.Camera.classes
+                for child in node.children
+            )
+        return False
