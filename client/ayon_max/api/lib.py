@@ -669,10 +669,10 @@ def get_tyflow_export_operators():
 
 
 @contextlib.contextmanager
-def set_viewport_type():
+def set_viewport_type(viewport_type=rt.Name("view_camera")):
     """Set viewport type during context"""
     previous_viewport_type = rt.viewport.getType()
-    rt.viewport.setType(rt.Name("view_camera"))
+    rt.viewport.setType(viewport_type)
     try:
         yield
     finally:
