@@ -106,8 +106,9 @@ class RenderSettings(object):
             return
         # TODO: Finish the arnold render setup
         elif renderer == "Arnold":
+            # We should remove this
             rt.rendOutputFilename = output_filename
-            self.arnold_setup()
+            self.arnold_setup(output)
 
         elif is_supported_renderer(renderer):
             rt.rendOutputFilename = output_filename
@@ -139,7 +140,7 @@ class RenderSettings(object):
 
         rt.renderSceneDialog.update()
 
-    def arnold_setup(self):
+    def arnold_setup(self, output):
         # get Arnold RenderView run in the background
         # for setting up renderable camera
         arv = rt.MAXToAOps.ArnoldRenderView()
@@ -155,7 +156,7 @@ class RenderSettings(object):
         amw.close()
         aovmgr = renderers.current.AOVManager
         aovmgr.drivers = #()
-        aovmgr.outputPath = rendOutputFilename
+        aovmgr.outputPath = {output}
         img_fmt = "{img_fmt}"
         if img_fmt == "png" then driver = ArnoldPNGDriver()
         if img_fmt == "jpg" then driver = ArnoldJPEGDriver()

@@ -118,12 +118,12 @@ class RenderProducts(object):
                                     end_frame, ext, renderer)
                             })
             elif renderer == "Arnold":
-                render_name = self.get_arnold_product_name()
+                render_name, output_file = self.get_arnold_product_name_and_path()
                 if render_name:
                     for name in render_name:
                         aovs_frames.update({
                             f"{camera}_{name}": self.get_expected_arnold_product(   # noqa
-                                filename, name, start_frame,
+                                output_file, name, start_frame,
                                 end_frame, ext)
                         })
 
@@ -198,7 +198,7 @@ class RenderProducts(object):
                         })
 
         elif renderer == "Arnold":
-            render_name = self.get_arnold_product_name()
+            render_name, output_file = self.get_arnold_product_name_and_path()
             if render_name:
                 for name in render_name:
                     render_dict.update({
@@ -221,6 +221,14 @@ class RenderProducts(object):
                     frame = f"{frame_num:04d}"
                     output_path = f"{raw_directory}/{raw_fname}.{frame}.{fmt}"
                     beauty_frame_range.append(output_path.replace("\\", "/"))
+
+        elif renderer == "Arnold":
+            _, output_file = self.get_arnold_product_name_and_path()
+            beauty_frame_range.extend(
+                self.get_expected_arnold_product(
+                    output_file, "", start_frame,
+                    end_frame, fmt)
+            )
         else:
             for frame_num in range(start_frame, end_frame):
                 frame = f"{frame_num:04d}"
@@ -229,12 +237,13 @@ class RenderProducts(object):
 
         return beauty_frame_range
 
-    def get_arnold_product_name(self):
-        """Get all the Arnold AOVs name"""
+    def get_arnold_product_name_and_path(self):
+        """Get all the Arnold AOVs name and output path from AOV manager."""
         aov_name = []
 
         amw = rt.MaxToAOps.AOVsManagerWindow()
         aov_mgr = rt.renderers.current.AOVManager
+        aov_output_path = rt.renderers.current.AOVManager.outputPath
         # Check if there is any aov group set in AOV manager
         aov_group_num = len(aov_mgr.drivers)
         if aov_group_num < 1:
@@ -245,7 +254,7 @@ class RenderProducts(object):
         # close the AOVs manager window
         amw.close()
 
-        return aov_name
+        return aov_name, aov_output_path
 
     def get_expected_arnold_product(self, folder, name,
                                     start_frame, end_frame, fmt):
@@ -253,7 +262,7 @@ class RenderProducts(object):
         aov_list = []
         for f in range(start_frame, end_frame):
             frame = "%04d" % f
-            render_element = f"{folder}_{name}.{frame}.{fmt}"
+            render_element = f"{folder}/{name}.{frame}.{fmt}"
             render_element = render_element.replace("\\", "/")
             aov_list.append(render_element)
 
