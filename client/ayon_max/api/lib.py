@@ -669,6 +669,17 @@ def get_tyflow_export_operators():
 
 
 @contextlib.contextmanager
+def set_viewport_type(viewport_type=rt.Name("view_camera")):
+    """Set viewport type during context"""
+    previous_viewport_type = rt.viewport.getType()
+    rt.viewport.setType(viewport_type)
+    try:
+        yield
+    finally:
+        rt.viewport.setType(previous_viewport_type)
+
+
+@contextlib.contextmanager
 def suspended_refresh():
     """Suspended refresh for scene and modify panel redraw.
     """
