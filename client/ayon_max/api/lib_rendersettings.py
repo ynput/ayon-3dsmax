@@ -108,7 +108,7 @@ class RenderSettings(object):
         elif renderer == "Arnold":
             # We should remove this
             rt.rendOutputFilename = output_filename
-            self.arnold_setup(output)
+            self.arnold_setup(output_dir, container, multipass_enabled)
 
         elif is_supported_renderer(renderer):
             rt.rendOutputFilename = output_filename
@@ -140,9 +140,10 @@ class RenderSettings(object):
 
         rt.renderSceneDialog.update()
 
-    def arnold_setup(self, output):
+    def arnold_setup(self, output_dir, container, multipass_enabled):
         # get Arnold RenderView run in the background
         # for setting up renderable camera
+        multipass = str(multipass_enabled).lower()
         arv = rt.MAXToAOps.ArnoldRenderView()
         render_camera = rt.viewport.GetCamera()
         if render_camera:
@@ -156,7 +157,7 @@ class RenderSettings(object):
         amw.close()
         aovmgr = renderers.current.AOVManager
         aovmgr.drivers = #()
-        aovmgr.outputPath = "{output}"
+        aovmgr.outputPath = "{output_dir}"
         img_fmt = "{img_fmt}"
         if img_fmt == "png" then driver = ArnoldPNGDriver()
         if img_fmt == "jpg" then driver = ArnoldJPEGDriver()
@@ -165,6 +166,9 @@ class RenderSettings(object):
         if img_fmt == "tiff" then driver = ArnoldTIFFDriver()
         append aovmgr.drivers driver
         aovmgr.drivers[1].aov_list = #()
+        aovmgr.drivers[1].filenameSuffix  = "{container}."
+        if aovmgr.drivers[1] == ArnoldEXRDriver() then (
+            aovmgr.drivers[1].multipart = {multipass})
             """)
 
         rt.execute(setup_cmd)
