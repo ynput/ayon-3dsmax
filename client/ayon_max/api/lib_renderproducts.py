@@ -238,7 +238,7 @@ class RenderProducts(object):
     def get_arnold_product_name_and_path(self):
         """Get all the Arnold AOVs name and output path from AOV manager."""
         aov_name_by_render_name = {}
-        amw = rt.MaxToAOps.AOVsManagerWindow()
+        # amw = rt.MaxToAOps.AOVsManagerWindow()
         aov_mgr = rt.renderers.current.AOVManager
         aov_output_path = rt.renderers.current.AOVManager.outputPath
         # Check if there is any aov group set in AOV manager
@@ -247,14 +247,14 @@ class RenderProducts(object):
             return
         for i in range(aov_group_num):
             # get the specific AOV group
-            aov_name = aov_mgr.drivers[i].name
+            aov_name = aov_mgr.drivers[i].filenameSuffix
             if aov_name is None:
                 aov_name = ""
             aov_name_by_render_name.update({
                 aov_name: [aov.name for aov in aov_mgr.drivers[i].aov_list]
             })
-        # close the AOVs manager window
-        amw.close()
+        # # close the AOVs manager window
+        # amw.close()
 
         return aov_name_by_render_name, aov_output_path
 
@@ -262,11 +262,10 @@ class RenderProducts(object):
                                     start_frame, end_frame, fmt):
         """Get all the expected Arnold AOVs"""
         aov_list = []
-        for aov_group in name.keys(): # noqa
-            if not aov_group:
-                rendername = f"{folder}/"
-            else:
-                rendername = f"{folder}/{aov_group}."
+        # TODO: refactor this to make sure it supports separate AOVs
+        # with Arnold drivers.
+        for aov_group in name.keys():
+            rendername = f"{folder}/{aov_group}"
             for f in range(start_frame, end_frame):
                 frame = "%04d" % f
                 render_element = f"{rendername}{frame}.{fmt}"
