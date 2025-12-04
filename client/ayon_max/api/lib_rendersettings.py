@@ -151,6 +151,8 @@ class RenderSettings(object):
 
         # TODO: add AOVs and extension
         img_fmt = self._project_settings["max"]["RenderSettings"]["image_format"]   # noqa
+        # TODO: enhance this maxscript to make sure it supports separate AOVs
+        # with Arnold drivers.
         setup_cmd = (
             f"""
         amw = MaxtoAOps.AOVsManagerWindow()

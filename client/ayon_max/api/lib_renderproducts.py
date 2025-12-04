@@ -262,8 +262,10 @@ class RenderProducts(object):
                                     start_frame, end_frame, fmt):
         """Get all the expected Arnold AOVs"""
         aov_list = []
+        # TODO: refactor this to make sure it supports separate AOVs
+        # with Arnold drivers.
         for aov_group in name.keys():
-            rendername = f"{folder}/{aov_group}."
+            rendername = f"{folder}/{aov_group}"
             for f in range(start_frame, end_frame):
                 frame = "%04d" % f
                 render_element = f"{rendername}{frame}.{fmt}"
