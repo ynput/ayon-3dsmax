@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Creator plugin for creating workfiles."""
+import inspect
 from ayon_core.pipeline import CreatedInstance, AutoCreator
 from ayon_max.api import plugin
 from ayon_max.api.lib import read, imprint
@@ -62,9 +63,23 @@ class CreateWorkfile(plugin.MaxCreatorBase, AutoCreator):
             self.log.info("Auto-creating workfile instance...")
             instance_node = self.create_node(product_name)
             data["instance_node"] = instance_node.name
-            current_instance = CreatedInstance(
-                self.product_type, product_name, data, self
-            )
+            instance_kwargs = {
+                "product_type": self.product_type,
+                "product_name": product_name,
+                "data": data,
+                "creator": self,
+            }
+
+            # this is here to retain compatibility with older ayon-core
+            # but should be removed in future
+            if hasattr(self, "product_base_type"):
+                signature = inspect.signature(CreatedInstance)
+                if "product_base_type" in signature.parameters:
+                    instance_kwargs["product_base_type"] = (
+                        self.product_base_type
+                    )
+
+            current_instance = CreatedInstance(**instance_kwargs)
             self._add_instance_to_context(current_instance)
             imprint(instance_node.name, current_instance.data)
         elif (
