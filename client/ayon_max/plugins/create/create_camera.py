@@ -8,6 +8,7 @@ class CreateCamera(plugin.MaxCreator):
     identifier = "io.openpype.creators.max.camera"
     label = "Camera"
     product_type = "camera"
+    product_base_type = "camera"
     icon = "gear"
 
     settings_category = "max"

@@ -7,6 +7,7 @@ class CreateRedshiftProxy(plugin.MaxCreator):
     identifier = "io.openpype.creators.max.redshiftproxy"
     label = "Redshift Proxy"
     product_type = "redshiftproxy"
+    product_base_type = "redshiftproxy"
     icon = "gear"
 
     settings_category = "max"

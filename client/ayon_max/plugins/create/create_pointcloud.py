@@ -8,6 +8,7 @@ class CreatePointCloud(plugin.MaxCreator):
     identifier = "io.openpype.creators.max.pointcloud"
     label = "Point Cloud"
     product_type = "pointcloud"
+    product_base_type = "pointcloud"
     icon = "gear"
 
     settings_category = "max"

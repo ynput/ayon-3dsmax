@@ -8,6 +8,7 @@ class CreatePointCache(plugin.MaxCreator):
     identifier = "io.openpype.creators.max.pointcache"
     label = "Point Cache"
     product_type = "pointcache"
+    product_base_type = "pointcache"
     icon = "gear"
 
     settings_category = "max"
