@@ -55,7 +55,7 @@ class CollectTyFlowData(pyblish.api.InstancePlugin,
                 "exportMode": operator.exportMode,
                 "material_cache": attr_values.get("material"),
                 "productType": product_type,
-                "product_base_type ": product_type,
+                "productBaseType": product_type,
                 "creator_identifier": (
                     f"io.openpype.creators.max.{product_type}"),
                 "publish_attributes": {
