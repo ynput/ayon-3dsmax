@@ -448,7 +448,18 @@ class MaxCacheCreator(Creator, MaxTyFlowDataCreatorBase):
         instance_node = self.create_instance_node(product_name)
         instance_data["instance_node"] = instance_node.name
 
-
+        instance_kwargs = {
+            "product_type": self.product_type,
+            "product_name": product_name,
+            "data": instance_data,
+            "creator": self
+        }
+        if hasattr(self, "product_base_type"):
+            signature = inspect.signature(CreatedInstance)
+            if "product_base_type" in signature.parameters:
+                instance_kwargs["product_base_type"] = (
+                    self.product_base_type
+                )
         instance = CreatedInstance(**instance_kwargs)
         # Setting the property
         node_list = [sub_anim.name for sub_anim in tyflow_op_nodes]
