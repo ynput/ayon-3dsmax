@@ -63,23 +63,9 @@ class CreateWorkfile(plugin.MaxCreatorBase, AutoCreator):
             self.log.info("Auto-creating workfile instance...")
             instance_node = self.create_node(product_name)
             data["instance_node"] = instance_node.name
-            instance_kwargs = {
-                "product_type": self.product_type,
-                "product_name": product_name,
-                "data": data,
-                "creator": self,
-            }
-
-            # this is here to retain compatibility with older ayon-core
-            # but should be removed in future
-            if hasattr(self, "product_base_type"):
-                signature = inspect.signature(CreatedInstance)
-                if "product_base_type" in signature.parameters:
-                    instance_kwargs["product_base_type"] = (
-                        self.product_base_type
-                    )
-
-            current_instance = CreatedInstance(**instance_kwargs)
+            current_instance = CreatedInstance(
+                self.product_type, product_name, data, self
+            )
             self._add_instance_to_context(current_instance)
             imprint(instance_node.name, current_instance.data)
         elif (

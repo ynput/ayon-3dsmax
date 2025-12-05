@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """3dsmax specific AYON/Pyblish plugin definitions."""
-import inspect
 from pymxs import runtime as rt
 
 from ayon_core.lib import BoolDef
@@ -347,20 +346,12 @@ class MaxCreator(Creator, MaxCreatorBase):
 
         instance_node = self.create_instance_node(product_name)
         instance_data["instance_node"] = instance_node.name
-        instance_kwargs = {
-            "product_type": self.product_type,
-            "product_name": product_name,
-            "data": instance_data,
-            "creator": self
-        }
-        if hasattr(self, "product_base_type"):
-            signature = inspect.signature(CreatedInstance)
-            if "product_base_type" in signature.parameters:
-                instance_kwargs["product_base_type"] = (
-                    self.product_base_type
-                )
-        instance = CreatedInstance(**instance_kwargs)
-
+        instance = CreatedInstance(
+            self.product_type,
+            product_name,
+            instance_data,
+            self
+        )
         if pre_create_data.get("use_selection"):
 
             node_list = []
@@ -447,20 +438,12 @@ class MaxCacheCreator(Creator, MaxTyFlowDataCreatorBase):
                                " found in tyCache Editor.")
         instance_node = self.create_instance_node(product_name)
         instance_data["instance_node"] = instance_node.name
-
-        instance_kwargs = {
-            "product_type": self.product_type,
-            "product_name": product_name,
-            "data": instance_data,
-            "creator": self
-        }
-        if hasattr(self, "product_base_type"):
-            signature = inspect.signature(CreatedInstance)
-            if "product_base_type" in signature.parameters:
-                instance_kwargs["product_base_type"] = (
-                    self.product_base_type
-                )
-        instance = CreatedInstance(**instance_kwargs)
+        instance = CreatedInstance(
+            self.product_type,
+            product_name,
+            instance_data,
+            self
+        )
         # Setting the property
         node_list = [sub_anim.name for sub_anim in tyflow_op_nodes]
         rt.setProperty(
