@@ -262,7 +262,7 @@ def containerise_texture(name: str, context: dict,
         suffix (str, optional): suffix. Defaults to "_CON".
 
     Returns:
-        _type_: _description_
+        container: The container object holding the texture node metadata.
     """
     data = {
         "schema": "ayon:container-3.0",
