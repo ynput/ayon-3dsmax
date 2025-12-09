@@ -49,7 +49,7 @@ class ImageLoader(load.LoaderPlugin):
         if bitmap_type == "vray_bitmap":
             plugin_info = get_plugins()
             if not any(plugin.startswith("vray") for plugin in plugin_info):
-                raise LoadError("Vray not loaded/installed in Max..")
+                raise LoadError("Vray not loaded/installed in Max.")
             texture_node = rt.VRayBitmap()
             texture_node.fileName = file_path
         else:
