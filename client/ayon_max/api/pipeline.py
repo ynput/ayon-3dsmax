@@ -247,6 +247,40 @@ def containerise(name: str, nodes: list, context,
     return container
 
 
+
+def containerise_texture(name: str, context: dict,
+                         texture_node, namespace=None,
+                         loader=None, suffix="_CON"):
+    """Containerise texture nodes
+
+    Args:
+        name (str): name of the container
+        context (dict): context
+        texture_node: texture node
+        namespace (str, optional): namespace. Defaults to None.
+        loader (str, optional): loader. Defaults to None.
+        suffix (str, optional): suffix. Defaults to "_CON".
+
+    Returns:
+        _type_: _description_
+    """
+    data = {
+        "schema": "ayon:container-3.0",
+        "id": AYON_CONTAINER_ID,
+        "name": name,
+        "namespace": namespace or "",
+        "loader": loader,
+        "representation": context["representation"]["id"],
+        "project_name": context["project"]["name"],
+        "texture_node": texture_node
+    }
+    container_name = f"{namespace}:{name}{suffix}"
+    container = rt.container(name=container_name)
+    if not lib.imprint(container_name, data):
+        print(f"imprinting of {container_name} failed.")
+    return container
+
+
 def _set_project():
     project_name = get_current_project_name()
     project_settings = get_project_settings(project_name)
