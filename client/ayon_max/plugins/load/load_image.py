@@ -43,7 +43,7 @@ class ImageLoader(load.LoaderPlugin):
             EnumDef("bitmap_type",
                     items=cls.bitmap_enum_dict,
                     default=cls.bitmap_default,
-                    label="Material Duplicate Options")
+                    label="Bitmap Type")
         ]
 
     def load(self, context, name=None, namespace=None, options=None):
