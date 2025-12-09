@@ -1,14 +1,8 @@
 import os
 
-from ayon_core.pipeline import load, get_current_host_name
+from ayon_core.pipeline import load
 from ayon_core.pipeline.load import LoadError
 from ayon_core.lib.attribute_definitions import EnumDef
-from ayon_core.pipeline.colorspace import (
-    get_current_context_imageio_config_preset,
-    get_imageio_file_rules,
-    get_imageio_file_rules_colorspace_from_filepath,
-)
-from ayon_core.settings import get_project_settings
 from ayon_max.api.pipeline import (
     containerise_texture,
 )
