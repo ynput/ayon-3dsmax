@@ -84,15 +84,17 @@ class ImageLoader(load.LoaderPlugin):
         repre_entity = context["representation"]
         view_node_name = container["view_node"]
         sme_view = container["sme_view"]
-        view_node = get_texture_node_from_sme_view(
-            sme_view, view_node_name
-        )
-        texture_node = view_node.reference
+        with ensure_sme_editor_active():
+            sme_view = get_target_sme_view(sme_view)
+            view_node = get_texture_node_from_sme_view(
+                sme_view, view_node_name
+            )
+            texture_node = sme_view.GetNodeByRef(view_node.reference)
 
-        if rt.classOf(texture_node) == rt.VRayBitmap:
-            texture_node.fileName = file_path
-        else:
-            texture_node.Filename = file_path
+            if rt.classOf(texture_node) == rt.VRayBitmap:
+                texture_node.fileName = file_path
+            else:
+                texture_node.Filename = file_path
 
         imprint(container["instance_node"], {
             "representation": repre_entity["id"],
