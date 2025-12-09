@@ -17,9 +17,9 @@ from pymxs import runtime as rt
 class ImageLoader(load.LoaderPlugin):
     """Loading image files to Slate Material Editor."""
 
-    product_types = {"*"}
+    product_types = {"render", "image", "plate", "texture"}
+    representations = {"*"}
     label = "Load Image"
-    extensions = {"exr", "tif", "png", "jpg", "jpeg"}
     icon = "image"
     color = "orange"
     order = 2
@@ -69,7 +69,6 @@ class ImageLoader(load.LoaderPlugin):
             texture_node, namespace,
             loader=self.__class__.__name__
         )
-
 
     def update(self, container, context):
         file_path = os.path.normpath(self.filepath_from_context(context))
