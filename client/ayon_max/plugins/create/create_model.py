@@ -8,6 +8,7 @@ class CreateModel(plugin.MaxCreator):
     identifier = "io.openpype.creators.max.model"
     label = "Model"
     product_type = "model"
+    product_base_type = "model"
     icon = "gear"
 
     settings_category = "max"
