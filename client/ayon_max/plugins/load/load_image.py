@@ -65,16 +65,16 @@ class ImageLoader(load.LoaderPlugin):
         # add the contextlib to check whether sml is opened.
         # Get Slate Material Editor current view
         # Create Node to store the bitmap
-        active_sme_view = rt.sme.ActiveView
         with ensure_sme_editor_active():
-            current_sme_view = get_target_sme_view(active_sme_view)
+            active_view_number = rt.sme.ActiveView
+            current_sme_view = get_target_sme_view(active_view_number)
             view_node = current_sme_view.createNode(texture_node, rt.Point2(0, 0))
 
         return containerise_texture(
             name,
             context,
             view_node.name,
-            current_sme_view,
+            active_view_number,
             namespace,
             loader=self.__class__.__name__
         )
@@ -83,13 +83,13 @@ class ImageLoader(load.LoaderPlugin):
         file_path = os.path.normpath(self.filepath_from_context(context))
         repre_entity = context["representation"]
         view_node_name = container["view_node"]
-        sme_view = container["sme_view"]
+        sme_view_number = container["sme_view_number"]
         with ensure_sme_editor_active():
-            sme_view = get_target_sme_view(sme_view)
+            current_sme_view = get_target_sme_view(sme_view_number)
             view_node = get_texture_node_from_sme_view(
-                sme_view, view_node_name
+                current_sme_view, view_node_name
             )
-            texture_node = sme_view.GetNodeByRef(view_node.reference)
+            texture_node = current_sme_view.GetNodeByRef(view_node.reference)
 
             if rt.classOf(texture_node) == rt.VRayBitmap:
                 texture_node.fileName = file_path

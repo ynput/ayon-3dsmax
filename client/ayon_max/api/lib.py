@@ -672,13 +672,13 @@ def get_texture_node_from_sme_view(sme_view, texture_name):
     """Get texture node from SME view
 
     Args:
-        sme_view (int): Target SME View
+        sme_view (rt.NodeViewImp): Target SME View
         texture_name (str): texture node name
     Returns:
         IObject: texture node object
     """
-    target_sme_view = get_target_sme_view(sme_view)
-    for node in target_sme_view.Nodes:
+    for i in range(sme_view.GetNumNodes()):
+        node = sme_view.GetNode(i)
         if node.name == texture_name:
             return node
     return None
@@ -700,9 +700,9 @@ def ensure_sme_editor_active():
     """Ensure that Slate Material Editor is active during context
     """
     was_open = rt.sme.isOpen()
-    if not was_open:
-        rt.sme.open()
     try:
+        if not was_open:
+            rt.sme.open()
         yield
     finally:
         if not was_open:

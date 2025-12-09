@@ -249,7 +249,7 @@ def containerise(name: str, nodes: list, context,
 
 
 def containerise_texture(name: str, context: dict,
-                         view_node, sme_view,
+                         view_node, sme_view_number,
                          namespace=None, loader=None,
                          suffix="_CON"):
     """Containerise texture nodes
@@ -275,7 +275,7 @@ def containerise_texture(name: str, context: dict,
         "representation": context["representation"]["id"],
         "project_name": context["project"]["name"],
         "view_node": view_node,
-        "sme_view": sme_view,
+        "sme_view_number": sme_view_number,
     }
     container_name = f"{namespace}:{name}{suffix}"
     container = rt.container(name=container_name)
