@@ -10,6 +10,9 @@ from ayon_max.api.lib import (
     unique_namespace,
     imprint,
     get_plugins,
+    get_target_sme_view,
+    get_texture_node_from_sme_view,
+    ensure_sme_editor_active,
 )
 from pymxs import runtime as rt
 
@@ -59,24 +62,36 @@ class ImageLoader(load.LoaderPlugin):
             )
             texture_node.Filename = file_path
 
+        # add the contextlib to check whether sml is opened.
         # Get Slate Material Editor current view
         # Create Node to store the bitmap
-        current_sme_view = rt.sme.GetView(rt.sme.ActiveView)
-        current_sme_view.createNode(texture_node, rt.Point2(0, 0))
+        active_sme_view = rt.sme.ActiveView
+        with ensure_sme_editor_active():
+            current_sme_view = get_target_sme_view(active_sme_view)
+            view_node = current_sme_view.createNode(texture_node, rt.Point2(0, 0))
 
         return containerise_texture(
-            name, context,
-            texture_node, namespace,
+            name,
+            context,
+            view_node.name,
+            current_sme_view,
+            namespace,
             loader=self.__class__.__name__
         )
 
     def update(self, container, context):
         file_path = os.path.normpath(self.filepath_from_context(context))
         repre_entity = context["representation"]
-        texture_node = container["texture_node"]
+        view_node_name = container["view_node"]
+        sme_view = container["sme_view"]
+        view_node = get_texture_node_from_sme_view(
+            sme_view, view_node_name
+        )
+        texture_node = view_node.reference
+
         if rt.classOf(texture_node) == rt.VRayBitmap:
             texture_node.fileName = file_path
-        elif rt.classOf(texture_node) == rt.OSLMap:
+        else:
             texture_node.Filename = file_path
 
         imprint(container["instance_node"], {

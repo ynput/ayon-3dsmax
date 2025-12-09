@@ -668,6 +668,47 @@ def get_tyflow_export_operators():
     return operators
 
 
+def get_texture_node_from_sme_view(sme_view, texture_name):
+    """Get texture node from SME view
+
+    Args:
+        sme_view (int): Target SME View
+        texture_name (str): texture node name
+    Returns:
+        IObject: texture node object
+    """
+    target_sme_view = get_target_sme_view(sme_view)
+    for node in target_sme_view.Nodes:
+        if node.name == texture_name:
+            return node
+    return None
+
+
+def get_target_sme_view(target_view: int):
+    """_summary_
+
+    Args:
+        target_view (int): active SME view
+    Returns:
+        IObject: SME View object
+    """
+    return rt.sme.GetView(target_view)
+
+
+@contextlib.contextmanager
+def ensure_sme_editor_active():
+    """Ensure that Slate Material Editor is active during context
+    """
+    was_open = rt.sme.isOpen()
+    if not was_open:
+        rt.sme.open()
+    try:
+        yield
+    finally:
+        if not was_open:
+            rt.sme.close()
+
+
 @contextlib.contextmanager
 def set_viewport_type(viewport_type=rt.Name("view_camera")):
     """Set viewport type during context"""

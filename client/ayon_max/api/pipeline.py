@@ -249,14 +249,16 @@ def containerise(name: str, nodes: list, context,
 
 
 def containerise_texture(name: str, context: dict,
-                         texture_node, namespace=None,
-                         loader=None, suffix="_CON"):
+                         view_node, sme_view,
+                         namespace=None, loader=None,
+                         suffix="_CON"):
     """Containerise texture nodes
 
     Args:
         name (str): name of the container
         context (dict): context
-        texture_node: texture node
+        view_node: texture node
+        sme_view: target view of slate material editor
         namespace (str, optional): namespace. Defaults to None.
         loader (str, optional): loader. Defaults to None.
         suffix (str, optional): suffix. Defaults to "_CON".
@@ -272,7 +274,8 @@ def containerise_texture(name: str, context: dict,
         "loader": loader,
         "representation": context["representation"]["id"],
         "project_name": context["project"]["name"],
-        "texture_node": texture_node
+        "view_node": view_node,
+        "sme_view": sme_view,
     }
     container_name = f"{namespace}:{name}{suffix}"
     container = rt.container(name=container_name)
