@@ -31,7 +31,7 @@ class ImageLoader(load.LoaderPlugin):
     color = "orange"
     order = 2
 
-    bitmap_default = "vray_bitmap"
+    bitmap_default = "osl"
     bitmap_enum_dict = {
         "vray_bitmap": "Vray Bitmap",
         "osl": "OSL Bitmap Lookup"
