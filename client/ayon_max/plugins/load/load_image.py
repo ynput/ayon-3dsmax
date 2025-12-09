@@ -83,13 +83,13 @@ class ImageLoader(load.LoaderPlugin):
         file_path = os.path.normpath(self.filepath_from_context(context))
         repre_entity = context["representation"]
         view_node_name = container["view_node"]
-        sme_view_number = container["sme_view_number"]
+        sme_view_number = int(container["sme_view_number"])
         with ensure_sme_editor_active():
             current_sme_view = get_target_sme_view(sme_view_number)
             view_node = get_texture_node_from_sme_view(
                 current_sme_view, view_node_name
             )
-            texture_node = current_sme_view.GetNodeByRef(view_node.reference)
+            texture_node = view_node.reference
 
             if rt.classOf(texture_node) == rt.VRayBitmap:
                 texture_node.fileName = file_path

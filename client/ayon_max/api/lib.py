@@ -672,12 +672,13 @@ def get_texture_node_from_sme_view(sme_view, texture_name):
     """Get texture node from SME view
 
     Args:
-        sme_view (rt.NodeViewImp): Target SME View
+        sme_view (rt.IFP_NodeViewImp): Target SME View
         texture_name (str): texture node name
     Returns:
         IObject: texture node object
     """
-    for i in range(sme_view.GetNumNodes()):
+    for i in range(sme_view.GetNumNodes() + 1):
+        print("number of node", sme_view.GetNumNodes())
         node = sme_view.GetNode(i)
         if node.name == texture_name:
             return node
