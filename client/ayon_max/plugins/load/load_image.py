@@ -13,7 +13,6 @@ from ayon_max.api.pipeline import (
     containerise_texture,
 )
 from ayon_max.api.lib import (
-    maintained_selection,
     unique_namespace,
     imprint,
     get_plugins,
