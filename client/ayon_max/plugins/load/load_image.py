@@ -89,7 +89,6 @@ class ImageLoader(load.LoaderPlugin):
         self.update(container, context)
 
     def remove(self, container):
-        from pymxs import runtime as rt
         container_node = rt.GetNodeByName(container["instance_node"])
         # TODO: remove the texture node from SME
         # some contextlib selection management may be needed
