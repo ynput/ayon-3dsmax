@@ -132,6 +132,7 @@ def maintained_selection():
         else:
             rt.Select()
 
+
 @contextlib.contextmanager
 def maintained_sme_view_nodes_selection(current_sme_view, texture_node):
     """Maintain selection of nodes in SME view during context
@@ -140,14 +141,18 @@ def maintained_sme_view_nodes_selection(current_sme_view, texture_node):
         view_node_name (IFP_NodeViewImp): SNE View Node Object
         texture_node (Node): Texture Node Object
     """
-    previous_selection = current_sme_view.GetSelectedNodes()
+    previous_selection = [
+        node.reference for node in current_sme_view.GetSelectedNodes()
+        if node.reference != texture_node
+    ]
     try:
         current_sme_view.SelectNone()
         current_sme_view.setSelectedNodes([texture_node])
         yield
 
     finally:
-        current_sme_view.setSelectedNodes(previous_selection)
+        if previous_selection:
+            current_sme_view.setSelectedNodes(previous_selection)
 
 
 def get_all_children(parent, node_type=None):
