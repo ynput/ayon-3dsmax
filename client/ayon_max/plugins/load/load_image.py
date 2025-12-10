@@ -65,7 +65,7 @@ class ImageLoader(load.LoaderPlugin):
         """
         if bitmap_type == "vray_bitmap":
             if not find_plugins("vray"):
-                raise LoadError("V-Ray plugin is not loaded/installed in 3ds Max.")
+                raise LoadError("V-Ray plugin is not available in 3ds Max.")
             texture_node = rt.VRayBitmap()
             texture_node.fileName = file_path
         elif bitmap_type == "osl":
