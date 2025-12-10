@@ -1,6 +1,7 @@
 import os
 import contextlib
 from ayon_core.pipeline import load, get_current_host_name
+from ayon_core.pipeline.load import LoadError
 
 from ayon_core.lib.attribute_definitions import EnumDef
 from ayon_max.api.pipeline import (
@@ -62,10 +63,12 @@ class ImageLoader(load.LoaderPlugin):
         Returns:
             Node: The created texture node
         """
-        if find_plugins("vray") and bitmap_type == "vray_bitmap":
+        if bitmap_type == "vray_bitmap":
+            if not find_plugins("vray"):
+                raise LoadError("V-Ray plugin is not loaded/installed in 3ds Max.")
             texture_node = rt.VRayBitmap()
             texture_node.fileName = file_path
-        else:
+        elif bitmap_type == "osl":
             texture_node = rt.OSLMap()
             texture_node.OSLPath = os.path.join(
                 rt.getdir(rt.Name("maxroot")), "OSL/OSLBitmap2.osl"
@@ -73,7 +76,9 @@ class ImageLoader(load.LoaderPlugin):
             texture_node.Filename = file_path
             self._set_udim(context, texture_node)
             texture_node.Filename_ColorSpace = self._get_colorspace(context)
-        
+        else:
+            raise LoadError(f"Unsupported bitmap type: {bitmap_type}")
+
         return texture_node
 
     def load(self, context, name=None, namespace=None, options=None):
@@ -113,13 +118,18 @@ class ImageLoader(load.LoaderPlugin):
             )
             texture_node = view_node.reference
 
-            if find_plugins("vray") and rt.classOf(texture_node) == rt.VRayBitmap:
+            if find_plugins("vray") and (
+                rt.classOf(texture_node) == getattr(rt, "VRayBitmap", None)
+            ):
                 texture_node.fileName = file_path
-            else:
+            elif rt.classOf(texture_node) == rt.OSLMap:
                 texture_node.Filename = file_path
                 self._set_udim(context, texture_node)
                 texture_node.Filename_ColorSpace = self._get_colorspace(context)
-
+            else:
+                raise LoadError(
+                    f"Unsupported texture node type: {rt.classOf(texture_node)}"
+                )
 
         imprint(container["instance_node"], {
             "representation": repre_entity["id"],
