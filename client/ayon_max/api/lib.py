@@ -617,6 +617,20 @@ def get_plugins() -> list:
     return plugin_info_list
 
 
+def find_plugins(search_string: str) -> bool:
+    """Find if a plugin is loaded in 3dsMax
+
+    Args:
+        search_string (str): string to search for
+
+    Returns:
+        bool: True if found, False otherwise
+    """
+    if any(search_string in plugin for plugin in get_plugins()):
+        return True
+    return False
+
+
 def update_modifier_node_names(event, node):
     """Update the name of the nodes after renaming
 

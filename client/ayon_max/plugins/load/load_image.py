@@ -15,6 +15,7 @@ from ayon_core.settings import get_project_settings
 from ayon_max.api.lib import (
     unique_namespace,
     imprint,
+    find_plugins,
     get_target_sme_view,
     get_view_node_from_sme_view,
     ensure_sme_editor_active,
@@ -61,7 +62,7 @@ class ImageLoader(load.LoaderPlugin):
         Returns:
             Node: The created texture node
         """
-        if bitmap_type == "vray_bitmap":
+        if find_plugins("vray") and bitmap_type == "vray_bitmap":
             texture_node = rt.VRayBitmap()
             texture_node.fileName = file_path
         else:
@@ -112,7 +113,7 @@ class ImageLoader(load.LoaderPlugin):
             )
             texture_node = view_node.reference
 
-            if rt.classOf(texture_node) == rt.VRayBitmap:
+            if find_plugins("vray") and rt.classOf(texture_node) == rt.VRayBitmap:
                 texture_node.fileName = file_path
             else:
                 texture_node.Filename = file_path
