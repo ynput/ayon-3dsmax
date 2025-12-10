@@ -116,9 +116,6 @@ class ImageLoader(load.LoaderPlugin):
             view_node = get_view_node_from_sme_view(
                 current_sme_view, view_node_name
             )
-            if view_node is None:
-                return
-
             texture_node = view_node.reference
 
             if find_plugins("vray") and (
@@ -151,9 +148,6 @@ class ImageLoader(load.LoaderPlugin):
             view_node = get_view_node_from_sme_view(
                 current_sme_view, view_node_name
             )
-            if view_node is None:
-                return
-
             stack.enter_context(
                 maintained_sme_view_nodes_selection(
                     current_sme_view, view_node.reference
