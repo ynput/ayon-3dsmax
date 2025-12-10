@@ -132,6 +132,23 @@ def maintained_selection():
         else:
             rt.Select()
 
+@contextlib.contextmanager
+def maintained_sme_view_nodes_selection(current_sme_view, texture_node):
+    """Maintain selection of nodes in SME view during context
+
+    Args:
+        view_node_name (IFP_NodeViewImp): SNE View Node Object
+        texture_node (Node): Texture Node Object
+    """
+    previous_selection = current_sme_view.GetSelectedNodes()
+    try:
+        current_sme_view.SelectNone()
+        current_sme_view.setSelectedNodes([texture_node])
+        yield
+
+    finally:
+        current_sme_view.setSelectedNodes(previous_selection)
+
 
 def get_all_children(parent, node_type=None):
     """Handy function to get all the children of a given node
@@ -668,21 +685,34 @@ def get_tyflow_export_operators():
     return operators
 
 
-def get_texture_node_from_sme_view(sme_view, texture_name):
-    """Get texture node from SME view
+def get_view_node_from_sme_view(sme_view, view_node_name):
+    """Get view node from SME view
 
     Args:
         sme_view (rt.IFP_NodeViewImp): Target SME View
-        texture_name (str): texture node name
+        view_node_name (str): view node name
     Returns:
-        IObject: texture node object
+        IObject: view node object
     """
     for i in range(sme_view.GetNumNodes() + 1):
-        print("number of node", sme_view.GetNumNodes())
         node = sme_view.GetNode(i)
-        if node.name == texture_name:
+        if node and node.name == view_node_name:
             return node
     return None
+
+
+def get_texture_node_from_view_node(sme_view_number, view_node_name):
+    """Get texture node from view node in SME view
+
+    Args:
+        sme_view_number (int): Target SME View Number
+        view_node_name (str): view node name
+    Returns:
+        MaxObject: texture node object
+    """
+    view_node = get_view_node_from_sme_view(
+        current_sme_view, view_node_name
+    )
 
 
 def get_target_sme_view(target_view: int):
