@@ -701,20 +701,6 @@ def get_view_node_from_sme_view(sme_view, view_node_name):
     return None
 
 
-def get_texture_node_from_view_node(sme_view_number, view_node_name):
-    """Get texture node from view node in SME view
-
-    Args:
-        sme_view_number (int): Target SME View Number
-        view_node_name (str): view node name
-    Returns:
-        MaxObject: texture node object
-    """
-    view_node = get_view_node_from_sme_view(
-        current_sme_view, view_node_name
-    )
-
-
 def get_target_sme_view(target_view: int):
     """_summary_
 
