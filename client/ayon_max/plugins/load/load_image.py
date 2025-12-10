@@ -153,6 +153,11 @@ class ImageLoader(load.LoaderPlugin):
         """Return UDIM list for the file to load.
 
         Retrieves the UDIM list from the publish data if available.
+        This function is not fully working due to the limitations of
+        OSLBitmap2 requires users to choose the specific UDIM tile manually
+        by dialog.  For now, it helps the users to identify the published
+        path of the UDIM textures. Users need to reload the texture again to
+        set up the UDIM token.
 
         Returns:
             list or None: The UDIM list or None if not available.
