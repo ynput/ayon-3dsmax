@@ -14,6 +14,7 @@ class CreateRender(plugin.MaxCreator):
     identifier = "io.openpype.creators.max.render"
     label = "Render"
     product_type = "maxrender"
+    product_base_type = "maxrender"
     icon = "gear"
 
     settings_category = "max"

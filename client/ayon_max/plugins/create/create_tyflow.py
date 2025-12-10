@@ -8,4 +8,5 @@ class CreateTyFlow(plugin.MaxCacheCreator):
     identifier = "io.ayon.creators.max.tyflow"
     label = "TyFlow"
     product_type = "tyflow"
+    product_base_type = "tyflow"
     icon = "gear"

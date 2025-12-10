@@ -10,6 +10,7 @@ class CreateReview(plugin.MaxCreator):
     identifier = "io.openpype.creators.max.review"
     label = "Review"
     product_type = "review"
+    product_base_type = "review"
     icon = "video-camera"
 
     settings_category = "max"

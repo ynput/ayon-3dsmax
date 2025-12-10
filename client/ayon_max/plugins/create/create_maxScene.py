@@ -8,6 +8,7 @@ class CreateMaxScene(plugin.MaxCreator):
     identifier = "io.openpype.creators.max.maxScene"
     label = "Max Scene"
     product_type = "maxScene"
+    product_base_type = "maxScene"
     icon = "gear"
 
     settings_category = "max"
