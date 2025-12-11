@@ -138,7 +138,6 @@ class MaxSceneLoader(load.LoaderPlugin):
         rt.select(node_list)
         prev_max_objects = rt.GetCurrentSelection()
         transform_data = object_transform_set(prev_max_objects)
-
         for prev_max_obj in prev_max_objects:
             if rt.isValidNode(prev_max_obj):  # noqa
                 rt.Delete(prev_max_obj)
@@ -159,12 +158,11 @@ class MaxSceneLoader(load.LoaderPlugin):
                                      current_max_object_names):
             max_obj.name = f"{namespace}:{obj_name}"
             max_objects.append(max_obj)
-            max_transform = f"{max_obj}.transform"
+            max_transform = f"{max_obj.name}.transform"
             if max_transform in transform_data.keys():
                 max_obj.pos = transform_data[max_transform] or 0
                 max_obj.scale = transform_data[
-                    f"{max_obj}.scale"] or 0
-
+                    f"{max_obj.name}.scale"] or 0
         update_custom_attribute_data(node, max_objects)
         lib.imprint(container["instance_node"], {
             "representation": repre_entity["id"],
