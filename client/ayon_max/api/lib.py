@@ -715,7 +715,9 @@ def get_view_node_from_sme_view(sme_view, view_node_name):
     """
     for i in range(sme_view.GetNumNodes() + 1):
         node = sme_view.GetNode(i)
-        if node and node.name == view_node_name:
+        if node is None:
+            continue
+        if node.name == view_node_name:
             return node
     raise ValueError(f"View node {view_node_name} not found in SME view.")
 
