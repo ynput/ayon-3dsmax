@@ -243,7 +243,44 @@ def containerise(name: str, nodes: list, context,
     container = rt.container(name=container_name)
     import_custom_attribute_data(container, nodes)
     if not lib.imprint(container_name, data):
-        print(f"imprinting of {container_name} failed.")
+        raise RuntimeError(f"imprinting of {container_name} failed.")
+    return container
+
+
+
+def containerise_texture(name: str, context: dict,
+                         view_node, sme_view_number,
+                         namespace=None, loader=None,
+                         suffix="_CON"):
+    """Containerise texture nodes
+
+    Args:
+        name (str): name of the container
+        context (dict): context
+        view_node: texture node
+        sme_view: target view of slate material editor
+        namespace (str, optional): namespace. Defaults to None.
+        loader (str, optional): loader. Defaults to None.
+        suffix (str, optional): suffix. Defaults to "_CON".
+
+    Returns:
+        container: The container object holding the texture node metadata.
+    """
+    data = {
+        "schema": "ayon:container-3.0",
+        "id": AYON_CONTAINER_ID,
+        "name": name,
+        "namespace": namespace or "",
+        "loader": loader,
+        "representation": context["representation"]["id"],
+        "project_name": context["project"]["name"],
+        "view_node": view_node,
+        "sme_view_number": sme_view_number,
+    }
+    container_name = f"{namespace}:{name}{suffix}"
+    container = rt.container(name=container_name)
+    if not lib.imprint(container_name, data):
+        raise RuntimeError(f"imprinting of {container_name} failed.")
     return container
 
 

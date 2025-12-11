@@ -133,6 +133,28 @@ def maintained_selection():
             rt.Select()
 
 
+@contextlib.contextmanager
+def maintained_sme_view_nodes_selection(current_sme_view, texture_node):
+    """Maintain selection of nodes in SME view during context
+
+    Args:
+        view_node_name (IFP_NodeViewImp): SNE View Node Object
+        texture_node (Node): Texture Node Object
+    """
+    previous_selection = [
+        node.reference for node in current_sme_view.GetSelectedNodes()
+        if node.reference != texture_node
+    ]
+    try:
+        current_sme_view.SelectNone()
+        current_sme_view.setSelectedNodes([texture_node])
+        yield
+
+    finally:
+        if previous_selection:
+            current_sme_view.setSelectedNodes(previous_selection)
+
+
 def get_all_children(parent, node_type=None):
     """Handy function to get all the children of a given node
 
@@ -595,6 +617,20 @@ def get_plugins() -> list:
     return plugin_info_list
 
 
+def find_plugins(search_string: str) -> bool:
+    """Find if a plugin is loaded in 3dsMax
+
+    Args:
+        search_string (str): string to search for
+
+    Returns:
+        bool: True if found, False otherwise
+    """
+    if any(search_string in plugin for plugin in get_plugins()):
+        return True
+    return False
+
+
 def update_modifier_node_names(event, node):
     """Update the name of the nodes after renaming
 
@@ -666,6 +702,49 @@ def get_tyflow_export_operators():
                 if rt.hasProperty(node_sub_anim, "exportMode"):
                     operators.append(node_sub_anim)
     return operators
+
+
+def get_view_node_from_sme_view(sme_view, view_node_name):
+    """Get view node from SME view
+
+    Args:
+        sme_view (rt.IFP_NodeViewImp): Target SME View
+        view_node_name (str): view node name
+    Returns:
+        IObject: view node object
+    """
+    for i in range(sme_view.GetNumNodes() + 1):
+        node = sme_view.GetNode(i)
+        if node is None:
+            continue
+        if node.name == view_node_name:
+            return node
+    raise ValueError(f"View node {view_node_name} not found in SME view.")
+
+
+def get_target_sme_view(target_view: int):
+    """_summary_
+
+    Args:
+        target_view (int): active SME view
+    Returns:
+        IObject: SME View object
+    """
+    return rt.sme.GetView(target_view)
+
+
+@contextlib.contextmanager
+def ensure_sme_editor_active():
+    """Ensure that Slate Material Editor is active during context
+    """
+    was_open = rt.sme.isOpen()
+    try:
+        if not was_open:
+            rt.sme.open()
+        yield
+    finally:
+        if not was_open:
+            rt.sme.close()
 
 
 @contextlib.contextmanager
