@@ -37,7 +37,8 @@ class RedshiftProxyLoader(load.LoaderPlugin):
 
         folder_name = context["folder"]["name"]
         namespace = unique_namespace(
-            f"{folder_name}_{name}" + "_",
+            name + "_",
+            prefix=f"{folder_name}_",
             suffix="_",
         )
         rs_obj.name = f"{namespace}:{rs_obj.name}"

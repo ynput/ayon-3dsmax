@@ -85,7 +85,8 @@ class ImageLoader(load.LoaderPlugin):
         file_path = os.path.normpath(self.filepath_from_context(context))
         folder_name = context["folder"]["name"]
         namespace = unique_namespace(
-            f"{folder_name}_{name}" + "_",
+            name + "_",
+            prefix=f"{folder_name}_",
             suffix="_",
         )
         bitmap_type = options.get("bitmap_type", self.bitmap_default)

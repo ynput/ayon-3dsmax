@@ -46,7 +46,8 @@ class ModelUSDLoader(load.LoaderPlugin):
                                   importOptions=import_options)
         folder_name = context["folder"]["name"]
         namespace = unique_namespace(
-            f"{folder_name}_{name}" + "_",
+            name + "_",
+            prefix=f"{folder_name}_",
             suffix="_",
         )
         asset = rt.GetNodeByName(name)

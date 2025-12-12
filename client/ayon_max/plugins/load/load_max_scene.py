@@ -114,7 +114,8 @@ class MaxSceneLoader(load.LoaderPlugin):
         max_container = []
         folder_name = context["folder"]["name"]
         namespace = unique_namespace(
-            f"{folder_name}_{name}" + "_",
+            name + "_",
+            prefix=f"{folder_name}_",
             suffix="_",
         )
         for max_obj, obj_name in zip(max_objects, max_object_names):
