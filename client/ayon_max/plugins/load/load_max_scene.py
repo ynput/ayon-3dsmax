@@ -163,12 +163,12 @@ class MaxSceneLoader(load.LoaderPlugin):
                 max_obj.pos = transform_data[max_transform] or (
                     rt.Point3(0, 0, 0)
                 )
-                max_obj.scale = transform_data[f"{max_obj.name}.scale"] or (
-                    rt.Point3(1, 1, 1)
-                )
                 rotation_data = transform_data[f"{max_obj.name}.rotation"] or (
                     rt.Quat(0, 0, 0, 1)
                 )
+                # just in case there is existing rotation
+                # data from the loaded object
+                rotation_data -= max_obj.rotation
                 rt.rotate(max_obj, rotation_data)
         update_custom_attribute_data(node, max_objects)
         lib.imprint(container["instance_node"], {
