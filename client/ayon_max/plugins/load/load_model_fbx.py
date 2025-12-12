@@ -34,8 +34,9 @@ class FbxModelLoader(load.LoaderPlugin):
         rt.importFile(
             filepath, rt.name("noPrompt"), using=rt.FBXIMP)
 
+        folder_name = context["folder"]["name"]
         namespace = unique_namespace(
-            name + "_",
+            f"{folder_name}_{name}" + "_",
             suffix="_",
         )
         selections = rt.GetCurrentSelection()

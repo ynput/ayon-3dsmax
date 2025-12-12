@@ -44,8 +44,9 @@ class ModelUSDLoader(load.LoaderPlugin):
         rt.LogLevel = rt.Name("info")
         rt.USDImporter.importFile(filepath,
                                   importOptions=import_options)
+        folder_name = context["folder"]["name"]
         namespace = unique_namespace(
-            name + "_",
+            f"{folder_name}_{name}" + "_",
             suffix="_",
         )
         asset = rt.GetNodeByName(name)

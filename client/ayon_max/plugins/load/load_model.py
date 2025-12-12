@@ -52,8 +52,9 @@ class ModelAbcLoader(load.LoaderPlugin):
 
         abc_container = abc_containers.pop()
 
+        folder_name = context["folder"]["name"]
         namespace = unique_namespace(
-            name + "_",
+            f"{folder_name}_{name}" + "_",
             suffix="_",
         )
         abc_objects = []

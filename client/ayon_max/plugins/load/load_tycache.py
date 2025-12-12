@@ -29,8 +29,9 @@ class TyCacheLoader(load.LoaderPlugin):
         obj = rt.tyCache()
         obj.filename = filepath
 
+        folder_name = context["folder"]["name"]
         namespace = unique_namespace(
-            name + "_",
+            f"{folder_name}_{name}" + "_",
             suffix="_",
         )
         obj.name = f"{namespace}:{obj.name}"
