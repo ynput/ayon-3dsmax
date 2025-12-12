@@ -6,7 +6,7 @@ from ayon_max.api.lib import (
     unique_namespace,
     get_namespace,
     object_transform_set,
-    is_headless
+    is_headless,
 )
 from ayon_max.api.pipeline import (
     containerise, get_previous_loaded_object,
@@ -140,7 +140,6 @@ class MaxSceneLoader(load.LoaderPlugin):
         rt.select(node_list)
         prev_max_objects = rt.GetCurrentSelection()
         transform_data = object_transform_set(prev_max_objects)
-
         for prev_max_obj in prev_max_objects:
             if rt.isValidNode(prev_max_obj):  # noqa
                 rt.Delete(prev_max_obj)
@@ -161,12 +160,18 @@ class MaxSceneLoader(load.LoaderPlugin):
                                      current_max_object_names):
             max_obj.name = f"{namespace}:{obj_name}"
             max_objects.append(max_obj)
-            max_transform = f"{max_obj}.transform"
+            max_transform = f"{max_obj.name}.transform"
             if max_transform in transform_data.keys():
-                max_obj.pos = transform_data[max_transform] or 0
-                max_obj.scale = transform_data[
-                    f"{max_obj}.scale"] or 0
-
+                max_obj.pos = transform_data[max_transform] or (
+                    rt.Point3(0, 0, 0)
+                )
+                rotation_data = transform_data[f"{max_obj.name}.rotation"] or (
+                    rt.Quat(0, 0, 0, 1)
+                )
+                # just in case there is existing rotation
+                # data from the loaded object
+                rotation_data -= max_obj.rotation
+                rt.rotate(max_obj, rotation_data)
         update_custom_attribute_data(node, max_objects)
         lib.imprint(container["instance_node"], {
             "representation": repre_entity["id"],
