@@ -61,8 +61,10 @@ class AbcLoader(load.LoaderPlugin):
             for cam_shape in abc.Children:
                 cam_shape.playbackType = 0
 
+        folder_name = context["folder"]["name"]
         namespace = unique_namespace(
             name + "_",
+            prefix=f"{folder_name}_",
             suffix="_",
         )
         abc_objects = []

@@ -48,8 +48,10 @@ class OxAbcLoader(load.LoaderPlugin):
             if str(obj_type).startswith("Ox_"):
                 scene_object.append(obj)
 
+        folder_name = context["folder"]["name"]
         namespace = unique_namespace(
             name + "_",
+            prefix=f"{folder_name}_",
             suffix="_",
         )
         abc_container = []
