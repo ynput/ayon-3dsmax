@@ -596,6 +596,8 @@ def object_transform_set(container_children):
     for node in container_children:
         name = f"{node.name}.transform"
         transform_set[name] = node.pos
+        name = f"{node.name}.rotation"
+        transform_set[name] = node.rotation
         name = f"{node.name}.scale"
         transform_set[name] = node.scale
     return transform_set
