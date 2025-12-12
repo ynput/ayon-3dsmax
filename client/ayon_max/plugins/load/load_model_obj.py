@@ -33,8 +33,10 @@ class ObjLoader(load.LoaderPlugin):
 
         rt.Execute(f'importFile @"{filepath}" #noPrompt using:ObjImp')
 
+        folder_name = context["folder"]["name"]
         namespace = unique_namespace(
             name + "_",
+            prefix=f"{folder_name}_",
             suffix="_",
         )
         # create "missing" container for obj import

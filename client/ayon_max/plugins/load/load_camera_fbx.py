@@ -37,9 +37,10 @@ class FbxLoader(load.LoaderPlugin):
             filepath,
             rt.name("noPrompt"),
             using=rt.FBXIMP)
-
+        folder_name = context["folder"]["name"]
         namespace = unique_namespace(
             name + "_",
+            prefix=f"{folder_name}_",
             suffix="_",
         )
         selections = rt.GetCurrentSelection()
