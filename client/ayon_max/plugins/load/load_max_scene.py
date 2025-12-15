@@ -165,6 +165,9 @@ class MaxSceneLoader(load.LoaderPlugin):
                 max_obj.pos = transform_data[max_transform] or (
                     rt.Point3(0, 0, 0)
                 )
+                max_obj.scale = transform_data[f"{max_obj.name}.scale"] or (
+                    rt.Point3(1, 1, 1)
+                )
                 rotation_data = transform_data[f"{max_obj.name}.rotation"] or (
                     rt.Quat(0, 0, 0, 1)
                 )
