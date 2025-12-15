@@ -162,9 +162,11 @@ class MaxSceneLoader(load.LoaderPlugin):
             max_objects.append(max_obj)
             max_transform = f"{max_obj.name}.transform"
             if max_transform in transform_data.keys():
-                max_obj.pos = transform_data[max_transform] or (
+                translate_data = transform_data[max_transform] or (
                     rt.Point3(0, 0, 0)
                 )
+                max_obj.pos = rt.Point3(0, 0, 0)
+                rt.move(max_obj, translate_data)
                 max_obj.scale = transform_data[f"{max_obj.name}.scale"] or (
                     rt.Point3(1, 1, 1)
                 )
