@@ -170,7 +170,7 @@ class MaxSceneLoader(load.LoaderPlugin):
                 )
                 # just in case there is existing rotation
                 # data from the loaded object
-                rotation_data -= max_obj.rotation
+                max_obj.rotation = rt.Quat(0, 0, 0, 1)
                 rt.rotate(max_obj, rotation_data)
         update_custom_attribute_data(node, max_objects)
         lib.imprint(container["instance_node"], {
