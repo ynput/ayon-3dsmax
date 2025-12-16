@@ -160,23 +160,20 @@ class MaxSceneLoader(load.LoaderPlugin):
                                      current_max_object_names):
             max_obj.name = f"{namespace}:{obj_name}"
             max_objects.append(max_obj)
-            max_transform = f"{max_obj.name}.transform"
-            if max_transform in transform_data.keys():
-                translate_data = transform_data[max_transform] or (
+            max_translate = f"{max_obj.name}.translate"
+            if max_translate in transform_data:
+                translate_data = transform_data[max_translate] or (
                     rt.Point3(0, 0, 0)
-                )
-                max_obj.pos = rt.Point3(0, 0, 0)
-                rt.move(max_obj, translate_data)
-                max_obj.scale = transform_data[f"{max_obj.name}.scale"] or (
-                    rt.Point3(1, 1, 1)
                 )
                 rotation_data = transform_data[f"{max_obj.name}.rotation"] or (
                     rt.Quat(0, 0, 0, 1)
                 )
-                # just in case there is existing rotation
-                # data from the loaded object
-                max_obj.rotation = rt.Quat(0, 0, 0, 1)
-                rt.rotate(max_obj, rotation_data)
+                max_obj.pos = translate_data
+                max_obj.scale = transform_data[f"{max_obj.name}.scale"] or (
+                    rt.Point3(1, 1, 1)
+                )
+                max_obj.rotation = rotation_data
+
         update_custom_attribute_data(node, max_objects)
         lib.imprint(container["instance_node"], {
             "representation": repre_entity["id"],
