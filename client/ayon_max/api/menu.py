@@ -2,7 +2,14 @@
 """3dsmax menu definition of AYON."""
 import os
 from qtpy import QtWidgets, QtCore
-from pymxs import runtime as rt
+
+
+try:
+    from pymxs import runtime as rt
+
+except ImportError:
+    rt = None
+
 
 from ayon_core.tools.utils import host_tools
 from ayon_max.api import lib

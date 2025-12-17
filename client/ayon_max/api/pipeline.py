@@ -23,7 +23,13 @@ from ayon_max.api import lib
 from ayon_max.api.plugin import MS_CUSTOM_ATTRIB
 from ayon_max import MAX_HOST_DIR
 
-from pymxs import runtime as rt  # noqa
+
+try:
+    from pymxs import runtime as rt
+
+except ImportError:
+    rt = None
+
 
 log = logging.getLogger("ayon_max")
 

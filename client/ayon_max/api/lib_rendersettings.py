@@ -1,5 +1,13 @@
 import os
-from pymxs import runtime as rt
+
+
+try:
+    from pymxs import runtime as rt
+
+except ImportError:
+    rt = None
+
+
 from ayon_core.lib import Logger
 from ayon_core.settings import get_project_settings
 from ayon_core.pipeline import get_current_project_name
