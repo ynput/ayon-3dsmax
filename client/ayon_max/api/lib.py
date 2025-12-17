@@ -593,11 +593,14 @@ def object_transform_set(container_children):
         the previous loaded object(s)
     """
     transform_set = {}
+
     for node in container_children:
-        name = f"{node}.transform"
-        transform_set[name] = node.pos
-        name = f"{node}.scale"
+        name = f"{node.name}.rotation"
+        transform_set[name] = node.rotation
+        name = f"{node.name}.scale"
         transform_set[name] = node.scale
+        name = f"{node.name}.translate"
+        transform_set[name] = node.pos
     return transform_set
 
 
