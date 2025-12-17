@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 """3dsmax specific AYON/Pyblish plugin definitions."""
-from pymxs import runtime as rt
+try:
+    from pymxs import runtime as rt
+
+except ImportError:
+    rt = None
+
 
 from ayon_core.lib import BoolDef
 from ayon_core.pipeline import (
