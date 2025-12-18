@@ -300,7 +300,7 @@ class RenderProducts(object):
         Returns:
             list: Updated list with additional outputs
         """
-        if renderer_class.output_splitAlpha:
+        if hasattr(renderer_class, 'output_splitAlpha') and renderer_class.output_splitAlpha:
             render_name.append("Alpha")
         if hasattr(renderer_class, 'output_splitRGB') and renderer_class.output_splitRGB:
             render_name.append("RGB_color")
