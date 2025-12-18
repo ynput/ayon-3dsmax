@@ -4,7 +4,13 @@
 # https://help.autodesk.com/view/ARNOL/ENU/?guid=arnold_for_3ds_max_ax_maxscript_commands_ax_renderview_commands_html
 import os
 
-from pymxs import runtime as rt
+
+try:
+    from pymxs import runtime as rt
+
+except ImportError:
+    rt = None
+
 
 from ayon_max.api.lib import get_current_renderer
 from ayon_core.pipeline import get_current_project_name

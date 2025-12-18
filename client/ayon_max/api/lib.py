@@ -19,7 +19,13 @@ from ayon_core.pipeline.context_tools import (
     get_current_task_entity
 )
 from ayon_core.style import load_stylesheet
-from pymxs import runtime as rt
+
+
+try:
+    from pymxs import runtime as rt
+
+except ImportError:
+    rt = None
 
 
 JSON_PREFIX = "JSON::"

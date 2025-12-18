@@ -1,5 +1,11 @@
 import attr
-from pymxs import runtime as rt
+
+
+try:
+    from pymxs import runtime as rt
+
+except ImportError:
+    rt = None
 
 
 @attr.s
