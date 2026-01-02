@@ -45,7 +45,6 @@ class CollectRender(pyblish.api.InstancePlugin):
         renderer = str(renderer_class).split(":")[0]
 
         files_by_aov = RenderProducts().get_beauty(instance.name, renderer, filename)
-        self.log.debug(f"Beauty files: {files_by_aov}")
         aovs = RenderProducts().get_aovs(instance.name, filename)
         files_by_aov.update(aovs)
 
