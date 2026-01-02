@@ -207,7 +207,6 @@ def get_expected_render_folder(setting, filename):
         # hard-coded, should be customized in the setting
         folder = folder.replace("\\", "/")
         render_folder = get_default_render_folder(setting)
-        filename, _ = os.path.splitext(filename)
         return os.path.join(folder, render_folder, filename)
 
 
