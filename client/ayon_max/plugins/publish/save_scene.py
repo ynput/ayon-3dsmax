@@ -1,6 +1,5 @@
 import pyblish.api
 from ayon_core.pipeline import registered_host
-from ayon_max.api.lib_rendersettings import RenderSettings
 
 
 class SaveCurrentScene(pyblish.api.InstancePlugin):
