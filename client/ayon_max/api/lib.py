@@ -202,6 +202,15 @@ def get_default_render_folder(project_setting=None):
                            ["default_render_image_folder"])
 
 
+def get_expected_render_folder(setting, filename):
+        folder = rt.maxFilePath
+        # hard-coded, should be customized in the setting
+        folder = folder.replace("\\", "/")
+        render_folder = get_default_render_folder(setting)
+        filename, _ = os.path.splitext(filename)
+        return os.path.join(folder, render_folder, filename)
+
+
 def set_render_frame_range(start_frame, end_frame):
     """
     Note:

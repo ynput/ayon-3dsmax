@@ -18,6 +18,7 @@ from ayon_max.api.lib import (
     get_current_renderer,
     get_default_render_folder,
     get_multipass_setting,
+    get_expected_render_folder,
 )
 
 
@@ -258,9 +259,9 @@ class RenderSettings(object):
             aov_name = f"{directory}_{camera}_{renderpass}..{ext}"
             render_elem.SetRenderElementFileName(i, aov_name)
 
-    def batch_render_layer(self, container,
-                           output_dir, cameras):
+    def batch_render_layer(self, container, cameras, filename):
         outputs = list()
+        output_dir = get_expected_render_folder(self._project_settings, filename)
         output = os.path.join(output_dir, container)
         img_fmt = self._project_settings["max"]["RenderSettings"]["image_format"]   # noqa
         for cam in cameras:
