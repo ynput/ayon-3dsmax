@@ -134,7 +134,8 @@ class RenderSettings(object):
 
             if multipass_enabled:
                 rt.rendOutputFilename = output_filename
-                vr_settings.output_splitfilename = f"{output}.{img_fmt}"
+                aov_output = f"{output}_aov"
+                vr_settings.output_splitfilename = f"{aov_output}.{img_fmt}"
             else:
                 rt.rendOutputFilename = f"{output}_tmp..{img_fmt}"
             self.render_element_layer(output, width, height, img_fmt)
