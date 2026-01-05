@@ -766,8 +766,10 @@ def ensure_sme_editor_active():
 
 
 @contextlib.contextmanager
-def set_viewport_type(viewport_type=rt.Name("view_camera")):
+def set_viewport_type(viewport_type=None):
     """Set viewport type during context"""
+    if viewport_type is None:
+        viewport_type = rt.Name("view_camera")
     previous_viewport_type = rt.viewport.getType()
     rt.viewport.setType(viewport_type)
     try:
