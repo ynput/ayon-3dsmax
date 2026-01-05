@@ -119,10 +119,13 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
             cls.log.debug(
                 "Renderpass validation does not support Arnold yet,"
                 " validation skipped...")
+        elif renderer.startswith("V-Ray"):
+            invalid_vray_aov = cls.get_invalid_vray_aovs()
+            invalid.extend(invalid_vray_aov)
         else:
             cls.log.debug(
                 "Skipping render element validation "
-                f"for renderer: {renderer}")
+                f"for renderer: {renderer}")``
         return invalid
 
     @classmethod
@@ -182,6 +185,35 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
                 f"Should be: {image_format}")
             cls.log.error(msg)
             invalid.append((msg, ext))
+        return invalid
+
+    @classmethod
+    def get_invalid_vray_aovs(cls):
+        """Function to get invalid V-Ray AOV filename.
+
+        Returns:
+            list: list of invalid V-Ray AOV filename
+        """
+        invalid = []
+        vr_renderer = rt.renderers.production
+        if "GPU" in str(vr_renderer):
+            vr_settings = vr_renderer.V_Ray_settings
+        else:
+            vr_settings = vr_renderer
+
+        if not vr_settings.output_splitgbuffer:
+            cls.log.debug(
+                "V-Ray G-Buffer output is disabled, "
+                "skipping render element validation...")
+            return invalid
+
+        aov_filename = vr_settings.output_splitfilename
+        if "_aov" not in os.path.basename(aov_filename):
+            msg = (
+                "Invalid Aov filename for Vray render. "
+                "The filename should include '_aov'"
+            )
+            invalid.append((msg, aov_filename))
         return invalid
 
     @classmethod
