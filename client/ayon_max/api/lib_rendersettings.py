@@ -16,7 +16,6 @@ from ayon_core.pipeline.context_tools import get_current_folder_entity
 from ayon_max.api.lib import (
     set_render_frame_range,
     get_current_renderer,
-    get_default_render_folder,
     get_multipass_setting,
     get_expected_render_folder,
 )
@@ -69,17 +68,12 @@ class RenderSettings(object):
         raise RuntimeError("Active Camera not found")
 
     def render_output(self, container):
-        folder = rt.maxFilePath
         # hard-coded, should be customized in the setting
         file = rt.maxFileName
-        folder = folder.replace("\\", "/")
         # hard-coded, set the renderoutput path
         setting = self._project_settings
-        render_folder = get_default_render_folder(setting)
-        filename, ext = os.path.splitext(file)
-        output_dir = os.path.join(folder,
-                                  render_folder,
-                                  filename)
+        filename, _ = os.path.splitext(file)
+        output_dir = get_expected_render_folder(setting, filename)
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         # hard-coded, should be customized in the setting
@@ -135,7 +129,8 @@ class RenderSettings(object):
 
             if multipass_enabled:
                 rt.rendOutputFilename = output_filename
-                vr_settings.output_splitfilename = f"{output}.{img_fmt}"
+                aov_output = f"{output}_aov"
+                vr_settings.output_splitfilename = f"{aov_output}.{img_fmt}"
             else:
                 rt.rendOutputFilename = f"{output}_tmp..{img_fmt}"
             self.render_element_layer(output, width, height, img_fmt)
