@@ -125,7 +125,7 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
         else:
             cls.log.debug(
                 "Skipping render element validation "
-                f"for renderer: {renderer}")``
+                f"for renderer: {renderer}")
         return invalid
 
     @classmethod
