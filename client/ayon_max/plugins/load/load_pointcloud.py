@@ -14,10 +14,10 @@ from ayon_max.api.pipeline import (
 from ayon_core.pipeline import load
 
 
-class PointCloudLoader(load.LoaderPlugin):
+class PRTLoader(load.LoaderPlugin):
     """Point Cloud Loader."""
 
-    product_types = {"pointcloud"}
+    product_types = {"pointcloud", "pointcache"}
     representations = {"prt"}
     order = -8
     icon = "code-fork"
