@@ -12,9 +12,10 @@ except ImportError:
     rt = None
 
 
-from ayon_max.api.lib import get_current_renderer
+from ayon_max.api.lib import get_current_renderer, get_expected_render_folder
 from ayon_core.pipeline import get_current_project_name
 from ayon_core.settings import get_project_settings
+
 
 
 class RenderProducts(object):
@@ -26,13 +27,11 @@ class RenderProducts(object):
                 get_current_project_name()
             )
 
-    def get_beauty(self, container, renderer):
+    def get_beauty(self, container, renderer, filename):
         """Get beauty render output file path."""
-        render_dir = os.path.dirname(rt.rendOutputFilename)
-
-        output_file = os.path.join(render_dir, container)
-
         setting = self._project_settings
+        render_dir = get_expected_render_folder(setting, filename)
+        output_file = os.path.join(render_dir, container)
         img_fmt = setting["max"]["RenderSettings"]["image_format"]   # noqa
 
         start_frame = int(rt.rendStart)
@@ -134,13 +133,10 @@ class RenderProducts(object):
 
         return aovs_frames
 
-    def get_aovs(self, container):
-        render_dir = os.path.dirname(rt.rendOutputFilename)
-
-        output_file = os.path.join(render_dir,
-                                   container)
-
+    def get_aovs(self, container, filename):
         setting = self._project_settings
+        render_dir = get_expected_render_folder(setting, filename)
+        output_file = os.path.join(render_dir, container)
         img_fmt = setting["max"]["RenderSettings"]["image_format"]   # noqa
 
         start_frame = int(rt.rendStart)
@@ -220,7 +216,8 @@ class RenderProducts(object):
         if renderer.startswith("V_Ray_"):
             vr_renderer = get_current_renderer()
             if fmt == "exr":
-                raw_directory, raw_fname = self.get_vray_render_files(vr_renderer)
+                raw_directory = os.path.dirname(folder)
+                _, raw_fname = self.get_vray_render_files(vr_renderer)
                 for frame_num in range(start_frame, end_frame):
                     frame = f"{frame_num:04d}"
                     output_path = f"{raw_directory}/{raw_fname}.{frame}.{fmt}"
@@ -319,7 +316,8 @@ class RenderProducts(object):
 
         if renderer.startswith("V_Ray_"):
             vr_renderer = get_current_renderer()
-            raw_directory, raw_fname = self.get_vray_render_files(
+            raw_directory = os.path.dirname(folder)
+            _, raw_fname = self.get_vray_render_files(
                 vr_renderer, is_render_element=True)
             if vr_renderer.output_separateFolders:
                 formated_output = f"{raw_directory}/{name}/{raw_fname}.{name}"
@@ -356,7 +354,7 @@ class RenderProducts(object):
             else:
                 raw_filepath = vr_renderer.output_splitfilename
 
-        raw_directory = os.path.dirname(raw_filepath)
+        raw_directory = os.path.dirname(raw_filepath).rsplit("\\")[-1]
         raw_filename = os.path.basename(raw_filepath)
         raw_fname, _ = os.path.splitext(raw_filename)
         return raw_directory, raw_fname.strip(".")

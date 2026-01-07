@@ -1,5 +1,6 @@
 import os
 import pyblish.api
+from pathlib import Path
 from pymxs import runtime as rt
 from ayon_core.pipeline.publish import (
     RepairAction,
@@ -11,6 +12,7 @@ from ayon_max.api.lib_rendersettings import (
     RenderSettings,
     is_supported_renderer
 )
+from ayon_max.api.lib import get_default_render_folder
 
 
 class ValidateRenderPasses(OptionalPyblishPluginMixin,
@@ -73,22 +75,18 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
                 with the project name
         """
         invalid = []
-        renderer = instance.data["renderer"]
+        project_settings = instance.context.data["project_settings"]
+        default_render_folder = Path(
+            get_default_render_folder(project_settings)
+        )
+        render_output = Path(rt.rendOutputFilename)
+        render_dir = render_output.parent
+        if default_render_folder != render_dir.parent:
+            invalid.append(("Invalid render output folder",
+                            os.path.dirname(rt.rendOutputFilename)))
 
-        file = rt.maxFileName
-        workfile_name, ext = os.path.splitext(file)
-        # TODO: Remove this check once render output uses the $scene token template. See issue #123.
-        if workfile_name not in rt.rendOutputFilename:
-            cls.log.error(
-                "Render output folder must include"
-                f" the max scene name {workfile_name} "
-            )
-            invalid_folder_name = os.path.dirname(
-                rt.rendOutputFilename).replace(
-                    "\\", "/").split("/")[-1]
-            invalid.append(("Invalid Render Output Folder",
-                            invalid_folder_name))
-        beauty_fname = os.path.basename(rt.rendOutputFilename)
+        renderer = instance.data["renderer"]
+        beauty_fname = render_output.name
         beauty_name, ext = os.path.splitext(beauty_fname)
         invalid_filenames = cls.get_invalid_filenames(
             instance, beauty_name, ext)
