@@ -197,9 +197,18 @@ def get_current_renderer():
 
 
 def get_default_render_folder(project_setting=None):
-    return (project_setting["max"]
-                           ["RenderSettings"]
-                           ["default_render_image_folder"])
+    folder = rt.maxFilePath
+    # hard-coded, should be customized in the setting
+    folder = folder.replace("\\", "/")
+    render_folder = (project_setting["max"]
+                                    ["RenderSettings"]
+                                    ["default_render_image_folder"])
+    return os.path.join(folder, render_folder)
+
+
+def get_expected_render_folder(setting, filename):
+    render_folder = get_default_render_folder(setting)
+    return os.path.join(render_folder, filename)
 
 
 def set_render_frame_range(start_frame, end_frame):

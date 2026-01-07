@@ -37,13 +37,15 @@ class CollectRender(pyblish.api.InstancePlugin):
         folder = rt.maxFilePath
         file = rt.maxFileName
         current_file = os.path.join(folder, file)
+        filename = os.path.splitext(file)[0]
+        self.log.debug(f"Current: {filename}")
         filepath = current_file.replace("\\", "/")
         context.data['currentFile'] = current_file
         renderer_class = get_current_renderer()
         renderer = str(renderer_class).split(":")[0]
 
-        files_by_aov = RenderProducts().get_beauty(instance.name, renderer)
-        aovs = RenderProducts().get_aovs(instance.name)
+        files_by_aov = RenderProducts().get_beauty(instance.name, renderer, filename)
+        aovs = RenderProducts().get_aovs(instance.name, filename)
         files_by_aov.update(aovs)
 
         camera = rt.viewport.GetCamera()
@@ -61,9 +63,8 @@ class CollectRender(pyblish.api.InstancePlugin):
             sel_cam = get_camera_from_node(cameras)
 
             container_name = instance.data.get("instance_node")
-            render_dir = os.path.dirname(rt.rendOutputFilename)
             outputs = RenderSettings().batch_render_layer(
-                container_name, render_dir, sel_cam
+                container_name, sel_cam, filename
             )
 
             instance.data["cameras"] = sel_cam
@@ -102,11 +103,13 @@ class CollectRender(pyblish.api.InstancePlugin):
         instance.data["publishJobState"] = "Suspended"
         instance.data["attachTo"] = []
         product_type = "maxrender"
+        render_dir = os.path.dirname(rt.rendOutputFilename)
         # also need to get the render dir for conversion
         data = {
             "folderPath": instance.data["folderPath"],
             "productName": str(instance.name),
             "publish": True,
+            "original_workfile_pattern": render_dir.rsplit("\\")[-1],
             "maxversion": str(get_max_version()),
             "imageFormat": img_format,
             "productType": product_type,
@@ -120,7 +123,7 @@ class CollectRender(pyblish.api.InstancePlugin):
             "farm": True
         }
         instance.data.update(data)
-
+        self.log.debug(instance.data)
         # TODO: this should be unified with maya and its "multipart" flag
         #       on instance.
         if renderer == "Redshift_Renderer":

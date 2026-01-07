@@ -49,8 +49,8 @@ class CreateRender(plugin.MaxCreator):
                 name = sel.name
                 selected_nodes_name.append(name)
             RenderSettings().batch_render_layer(
-                container_name, filename,
-                selected_nodes_name)
+                container_name, selected_nodes_name, filename
+            )
 
     def get_pre_create_attr_defs(self):
         attrs = super(CreateRender, self).get_pre_create_attr_defs()
