@@ -17,7 +17,7 @@ from ayon_core.pipeline import load
 class PointCloudLoader(load.LoaderPlugin):
     """Point Cloud Loader."""
 
-    product_types = {"pointcloud"}
+    product_types = {"*"}
     representations = {"prt"}
     order = -8
     icon = "code-fork"
