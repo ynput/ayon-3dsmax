@@ -14,7 +14,7 @@ from ayon_max.api.pipeline import (
 from ayon_core.pipeline import load
 
 
-class PRTLoader(load.LoaderPlugin):
+class PointCloudLoader(load.LoaderPlugin):
     """Point Cloud Loader."""
 
     product_types = {"*"}
