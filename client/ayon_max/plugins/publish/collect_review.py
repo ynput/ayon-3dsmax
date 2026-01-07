@@ -3,7 +3,7 @@
 import pyblish.api
 
 from pymxs import runtime as rt
-from ayon_core.lib import BoolDef
+from ayon_core.lib import BoolDef, UISeparatorDef, UILabelDef
 from ayon_max.api.lib import get_max_version
 from ayon_core.pipeline.publish import (
     AYONPyblishPluginMixin,
@@ -139,6 +139,8 @@ class CollectReview(pyblish.api.InstancePlugin,
     @classmethod
     def get_attribute_defs(cls):
         return [
+            UISeparatorDef("sep_export_options"),
+            UILabelDef("Export Options"),
             BoolDef("dspGeometry",
                     label="Geometry",
                     default=True),
@@ -171,5 +173,6 @@ class CollectReview(pyblish.api.InstancePlugin,
                     default=False),
             BoolDef("dspFrameNums",
                     label="Frame Numbers",
-                    default=False)
+                    default=False),
+            UISeparatorDef("sep_export_options_end")
         ]
