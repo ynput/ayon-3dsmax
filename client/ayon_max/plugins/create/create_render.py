@@ -48,8 +48,9 @@ class CreateRender(plugin.MaxCreator):
             for sel in self.selected_nodes:
                 name = sel.name
                 selected_nodes_name.append(name)
+            output_dir = os.path.dirname(rt.rendOutputFilename)
             RenderSettings().batch_render_layer(
-                container_name, selected_nodes_name, filename
+                container_name, output_dir, selected_nodes_name
             )
 
     def get_pre_create_attr_defs(self):
