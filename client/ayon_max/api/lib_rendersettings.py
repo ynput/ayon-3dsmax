@@ -127,6 +127,7 @@ class RenderSettings(object):
                 vr_settings = renderer_class.V_Ray_settings
             else:
                 vr_settings = renderer_class
+            vr_settings.output_force32bit_3dsmax_vfb = True
             vr_settings.output_splitgbuffer = multipass_enabled
             if img_fmt == "exr":
                 vr_settings.output_saverawfile = True
