@@ -104,14 +104,14 @@ class AYONMenu(object):
         context_action.setEnabled(False)
         ayon_menu.addAction(context_action)
 
-        ayon_menu.addSeparator()
-
         project_name = get_current_project_name()
         project_settings = get_project_settings(project_name)
         if project_settings["core"]["tools"]["ayon_menu"].get(
             "version_up_current_workfile"):
             version_up_action = QtWidgets.QAction("Version Up Workfile", ayon_menu)
             version_up_action.triggered.connect(self.version_up_callback)
+            
+            ayon_menu.addSeparator()
             ayon_menu.addAction(version_up_action)
 
         ayon_menu.addSeparator()
