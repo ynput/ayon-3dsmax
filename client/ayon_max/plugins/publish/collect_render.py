@@ -43,6 +43,7 @@ class CollectRender(pyblish.api.InstancePlugin):
         context.data['currentFile'] = current_file
         renderer_class = get_current_renderer()
         renderer = str(renderer_class).split(":")[0]
+        render_dir = os.path.dirname(rt.rendOutputFilename)
 
         files_by_aov = RenderProducts().get_beauty(instance.name, renderer, filename)
         aovs = RenderProducts().get_aovs(instance.name, filename)
@@ -64,7 +65,7 @@ class CollectRender(pyblish.api.InstancePlugin):
 
             container_name = instance.data.get("instance_node")
             outputs = RenderSettings().batch_render_layer(
-                container_name, sel_cam, filename
+                container_name, render_dir, sel_cam
             )
 
             instance.data["cameras"] = sel_cam
@@ -103,7 +104,6 @@ class CollectRender(pyblish.api.InstancePlugin):
         instance.data["publishJobState"] = "Suspended"
         instance.data["attachTo"] = []
         product_type = "maxrender"
-        render_dir = os.path.dirname(rt.rendOutputFilename)
         # also need to get the render dir for conversion
         data = {
             "folderPath": instance.data["folderPath"],
