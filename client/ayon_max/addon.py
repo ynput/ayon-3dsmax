@@ -27,6 +27,9 @@ class MaxAddon(AYONAddon, IHostAddon):
                 new_python_paths.append(norm_path)
 
         env["PYTHONPATH"] = os.pathsep.join(new_python_paths)
+        env["ADSK_3DSMAX_STARTUPSCRIPTS_ADDON_DIR"] = os.path.join(
+            MAX_HOST_DIR, "startup"
+        )
         # Remove auto screen scale factor for Qt
         # - let 3dsmax decide it's value
         env.pop("QT_AUTO_SCREEN_SCALE_FACTOR", None)
