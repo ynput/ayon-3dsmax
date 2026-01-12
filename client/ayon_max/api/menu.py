@@ -12,6 +12,9 @@ except ImportError:
 
 
 from ayon_core.tools.utils import host_tools
+from ayon_core.settings import get_project_settings
+from ayon_core.pipeline import get_current_project_name
+from ayon_core.pipeline.workfile import save_next_version
 from ayon_max.api import lib
 
 
@@ -101,6 +104,18 @@ class AYONMenu(object):
         context_action.setEnabled(False)
         ayon_menu.addAction(context_action)
 
+        project_name = get_current_project_name()
+        project_settings = get_project_settings(project_name)
+        if project_settings["core"]["tools"]["ayon_menu"].get(
+            "version_up_current_workfile"):
+            version_up_action = QtWidgets.QAction("Version Up Workfile", ayon_menu)
+            version_up_action.triggered.connect(self.version_up_callback)
+            
+            ayon_menu.addSeparator()
+            ayon_menu.addAction(version_up_action)
+
+        ayon_menu.addSeparator()
+
         load_action = QtWidgets.QAction("Load...", ayon_menu)
         load_action.triggered.connect(self.load_callback)
         ayon_menu.addAction(load_action)
@@ -178,3 +193,7 @@ class AYONMenu(object):
     def unit_scale_callback(self):
         """Callback to reset unit scale"""
         return lib.validate_unit_scale()
+
+    def version_up_callback(self):
+        """Callback to version up current workfile."""
+        return save_next_version()
