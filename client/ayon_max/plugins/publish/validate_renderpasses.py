@@ -117,6 +117,11 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
             cls.log.debug(
                 "Renderpass validation does not support Arnold yet,"
                 " validation skipped...")
+        elif renderer.startswith("V-Ray"):
+            cls.log.debug(
+                "Renderpass validation does not support V-Ray."
+                " As V-Ray Frame Buffer takes care of this."
+            )
         else:
             cls.log.debug(
                 "Skipping render element validation "
