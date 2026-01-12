@@ -13,20 +13,6 @@ class MaxAddon(AYONAddon, IHostAddon):
     host_name = "max"
 
     def add_implementation_envs(self, env, _app):
-        # Add requirements to PYTHONPATH
-        new_python_paths = [
-            os.path.join(MAX_HOST_DIR, "startup")
-        ]
-        old_python_path = env.get("PYTHONPATH") or ""
-        for path in old_python_path.split(os.pathsep):
-            if not path:
-                continue
-
-            norm_path = os.path.normpath(path)
-            if norm_path not in new_python_paths:
-                new_python_paths.append(norm_path)
-
-        env["PYTHONPATH"] = os.pathsep.join(new_python_paths)
         env["ADSK_3DSMAX_STARTUPSCRIPTS_ADDON_DIR"] = os.path.join(
             MAX_HOST_DIR, "startup"
         )
