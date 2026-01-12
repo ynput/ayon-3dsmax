@@ -23,7 +23,13 @@ from ayon_max.api import lib
 from ayon_max.api.plugin import MS_CUSTOM_ATTRIB
 from ayon_max import MAX_HOST_DIR
 
-from pymxs import runtime as rt  # noqa
+
+try:
+    from pymxs import runtime as rt
+
+except ImportError:
+    rt = None
+
 
 log = logging.getLogger("ayon_max")
 
@@ -44,6 +50,28 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         self._op_events = {}
         self._has_been_setup = False
 
+    def get_app_information(self):
+        from ayon_core.host import ApplicationInformation
+
+        (
+            _rel_number,
+            _api_version,
+            _rel_rev_number,
+
+            _major_version,
+            _update_version,
+            _hotfix_number,
+            _build_number,
+
+            year_version,
+            product_version,
+        ) = rt.maxVersion()
+        version = f"{year_version}{product_version}"
+        return ApplicationInformation(
+            app_name="3ds Max",
+            app_version=version,
+        )
+
     def install(self):
         pyblish.api.register_host("max")
 
@@ -52,22 +80,16 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         register_creator_plugin_path(CREATE_PATH)
 
         _set_project()
-        lib.set_context_setting()
+        _set_autobackup_dir()
 
         self.menu = AYONMenu()
 
         register_event_callback("workfile.open.before", on_before_open)
         register_event_callback("workfile.open.after", on_after_open)
+        register_event_callback("before.save", before_save)
+        register_event_callback("taskChanged", self.on_task_changed)
         self._has_been_setup = True
-        rt.callbacks.addScript(rt.Name('systemPostNew'), on_new)
-
-        rt.callbacks.addScript(rt.Name('filePostOpen'),
-                               lib.check_colorspace)
-
-        rt.callbacks.addScript(rt.Name('postWorkspaceChange'),
-                               self._deferred_menu_creation)
-        rt.NodeEventCallback(
-            nameChanged=lib.update_modifier_node_names)
+        self._register_callbacks()
 
     def workfile_has_unsaved_changes(self):
         return rt.getSaveRequired()
@@ -91,11 +113,22 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         return ls()
 
     def _register_callbacks(self):
-        rt.callbacks.removeScripts(id=rt.name("OpenPypeCallbacks"))
-
+        rt.callbacks.removeScripts(id=rt.name("AyonCallbacks"))
         rt.callbacks.addScript(
-            rt.Name("postLoadingMenus"),
-            self._deferred_menu_creation, id=rt.Name('OpenPypeCallbacks'))
+            rt.Name('welcomeScreenDone'),
+            on_new, id=rt.name("AyonCallbacks")
+        )
+        rt.callbacks.addScript(
+            rt.Name('systemPostNew'),
+            lib.set_context_setting,
+            id=rt.name("AyonCallbacks")
+        )
+        rt.callbacks.addScript(
+            rt.Name('postWorkspaceChange'),
+            self._deferred_menu_creation,
+            id=rt.name("AyonCallbacks"))
+        rt.NodeEventCallback(
+            nameChanged=lib.update_modifier_node_names)
 
     def _deferred_menu_creation(self):
         self.log.info("Building menu ...")
@@ -146,10 +179,16 @@ attributes "OpenPypeContext"
             context = "{}"
         return json.loads(context)
 
-    def save_file(self, dst_path=None):
-        # Force forwards slashes to avoid segfault
-        dst_path = dst_path.replace("\\", "/")
-        rt.saveMaxFile(dst_path)
+    def on_task_changed(self):
+        if lib.is_headless():
+            return
+
+        ayon_menu = self.menu.menu
+        if ayon_menu is not None:
+            actions = ayon_menu.actions()
+            context_action = actions[0]
+            context_label = lib.get_context_label()
+            context_action.setText(f"{context_label}")
 
 
 def parse_container(container):
@@ -187,11 +226,12 @@ def ls():
 
 
 def on_new():
-    lib.set_context_setting()
-    if rt.checkForSave():
-        rt.resetMaxFile(rt.Name("noPrompt"))
-        rt.clearUndoBuffer()
-        rt.redrawViews()
+    if not os.path.exists(rt.ColorPipelineMgr.OCIOConfigPath):
+        lib.reset_colorspace()
+    last_workfile = os.getenv("AYON_LAST_WORKFILE")
+    if os.getenv("AVALON_OPEN_LAST_WORKFILE") != "1"  \
+        or not os.path.exists(last_workfile):
+            lib.set_context_setting()
 
 
 def containerise(name: str, nodes: list, context,
@@ -209,23 +249,58 @@ def containerise(name: str, nodes: list, context,
     container = rt.container(name=container_name)
     import_custom_attribute_data(container, nodes)
     if not lib.imprint(container_name, data):
-        print(f"imprinting of {container_name} failed.")
+        raise RuntimeError(f"imprinting of {container_name} failed.")
+    return container
+
+
+
+def containerise_texture(name: str, context: dict,
+                         view_node, sme_view_number,
+                         namespace=None, loader=None,
+                         suffix="_CON"):
+    """Containerise texture nodes
+
+    Args:
+        name (str): name of the container
+        context (dict): context
+        view_node: texture node
+        sme_view: target view of slate material editor
+        namespace (str, optional): namespace. Defaults to None.
+        loader (str, optional): loader. Defaults to None.
+        suffix (str, optional): suffix. Defaults to "_CON".
+
+    Returns:
+        container: The container object holding the texture node metadata.
+    """
+    data = {
+        "schema": "ayon:container-3.0",
+        "id": AYON_CONTAINER_ID,
+        "name": name,
+        "namespace": namespace or "",
+        "loader": loader,
+        "representation": context["representation"]["id"],
+        "project_name": context["project"]["name"],
+        "view_node": view_node,
+        "sme_view_number": sme_view_number,
+    }
+    container_name = f"{namespace}:{name}{suffix}"
+    container = rt.container(name=container_name)
+    if not lib.imprint(container_name, data):
+        raise RuntimeError(f"imprinting of {container_name} failed.")
     return container
 
 
 def _set_project():
     project_name = get_current_project_name()
     project_settings = get_project_settings(project_name)
+    enable_project_creation = project_settings["max"].get("enabled_project_creation")
+    if not enable_project_creation:
+        log.debug("Project creation disabled. Skipping project creation.")
+        return
+
     workdir = os.getenv("AYON_WORKDIR")
     os.makedirs(workdir, exist_ok=True)
     rt.pathConfig.setCurrentProjectFolder(workdir)
-    enable_project_creation = project_settings["max"].get("enabled_project_creation")
-    if enable_project_creation:
-        directory_count = rt.pathConfig.getProjectSubDirectoryCount()
-        autobackup_dir = rt.pathConfig.GetDir(rt.Name("autoback"))
-        os.makedirs(autobackup_dir, exist_ok=True)
-        log.debug("Project creation disabled. Skipping project creation.")
-        return
 
     mxp_filepath = os.path.join(workdir, "workspace.mxp")
     if os.path.exists(mxp_filepath):
@@ -235,6 +310,16 @@ def _set_project():
             proj_dir = rt.pathConfig.getProjectSubDirectory(count)
             if proj_dir:
                 os.makedirs(proj_dir, exist_ok=True)
+
+    # avoid glitching viewport
+    rt.viewport.ResetAllViews()
+
+
+def _set_autobackup_dir():
+    """Set up autobackup folder to avoid non-existing directory
+    """
+    autobackup_dir = rt.pathConfig.GetDir(rt.Name("autoback"))
+    os.makedirs(autobackup_dir, exist_ok=True)
 
 
 def on_before_open():
@@ -247,6 +332,24 @@ def on_after_open():
     """Check and set up unit scale after opening workfile if user enabled.
     """
     lib.validate_unit_scale()
+
+
+def before_save(event):
+    """Check and set up project before saving workfile
+    """
+    max_filename_before: str = rt.maxFileName
+    max_filename_after: str = event.get("filename")
+
+    if not max_filename_before:
+        # Saving from a new unsaved file, no need to check for changes.
+        return
+
+    if max_filename_before != max_filename_after:
+        print(f"Detected scene name change from {max_filename_before} to "
+              f"{max_filename_after}")
+    max_filename_before = os.path.splitext(max_filename_before)[0]
+    max_filename_after = os.path.splitext(max_filename_after)[0]
+    lib.reset_render_outputs(max_filename_before, max_filename_after)
 
 
 def load_custom_attribute_data():

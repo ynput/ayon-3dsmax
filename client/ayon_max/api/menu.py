@@ -2,7 +2,14 @@
 """3dsmax menu definition of AYON."""
 import os
 from qtpy import QtWidgets, QtCore
-from pymxs import runtime as rt
+
+
+try:
+    from pymxs import runtime as rt
+
+except ImportError:
+    rt = None
+
 
 from ayon_core.tools.utils import host_tools
 from ayon_max.api import lib
@@ -88,6 +95,12 @@ class AYONMenu(object):
     def _build_ayon_menu(self) -> QtWidgets.QAction:
         """Build items in AYON menu."""
         ayon_menu = self._get_or_create_ayon_menu()
+
+        context_label = lib.get_context_label()
+        context_action = QtWidgets.QAction(f"{context_label}", ayon_menu)
+        context_action.setEnabled(False)
+        ayon_menu.addAction(context_action)
+
         load_action = QtWidgets.QAction("Load...", ayon_menu)
         load_action.triggered.connect(self.load_callback)
         ayon_menu.addAction(load_action)

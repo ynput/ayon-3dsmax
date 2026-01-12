@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 """Library of functions useful for 3dsmax pipeline."""
+import os
 import contextlib
 import logging
 import json
 from functools import partial
 from typing import Any, Dict, Union
-import six
 
 from ayon_core.pipeline import (
     get_current_project_name,
-    colorspace
+    get_current_folder_path,
+    get_current_task_name,
+    colorspace,
 )
 from ayon_core.tools.utils import SimplePopup
 from ayon_core.settings import get_project_settings
@@ -17,7 +19,13 @@ from ayon_core.pipeline.context_tools import (
     get_current_task_entity
 )
 from ayon_core.style import load_stylesheet
-from pymxs import runtime as rt
+
+
+try:
+    from pymxs import runtime as rt
+
+except ImportError:
+    rt = None
 
 
 JSON_PREFIX = "JSON::"
@@ -100,7 +108,7 @@ def read(container) -> dict:
             continue
 
         value = value.strip()
-        if isinstance(value.strip(), six.string_types) and \
+        if isinstance(value.strip(), str) and \
                 value.startswith(JSON_PREFIX):
             with contextlib.suppress(json.JSONDecodeError):
                 value = json.loads(value[len(JSON_PREFIX):])
@@ -129,6 +137,28 @@ def maintained_selection():
             rt.Select(previous_selection)
         else:
             rt.Select()
+
+
+@contextlib.contextmanager
+def maintained_sme_view_nodes_selection(current_sme_view, texture_node):
+    """Maintain selection of nodes in SME view during context
+
+    Args:
+        view_node_name (IFP_NodeViewImp): SNE View Node Object
+        texture_node (Node): Texture Node Object
+    """
+    previous_selection = [
+        node.reference for node in current_sme_view.GetSelectedNodes()
+        if node.reference != texture_node
+    ]
+    try:
+        current_sme_view.SelectNone()
+        current_sme_view.setSelectedNodes([texture_node])
+        yield
+
+    finally:
+        if previous_selection:
+            current_sme_view.setSelectedNodes(previous_selection)
 
 
 def get_all_children(parent, node_type=None):
@@ -167,9 +197,18 @@ def get_current_renderer():
 
 
 def get_default_render_folder(project_setting=None):
-    return (project_setting["max"]
-                           ["RenderSettings"]
-                           ["default_render_image_folder"])
+    folder = rt.maxFilePath
+    # hard-coded, should be customized in the setting
+    folder = folder.replace("\\", "/")
+    render_folder = (project_setting["max"]
+                                    ["RenderSettings"]
+                                    ["default_render_image_folder"])
+    return os.path.join(folder, render_folder)
+
+
+def get_expected_render_folder(setting, filename):
+    render_folder = get_default_render_folder(setting)
+    return os.path.join(render_folder, filename)
 
 
 def set_render_frame_range(start_frame, end_frame):
@@ -190,11 +229,35 @@ def set_render_frame_range(start_frame, end_frame):
         rt.rendEnd = int(end_frame)
 
 
-def get_multipass_setting(project_setting=None):
-    return (project_setting["max"]
-                           ["RenderSettings"]
-                           ["multipass"])
+def get_multipass_setting(renderer, project_setting=None):
+    """Get the multipass setting for the given renderer.
 
+    Args:
+        renderer (str): The name of the renderer.
+        project_setting (dict, optional): The project settings. Defaults to None.
+
+    Returns:
+        bool: True if multipass is enabled, False otherwise.
+    """
+    if project_setting is None:
+        project_setting = get_project_settings(
+            get_current_project_name()
+        )
+    render_settings = (
+        project_setting["max"]["RenderSettings"]
+    )
+    if renderer.startswith("V_Ray_"):
+        vray_render_setting = render_settings.get("vray_render_settings", {})
+        return (
+            vray_render_setting.get("separate_render_channels", False)
+        )
+    elif renderer == "Redshift_Renderer":
+        redshift_render_setting = render_settings.get("redshift_render_settings", {})
+        return (
+            redshift_render_setting.get("separate_aov_files", False)
+        )
+
+    return False
 
 def set_scene_resolution(width: int, height: int):
     """Set the render resolution
@@ -383,7 +446,6 @@ def set_context_setting():
     reset_frame_range()
     validate_unit_scale()
     reset_colorspace()
-    rt.viewport.ResetAllViews()
 
 
 def get_max_version():
@@ -421,13 +483,15 @@ def reset_colorspace():
     """
     if int(get_max_version()) < 2024:
         return
-
-    max_config_data = colorspace.get_current_context_imageio_config_preset()
-    if max_config_data:
-        ocio_config_path = max_config_data["path"]
-        colorspace_mgr = rt.ColorPipelineMgr
-        colorspace_mgr.Mode = rt.Name("OCIO_Custom")
-        colorspace_mgr.OCIOConfigPath = ocio_config_path
+    colorspace_mgr = rt.ColorPipelineMgr
+    ocio_config_path = os.getenv("OCIO")
+    colorspace_mgr.Mode = rt.Name("OCIO_EnvVar")
+    if not ocio_config_path:
+        max_config_data = colorspace.get_current_context_imageio_config_preset()
+        if max_config_data:
+            ocio_config_path = max_config_data["path"]
+            colorspace_mgr.Mode = rt.Name("OCIO_Custom")
+            colorspace_mgr.OCIOConfigPath = ocio_config_path
 
 
 def check_colorspace():
@@ -448,6 +512,14 @@ def check_colorspace():
                 dialog.setStyleSheet(load_stylesheet())
                 dialog.on_clicked.connect(reset_colorspace)
                 dialog.show()
+
+
+def get_context_label():
+    return "{}, {}".format(
+        get_current_folder_path(),
+        get_current_task_name()
+    )
+
 
 def unique_namespace(namespace, format="%02d",
                      prefix="", suffix="", con_suffix="CON"):
@@ -536,11 +608,14 @@ def object_transform_set(container_children):
         the previous loaded object(s)
     """
     transform_set = {}
+
     for node in container_children:
-        name = f"{node}.transform"
-        transform_set[name] = node.pos
-        name = f"{node}.scale"
+        name = f"{node.name}.rotation"
+        transform_set[name] = node.rotation
+        name = f"{node.name}.scale"
         transform_set[name] = node.scale
+        name = f"{node.name}.translate"
+        transform_set[name] = node.pos
     return transform_set
 
 
@@ -558,6 +633,20 @@ def get_plugins() -> list:
         plugin_info_list.append(plugin_info)
 
     return plugin_info_list
+
+
+def find_plugins(search_string: str) -> bool:
+    """Find if a plugin is loaded in 3dsMax
+
+    Args:
+        search_string (str): string to search for
+
+    Returns:
+        bool: True if found, False otherwise
+    """
+    if any(search_string in plugin for plugin in get_plugins()):
+        return True
+    return False
 
 
 def update_modifier_node_names(event, node):
@@ -633,6 +722,62 @@ def get_tyflow_export_operators():
     return operators
 
 
+def get_view_node_from_sme_view(sme_view, view_node_name):
+    """Get view node from SME view
+
+    Args:
+        sme_view (rt.IFP_NodeViewImp): Target SME View
+        view_node_name (str): view node name
+    Returns:
+        IObject: view node object
+    """
+    for i in range(sme_view.GetNumNodes() + 1):
+        node = sme_view.GetNode(i)
+        if node is None:
+            continue
+        if node.name == view_node_name:
+            return node
+    raise ValueError(f"View node {view_node_name} not found in SME view.")
+
+
+def get_target_sme_view(target_view: int):
+    """_summary_
+
+    Args:
+        target_view (int): active SME view
+    Returns:
+        IObject: SME View object
+    """
+    return rt.sme.GetView(target_view)
+
+
+@contextlib.contextmanager
+def ensure_sme_editor_active():
+    """Ensure that Slate Material Editor is active during context
+    """
+    was_open = rt.sme.isOpen()
+    try:
+        if not was_open:
+            rt.sme.open()
+        yield
+    finally:
+        if not was_open:
+            rt.sme.close()
+
+
+@contextlib.contextmanager
+def set_viewport_type(viewport_type=None):
+    """Set viewport type during context"""
+    if viewport_type is None:
+        viewport_type = rt.Name("view_camera")
+    previous_viewport_type = rt.viewport.getType()
+    rt.viewport.setType(viewport_type)
+    try:
+        yield
+    finally:
+        rt.viewport.setType(previous_viewport_type)
+
+
 @contextlib.contextmanager
 def suspended_refresh():
     """Suspended refresh for scene and modify panel redraw.
@@ -648,3 +793,34 @@ def suspended_refresh():
     finally:
         rt.enableSceneRedraw()
         rt.resumeEditing()
+
+
+def reset_render_outputs(max_filename_before, max_filename_after):
+    render_output_before = rt.rendOutputFilename
+    rt.rendOutputFilename = render_output_before.replace(
+        max_filename_before, max_filename_after
+    )
+    render_elem = rt.maxOps.GetCurRenderElementMgr()
+    render_elem_num = render_elem.NumRenderElements()
+    if render_elem_num <= 0:
+        return
+
+    for i in range(render_elem_num):
+        render_element_filepath = render_elem.GetRenderElementFilename(i)
+        new_render_element_filepath = render_element_filepath.replace(
+            max_filename_before, max_filename_after)
+        render_elem.SetRenderElementFileName(
+            i, new_render_element_filepath)
+
+    renderer = get_current_renderer()
+    if str(renderer).startswith("V_Ray_"):
+        if "GPU" in renderer:
+            vr_settings = renderer.V_Ray_settings
+        else:
+            vr_settings = renderer
+
+        if vr_settings.output_saverawfile:
+            vr_settings.output_rawfilename = rt.rendOutputFilename
+
+        if vr_settings.output_splitgbuffer:
+            vr_settings.output_splitfilename = rt.rendOutputFilename

@@ -1,8 +1,9 @@
 name = "max"
 title = "Max"
-version = "0.2.8+dev"
+version = "0.2.16+dev"
 app_host_name = "max"
 client_dir = "ayon_max"
+project_can_override_addon_version = True
 
 ayon_server_version = ">=1.1.2"
 ayon_required_addons = {

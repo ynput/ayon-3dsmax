@@ -1,5 +1,6 @@
 import os
 import pyblish.api
+from pathlib import Path
 from pymxs import runtime as rt
 from ayon_core.pipeline.publish import (
     RepairAction,
@@ -7,7 +8,11 @@ from ayon_core.pipeline.publish import (
     PublishValidationError,
     OptionalPyblishPluginMixin
 )
-from ayon_max.api.lib_rendersettings import RenderSettings
+from ayon_max.api.lib_rendersettings import (
+    RenderSettings,
+    is_supported_renderer
+)
+from ayon_max.api.lib import get_default_render_folder
 
 
 class ValidateRenderPasses(OptionalPyblishPluginMixin,
@@ -70,35 +75,26 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
                 with the project name
         """
         invalid = []
-        file = rt.maxFileName
-        workfile_name, ext = os.path.splitext(file)
-        if workfile_name not in rt.rendOutputFilename:
-            cls.log.error(
-                "Render output folder must include"
-                f" the max scene name {workfile_name} "
-            )
-            invalid_folder_name = os.path.dirname(
-                rt.rendOutputFilename).replace(
-                    "\\", "/").split("/")[-1]
-            invalid.append(("Invalid Render Output Folder",
-                            invalid_folder_name))
-        beauty_fname = os.path.basename(rt.rendOutputFilename)
+        project_settings = instance.context.data["project_settings"]
+        default_render_folder = Path(
+            get_default_render_folder(project_settings)
+        )
+        render_output = Path(rt.rendOutputFilename)
+        render_dir = render_output.parent
+        if default_render_folder != render_dir.parent:
+            invalid.append(("Invalid render output folder",
+                            os.path.dirname(rt.rendOutputFilename)))
+
+        renderer = instance.data["renderer"]
+        beauty_fname = render_output.name
         beauty_name, ext = os.path.splitext(beauty_fname)
         invalid_filenames = cls.get_invalid_filenames(
-            instance, beauty_name)
+            instance, beauty_name, ext)
         invalid.extend(invalid_filenames)
         invalid_image_format = cls.get_invalid_image_format(
             instance, ext.lstrip("."))
         invalid.extend(invalid_image_format)
-        renderer = instance.data["renderer"]
-        if renderer in [
-            "ART_Renderer",
-            "Redshift_Renderer",
-            "V_Ray_6_Hotfix_3",
-            "V_Ray_GPU_6_Hotfix_3",
-            "Default_Scanline_Renderer",
-            "Quicksilver_Hardware_Renderer",
-        ]:
+        if is_supported_renderer(renderer):
             render_elem = rt.maxOps.GetCurRenderElementMgr()
             render_elem_num = render_elem.NumRenderElements()
             for i in range(render_elem_num):
@@ -107,15 +103,16 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
                 rend_file = render_elem.GetRenderElementFilename(i)
                 if not rend_file:
                     continue
-
-                rend_fname, ext = os.path.splitext(
-                    os.path.basename(rend_file))
-                invalid_filenames = cls.get_invalid_filenames(
-                    instance, rend_fname, renderpass=renderpass)
-                invalid.extend(invalid_filenames)
+                render_filename = os.path.basename(rend_file)
+                rend_fname, ext = os.path.splitext(render_filename)
                 invalid_image_format = cls.get_invalid_image_format(
                     instance, ext)
+                invalid_filenames = cls.get_invalid_filenames(
+                    instance, rend_fname, ext, renderpass=renderpass,
+                    render_filename=render_filename)
+                invalid.extend(invalid_filenames)
                 invalid.extend(invalid_image_format)
+
         elif renderer == "Arnold":
             cls.log.debug(
                 "Renderpass validation does not support Arnold yet,"
@@ -127,14 +124,19 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
         return invalid
 
     @classmethod
-    def get_invalid_filenames(cls, instance, file_name, renderpass=None):
+    def get_invalid_filenames(
+        cls, instance, file_name,
+        ext, renderpass=None,
+        render_filename=None):
         """Function to get invalid filenames from render outputs.
 
         Args:
             instance (pyblish.api.Instance): instance
             file_name (str): name of the file
+            ext (str): image extension
             renderpass (str, optional): name of the renderpass.
                 Defaults to None.
+            render_filename(str, optional): render filename
 
         Returns:
             list: invalid filenames
@@ -144,14 +146,16 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
             cls.log.error("The renderpass filename should contain the instance name.")
             invalid.append(("Invalid instance name",
                             file_name))
-        if renderpass is not None:
-            if not file_name.rstrip(".").endswith(renderpass):
+        if renderpass is not None and render_filename is not None:
+            renderpass_token = f"{renderpass}.{ext}"
+            if not render_filename.endswith(renderpass_token):
+                cls.log.error(f"{render_filename}: {renderpass_token}")
                 cls.log.error(
                     f"Filename for {renderpass} should "
-                    f"end with {renderpass}: {file_name}"
+                    f"end with {renderpass}: {render_filename}"
                 )
                 invalid.append((f"Invalid {renderpass}",
-                                os.path.basename(file_name)))
+                                render_filename))
         return invalid
 
     @classmethod

@@ -1,5 +1,13 @@
 import os
-from pymxs import runtime as rt
+
+
+try:
+    from pymxs import runtime as rt
+
+except ImportError:
+    rt = None
+
+
 from ayon_core.lib import Logger
 from ayon_core.settings import get_project_settings
 from ayon_core.pipeline import get_current_project_name
@@ -8,8 +16,25 @@ from ayon_core.pipeline.context_tools import get_current_folder_entity
 from ayon_max.api.lib import (
     set_render_frame_range,
     get_current_renderer,
-    get_default_render_folder
+    get_default_render_folder,
+    get_multipass_setting,
 )
+
+
+# Note that V-Ray is handled as a special case
+# in the `is_supported_renderer` function
+SUPPORTED_RENDERERS = {
+    "ART_Renderer",
+    "Redshift_Renderer",
+    "Default_Scanline_Renderer",
+    "Quicksilver_Hardware_Renderer",
+}
+
+def is_supported_renderer(renderer_name: str) -> bool:
+    """Whether ayon-max supports the relevant renderer."""
+    if renderer_name in SUPPORTED_RENDERERS:
+        return True
+    return False
 
 
 class RenderSettings(object):
@@ -83,31 +108,50 @@ class RenderSettings(object):
         output_filename = f"{output}..{img_fmt}"
         output_filename = output_filename.replace("{aov_separator}",
                                                   aov_separator)
-        rt.rendOutputFilename = output_filename
+        multipass_enabled = get_multipass_setting(renderer, setting)
         if renderer == "VUE_File_Renderer":
+            rt.rendOutputFilename = output_filename
             return
         # TODO: Finish the arnold render setup
-        if renderer == "Arnold":
-            self.arnold_setup()
+        elif renderer == "Arnold":
+            # We should remove this
+            rt.rendOutputFilename = output_filename
+            self.arnold_setup(output_dir, container, multipass_enabled)
 
-        if renderer in [
-            "ART_Renderer",
-            "Redshift_Renderer",
-            "V_Ray_6_Hotfix_3",
-            "V_Ray_GPU_6_Hotfix_3",
-            "Default_Scanline_Renderer",
-            "Quicksilver_Hardware_Renderer",
-        ]:
+        elif is_supported_renderer(renderer):
+            rt.rendOutputFilename = output_filename
             self.render_element_layer(output, width, height, img_fmt)
 
-        rt.rendSaveFile = True
+        elif renderer.startswith("V_Ray_"):
+            if "GPU" in renderer:
+                vr_settings = renderer_class.V_Ray_settings
+            else:
+                vr_settings = renderer_class
+            vr_settings.output_splitgbuffer = multipass_enabled
+            if img_fmt == "exr":
+                vr_settings.output_saverawfile = True
+                vr_settings.output_rawfilename = f"{output}.{img_fmt}"
 
-        if rt.renderSceneDialog.isOpen():
-            rt.renderSceneDialog.close()
+            if multipass_enabled:
+                rt.rendOutputFilename = output_filename
+                vr_settings.output_splitfilename = f"{output}.{img_fmt}"
+            else:
+                rt.rendOutputFilename = f"{output}_tmp..{img_fmt}"
+            self.render_element_layer(output, width, height, img_fmt)
+        # TODO: supports multipass for different renderers
+        elif renderer == "Redshift_Renderer":
+            rt.rendOutputFilename = output_filename
+            rt.renderers.current.separateAovFiles = multipass_enabled
 
-    def arnold_setup(self):
+        # prevent rendering extra files when using V-Ray
+        rt.rendSaveFile = True if not renderer.startswith("V_Ray_") else False
+
+        rt.renderSceneDialog.update()
+
+    def arnold_setup(self, output_dir, container, multipass_enabled):
         # get Arnold RenderView run in the background
         # for setting up renderable camera
+        multipass = str(multipass_enabled).lower()
         arv = rt.MAXToAOps.ArnoldRenderView()
         render_camera = rt.viewport.GetCamera()
         if render_camera:
@@ -115,12 +159,15 @@ class RenderSettings(object):
 
         # TODO: add AOVs and extension
         img_fmt = self._project_settings["max"]["RenderSettings"]["image_format"]   # noqa
+        # TODO: enhance this maxscript to make sure it supports separate AOVs
+        # with Arnold drivers.
         setup_cmd = (
             f"""
         amw = MaxtoAOps.AOVsManagerWindow()
         amw.close()
         aovmgr = renderers.current.AOVManager
         aovmgr.drivers = #()
+        aovmgr.outputPath = "{output_dir}"
         img_fmt = "{img_fmt}"
         if img_fmt == "png" then driver = ArnoldPNGDriver()
         if img_fmt == "jpg" then driver = ArnoldJPEGDriver()
@@ -129,6 +176,9 @@ class RenderSettings(object):
         if img_fmt == "tiff" then driver = ArnoldTIFFDriver()
         append aovmgr.drivers driver
         aovmgr.drivers[1].aov_list = #()
+        aovmgr.drivers[1].filenameSuffix  = "{container}."
+        if aovmgr.drivers[1] == ArnoldEXRDriver() then (
+            aovmgr.drivers[1].multipart = {multipass})
             """)
 
         rt.execute(setup_cmd)

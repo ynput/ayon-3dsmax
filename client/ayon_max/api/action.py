@@ -1,4 +1,9 @@
-from pymxs import runtime as rt
+try:
+    from pymxs import runtime as rt
+
+except ImportError:
+    rt = None
+
 
 import pyblish.api
 

@@ -1,6 +1,14 @@
 import logging
 import contextlib
-from pymxs import runtime as rt
+
+
+try:
+    from pymxs import runtime as rt
+
+except ImportError:
+    rt = None
+
+
 from .lib import get_max_version, render_resolution
 
 log = logging.getLogger("ayon_max")

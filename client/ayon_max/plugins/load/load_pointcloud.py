@@ -17,7 +17,7 @@ from ayon_core.pipeline import load
 class PointCloudLoader(load.LoaderPlugin):
     """Point Cloud Loader."""
 
-    product_types = {"pointcloud"}
+    product_types = {"*"}
     representations = {"prt"}
     order = -8
     icon = "code-fork"
@@ -31,8 +31,10 @@ class PointCloudLoader(load.LoaderPlugin):
         obj = rt.tyCache()
         obj.filename = filepath
 
+        folder_name = context["folder"]["name"]
         namespace = unique_namespace(
             name + "_",
+            prefix=f"{folder_name}_",
             suffix="_",
         )
         obj.name = f"{namespace}:{obj.name}"

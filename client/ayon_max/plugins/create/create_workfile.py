@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 """Creator plugin for creating workfiles."""
-import ayon_api
-
 from ayon_core.pipeline import CreatedInstance, AutoCreator
 from ayon_max.api import plugin
 from ayon_max.api.lib import read, imprint
@@ -13,6 +11,7 @@ class CreateWorkfile(plugin.MaxCreatorBase, AutoCreator):
     identifier = "io.ayon.creators.max.workfile"
     label = "Workfile"
     product_type = "workfile"
+    product_base_type = "workfile"
     icon = "fa5.file"
 
     default_variant = "Main"
@@ -26,24 +25,24 @@ class CreateWorkfile(plugin.MaxCreatorBase, AutoCreator):
                 instance for instance in self.create_context.instances
                 if instance.creator_identifier == self.identifier
             ), None)
-        project_name = self.project_name
-        folder_path = self.create_context.get_current_folder_path()
-        task_name = self.create_context.get_current_task_name()
+
+        project_entity = self.create_context.get_current_project_entity()
+        folder_entity = self.create_context.get_current_folder_entity()
+        task_entity = self.create_context.get_current_task_entity()
+
+        project_name = project_entity["name"]
+        folder_path = folder_entity["path"]
+        task_name = task_entity["name"]
         host_name = self.create_context.host_name
 
         if current_instance is None:
-            folder_entity = ayon_api.get_folder_by_path(
-                project_name, folder_path
-            )
-            task_entity = ayon_api.get_task_by_name(
-                project_name, folder_entity["id"], task_name
-            )
             product_name = self.get_product_name(
-                project_name,
-                folder_entity,
-                task_entity,
-                variant,
-                host_name,
+                project_name=project_name,
+                project_entity=project_entity,
+                folder_entity=folder_entity,
+                task_entity=task_entity,
+                variant=variant,
+                host_name=host_name,
             )
             data = {
                 "folderPath": folder_path,
@@ -64,7 +63,10 @@ class CreateWorkfile(plugin.MaxCreatorBase, AutoCreator):
             instance_node = self.create_node(product_name)
             data["instance_node"] = instance_node.name
             current_instance = CreatedInstance(
-                self.product_type, product_name, data, self
+            product_type=self.product_type,
+            product_name=product_name,
+            data=data,
+            creator=self
             )
             self._add_instance_to_context(current_instance)
             imprint(instance_node.name, current_instance.data)
@@ -73,18 +75,13 @@ class CreateWorkfile(plugin.MaxCreatorBase, AutoCreator):
             or current_instance["task"] != task_name
         ):
             # Update instance context if is not the same
-            folder_entity = ayon_api.get_folder_by_path(
-                project_name, folder_path
-            )
-            task_entity = ayon_api.get_task_by_name(
-                project_name, folder_entity["id"], task_name
-            )
             product_name = self.get_product_name(
-                project_name,
-                folder_entity,
-                task_entity,
-                variant,
-                host_name,
+                project_name=project_name,
+                project_entity=project_entity,
+                folder_entity=folder_entity,
+                task_entity=task_entity,
+                variant=variant,
+                host_name=host_name,
             )
 
             current_instance["folderPath"] = folder_entity["path"]

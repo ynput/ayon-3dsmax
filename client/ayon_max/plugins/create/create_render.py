@@ -3,7 +3,10 @@
 import os
 from ayon_max.api import plugin
 from ayon_core.lib import BoolDef
+from ayon_core.pipeline import CreatorError
 from ayon_max.api.lib_rendersettings import RenderSettings
+
+from pymxs import runtime as rt
 
 
 class CreateRender(plugin.MaxCreator):
@@ -11,12 +14,12 @@ class CreateRender(plugin.MaxCreator):
     identifier = "io.openpype.creators.max.render"
     label = "Render"
     product_type = "maxrender"
+    product_base_type = "maxrender"
     icon = "gear"
 
     settings_category = "max"
 
     def create(self, product_name, instance_data, pre_create_data):
-        from pymxs import runtime as rt
         file = rt.maxFileName
         filename, _ = os.path.splitext(file)
         instance_data["AssetName"] = filename
@@ -24,6 +27,12 @@ class CreateRender(plugin.MaxCreator):
         num_of_renderlayer = rt.batchRenderMgr.numViews
         if num_of_renderlayer > 0:
             rt.batchRenderMgr.DeleteView(num_of_renderlayer)
+
+        container = rt.getNodeByName(product_name)
+        product_type = instance_data["productType"]
+        # check if there is existing render instance
+        if container and product_name.startswith(product_type):
+            raise CreatorError("Render instance already exists")
 
         instance = super(CreateRender, self).create(
             product_name,
@@ -40,8 +49,8 @@ class CreateRender(plugin.MaxCreator):
                 name = sel.name
                 selected_nodes_name.append(name)
             RenderSettings().batch_render_layer(
-                container_name, filename,
-                selected_nodes_name)
+                container_name, selected_nodes_name, filename
+            )
 
     def get_pre_create_attr_defs(self):
         attrs = super(CreateRender, self).get_pre_create_attr_defs()

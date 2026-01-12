@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 """3dsmax specific AYON/Pyblish plugin definitions."""
-from abc import ABCMeta
+try:
+    from pymxs import runtime as rt
 
-import six
-from pymxs import runtime as rt
+except ImportError:
+    rt = None
+
 
 from ayon_core.lib import BoolDef
 from ayon_core.pipeline import (
@@ -338,7 +340,6 @@ class MaxTyFlowDataCreatorBase(MaxCreatorBase):
         return node
 
 
-@six.add_metaclass(ABCMeta)
 class MaxCreator(Creator, MaxCreatorBase):
     selected_nodes = []
 
@@ -351,10 +352,10 @@ class MaxCreator(Creator, MaxCreatorBase):
         instance_node = self.create_instance_node(product_name)
         instance_data["instance_node"] = instance_node.name
         instance = CreatedInstance(
-            self.product_type,
-            product_name,
-            instance_data,
-            self
+            product_type=self.product_type,
+            product_name=product_name,
+            data=instance_data,
+            creator=self,
         )
         if pre_create_data.get("use_selection"):
 
@@ -443,10 +444,10 @@ class MaxCacheCreator(Creator, MaxTyFlowDataCreatorBase):
         instance_node = self.create_instance_node(product_name)
         instance_data["instance_node"] = instance_node.name
         instance = CreatedInstance(
-            self.product_type,
-            product_name,
-            instance_data,
-            self
+            product_type=self.product_type,
+            product_name=product_name,
+            data=instance_data,
+            creator=self,
         )
         # Setting the property
         node_list = [sub_anim.name for sub_anim in tyflow_op_nodes]
