@@ -110,7 +110,7 @@ class AYONMenu(object):
             "version_up_current_workfile"):
             version_up_action = QtWidgets.QAction("Version Up Workfile", ayon_menu)
             version_up_action.triggered.connect(self.version_up_callback)
-            
+
             ayon_menu.addSeparator()
             ayon_menu.addAction(version_up_action)
 
@@ -156,6 +156,33 @@ class AYONMenu(object):
         unit_scale_action.triggered.connect(self.unit_scale_callback)
         ayon_menu.addAction(unit_scale_action)
 
+        ayon_menu.addSeparator()
+        template_builder = ayon_menu.addMenu("Template Builder")
+
+        build_workfile_template_action = QtWidgets.QAction(
+            "Build Workfile from Template", template_builder)
+        build_workfile_template_action.triggered.connect(
+            self.build_workfile_template_callback)
+        template_builder.addAction(build_workfile_template_action)
+
+        update_workfile_template_action = QtWidgets.QAction(
+            "Update Workfile from Template", template_builder)
+        update_workfile_template_action.triggered.connect(
+            self.update_workfile_template_callback)
+        template_builder.addAction(update_workfile_template_action)
+
+        create_placeholders_action = QtWidgets.QAction(
+            "Create Workfile Placeholders", template_builder)
+        create_placeholders_action.triggered.connect(
+            self.create_placeholders_callback)
+        template_builder.addAction(create_placeholders_action)
+
+        update_placeholders_action = QtWidgets.QAction(
+            "Update Workfile Placeholders", template_builder)
+        update_placeholders_action.triggered.connect(
+            self.update_placeholders_callback)
+        template_builder.addAction(update_placeholders_action)
+
         return ayon_menu
 
     def load_callback(self):
@@ -197,3 +224,23 @@ class AYONMenu(object):
     def version_up_callback(self):
         """Callback to version up current workfile."""
         return save_next_version()
+
+    def build_workfile_template_callback(self):
+        """Callback to build workfile from template."""
+        # TODO: Implement template building
+        pass
+
+    def update_workfile_template_callback(self):
+        """Callback to update workfile from template."""
+        # TODO: Implement template update
+        pass
+
+    def create_placeholders_callback(self):
+        """Callback to create workfile placeholders."""
+        # TODO: Implement placeholder creation
+        pass
+
+    def update_placeholders_callback(self):
+        """Callback to update workfile placeholders."""
+        # TODO: Implement placeholder update
+        pass
