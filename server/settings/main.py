@@ -78,7 +78,7 @@ class MaxSettings(BaseSettingsModel):
     workfile_builder: TemplateWorkfileBaseOptions = SettingsField(
         default_factory=TemplateWorkfileBaseOptions,
         title="Workfile Builder",
-        description="Configures startup workfile blend scene.",
+        description="Configures startup workfile 3dsmax scene.",
     )
     RenderSettings: RenderSettingsModel = SettingsField(
         default_factory=RenderSettingsModel,
