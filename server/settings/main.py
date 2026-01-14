@@ -1,4 +1,8 @@
-from ayon_server.settings import BaseSettingsModel, SettingsField
+from ayon_server.settings import (
+    BaseSettingsModel,
+    SettingsField,
+    TemplateWorkfileBaseOptions
+)
 from .imageio import ImageIOSettings
 from .render_settings import (
     RenderSettingsModel, DEFAULT_RENDER_SETTINGS
@@ -71,6 +75,11 @@ class MaxSettings(BaseSettingsModel):
         default_factory=ImageIOSettings,
         title="Color Management (ImageIO)"
     )
+    workfile_builder: TemplateWorkfileBaseOptions = SettingsField(
+        default_factory=TemplateWorkfileBaseOptions,
+        title="Workfile Builder",
+        description="Configures startup workfile blend scene.",
+    )
     RenderSettings: RenderSettingsModel = SettingsField(
         default_factory=RenderSettingsModel,
         title="Render Settings"
@@ -118,6 +127,10 @@ DEFAULT_VALUES = {
     },
     "auto_key_default":{
         "defualt_key_time": 0
+    },
+    "workfile_builder": {
+        "create_first_version": False,
+        "custom_templates": []
     },
     "RenderSettings": DEFAULT_RENDER_SETTINGS,
     "CreateReview": DEFAULT_CREATE_REVIEW_SETTINGS,
