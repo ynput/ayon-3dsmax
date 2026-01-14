@@ -1,8 +1,4 @@
-from ayon_server.settings import (
-    BaseSettingsModel,
-    SettingsField,
-    TemplateWorkfileBaseOptions
-)
+from ayon_server.settings import BaseSettingsModel, SettingsField
 from .imageio import ImageIOSettings
 from .render_settings import (
     RenderSettingsModel, DEFAULT_RENDER_SETTINGS
@@ -13,6 +9,7 @@ from .create_review_settings import (
 from .publishers import (
     PublishersModel, DEFAULT_PUBLISH_SETTINGS
 )
+from .templated_workfile_build import TemplatedWorkfileBuildModel
 
 
 def unit_scale_enum():
@@ -75,11 +72,11 @@ class MaxSettings(BaseSettingsModel):
         default_factory=ImageIOSettings,
         title="Color Management (ImageIO)"
     )
-    workfile_builder: TemplateWorkfileBaseOptions = SettingsField(
-        default_factory=TemplateWorkfileBaseOptions,
-        title="Workfile Builder",
-        description="Configures startup workfile 3dsmax scene.",
+    templated_workfile_build: TemplatedWorkfileBuildModel = SettingsField(
+        title="Templated Workfile Build",
+        default_factory=TemplatedWorkfileBuildModel
     )
+
     RenderSettings: RenderSettingsModel = SettingsField(
         default_factory=RenderSettingsModel,
         title="Render Settings"
@@ -128,9 +125,8 @@ DEFAULT_VALUES = {
     "auto_key_default":{
         "defualt_key_time": 0
     },
-    "workfile_builder": {
-        "create_first_version": False,
-        "custom_templates": []
+    "templated_workfile_build": {
+        "profiles": []
     },
     "RenderSettings": DEFAULT_RENDER_SETTINGS,
     "CreateReview": DEFAULT_CREATE_REVIEW_SETTINGS,
