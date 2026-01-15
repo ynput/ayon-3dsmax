@@ -16,6 +16,10 @@ from ayon_core.settings import get_project_settings
 from ayon_core.pipeline import get_current_project_name
 from ayon_core.pipeline.workfile import save_next_version
 from ayon_max.api import lib
+from .workfile_template_builder import (
+    build_workfile_template,
+    update_workfile_template,
+)
 
 
 class AYONMenu(object):
@@ -171,18 +175,6 @@ class AYONMenu(object):
             self.update_workfile_template_callback)
         template_builder.addAction(update_workfile_template_action)
 
-        create_placeholders_action = QtWidgets.QAction(
-            "Create Workfile Placeholders", template_builder)
-        create_placeholders_action.triggered.connect(
-            self.create_placeholders_callback)
-        template_builder.addAction(create_placeholders_action)
-
-        update_placeholders_action = QtWidgets.QAction(
-            "Update Workfile Placeholders", template_builder)
-        update_placeholders_action.triggered.connect(
-            self.update_placeholders_callback)
-        template_builder.addAction(update_placeholders_action)
-
         return ayon_menu
 
     def load_callback(self):
@@ -228,19 +220,9 @@ class AYONMenu(object):
     def build_workfile_template_callback(self):
         """Callback to build workfile from template."""
         # TODO: Implement template building
-        pass
+        build_workfile_template()
 
     def update_workfile_template_callback(self):
         """Callback to update workfile from template."""
         # TODO: Implement template update
-        pass
-
-    def create_placeholders_callback(self):
-        """Callback to create workfile placeholders."""
-        # TODO: Implement placeholder creation
-        pass
-
-    def update_placeholders_callback(self):
-        """Callback to update workfile placeholders."""
-        # TODO: Implement placeholder update
-        pass
+        update_workfile_template()
