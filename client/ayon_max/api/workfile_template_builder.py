@@ -1,5 +1,4 @@
-import json
-
+"""3dsmax workfile template builder implementation"""
 try:
     from pymxs import runtime as rt
 
