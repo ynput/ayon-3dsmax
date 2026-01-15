@@ -50,21 +50,14 @@ class ModelUSDLoader(load.LoaderPlugin):
             prefix=f"{folder_name}_",
             suffix="_",
         )
-        asset = rt.GetNodeByName(name)
-        usd_objects = []
-
-        for usd_asset in asset.Children:
-            usd_asset.name = f"{namespace}:{usd_asset.name}"
-            usd_objects.append(usd_asset)
-
-        asset_name = f"{namespace}:{name}"
-        asset.name = asset_name
-        # need to get the correct container after renamed
-        asset = rt.GetNodeByName(asset_name)
-        usd_objects.append(asset)
+        # create "missing" container for obj import
+        selections = rt.GetCurrentSelection()
+        # get current selection
+        for selection in selections:
+            selection.name = f"{namespace}:{selection.name}"
 
         return containerise(
-            name, usd_objects, context,
+            name, selections, context,
             namespace, loader=self.__class__.__name__)
 
     def update(self, container, context):
@@ -79,8 +72,9 @@ class ModelUSDLoader(load.LoaderPlugin):
                         if sel != rt.Container
                         and sel.name != node_name]
         transform_data = object_transform_set(prev_objects)
-        for n in prev_objects:
-            rt.Delete(n)
+        for prev_obj in prev_objects:
+            if rt.isValidNode(prev_obj):
+                rt.Delete(prev_obj)
 
         import_options = rt.USDImporter.CreateOptions()
         base_filename = os.path.basename(path)
@@ -92,20 +86,18 @@ class ModelUSDLoader(load.LoaderPlugin):
         rt.USDImporter.importFile(
             path, importOptions=import_options)
 
-        asset = rt.GetNodeByName(name)
-        usd_objects = []
-        for children in asset.Children:
-            children.name = f"{namespace}:{children.name}"
-            usd_objects.append(children)
-            children_transform = f"{children}.transform"
-            if children_transform in transform_data.keys():
-                children.pos = transform_data[children_transform] or 0
-                children.scale = transform_data[
-                    f"{children}.scale"] or 0
-
-        asset.name = f"{namespace}:{asset.name}"
-        usd_objects.append(asset)
-        update_custom_attribute_data(node, usd_objects)
+        # get current selection
+        selections = rt.GetCurrentSelection()
+        for selection in selections:
+            selection.name = f"{namespace}:{selection.name}"
+            selection_transform = f"{selection.name}.transform"
+            if selection_transform in transform_data.keys():
+                selection.pos = transform_data[selection_transform] or 0
+                selection.rotation = transform_data[
+                    f"{selection.name}.rotation"] or 0
+                selection.scale = transform_data[
+                    f"{selection.name}.scale"] or 0
+        update_custom_attribute_data(node, selections)
         with maintained_selection():
             rt.Select(node)
 
