@@ -141,14 +141,14 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         root_scene = rt.rootScene
 
         create_attr_script = ("""
-attributes "AyonContext"
+attributes "AYONContext"
 (
     parameters main rollout:params
     (
         context type: #string
     )
 
-    rollout params "Ayon Parameters"
+    rollout params "AYON Parameters"
     (
         editText editTextContext "Context" type: #string
     )
@@ -158,19 +158,19 @@ attributes "AyonContext"
         attr = rt.execute(create_attr_script)
         rt.custAttributes.add(root_scene, attr)
 
-        return root_scene.AyonContext.context
+        return root_scene.AYONContext.context
 
     def update_context_data(self, data, changes):
         try:
-            _ = rt.rootScene.AyonContext.context
+            _ = rt.rootScene.AYONContext.context
         except AttributeError:
             # context node doesn't exists
             self.create_context_node()
 
-        rt.rootScene.AyonContext.context = json.dumps(data)
+        rt.rootScene.AYONContext.context = json.dumps(data)
     def get_context_data(self):
         try:
-            context = rt.rootScene.AyonContext.context
+            context = rt.rootScene.AYONContext.context
         except AttributeError:
             # context node doesn't exists
             context = self.create_context_node()
