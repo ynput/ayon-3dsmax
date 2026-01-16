@@ -14,6 +14,7 @@ from ayon_core.pipeline import (
 from ayon_core.pipeline.workfile.workfile_template_builder import (
     AbstractTemplateBuilder,
 )
+from pathlib import Path
 
 
 class MaxTemplateBuilder(AbstractTemplateBuilder):
@@ -29,7 +30,10 @@ class MaxTemplateBuilder(AbstractTemplateBuilder):
         Returns:
             bool: Whether the template was successfully imported or not
         """
-        rt.MergeMaxFile(path, quiet=True)
+        filepath = Path(path)
+        if not filepath.exists():
+            return False
+        rt.MergeMaxFile(filepath.as_posix(), quiet=True)
         max_objects = rt.getLastMergedNodes()
         if not max_objects:
             return True
