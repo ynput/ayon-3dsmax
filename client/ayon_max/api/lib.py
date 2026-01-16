@@ -12,6 +12,8 @@ from ayon_core.pipeline import (
     get_current_folder_path,
     get_current_task_name,
     colorspace,
+    AYON_INSTANCE_ID,
+    AVALON_INSTANCE_ID,
 )
 from ayon_core.tools.utils import SimplePopup
 from ayon_core.settings import get_project_settings
@@ -665,8 +667,8 @@ def update_modifier_node_names(event, node):
         if (
             rt.ClassOf(obj) == rt.Container
             and rt.getUserProp(obj, "id") not in {
-                "pyblish.avalon.instance",
-                "ayon.create.instance"
+                AVALON_INSTANCE_ID,
+                AYON_INSTANCE_ID
             }
             and rt.getUserProp(obj, "productType") not in {
                 "workfile", "tyflow"
