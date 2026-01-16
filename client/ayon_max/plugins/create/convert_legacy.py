@@ -12,14 +12,8 @@ except ImportError:
 class MaxLegacyConvertor(ProductConvertorPlugin):
     """Find and convert any legacy products in the scene.
 
-    This Converter will find all legacy products in the scene and will
-    transform them to the current system. Since the old products doesn't
-    retain any information about their original creators, the only mapping
-    we can do is based on their product types.
-
-    Its limitation is that you can have multiple creators creating product
-    of the same product type and there is no way to handle it. This code
-    should nevertheless cover all creators that came with Ayon.
+    This Converter will find all creator ids in the scene and will
+    transform them to new creator ids.
 
     """
     identifier = "io.ayon.creators.max.legacy"
