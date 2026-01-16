@@ -57,7 +57,7 @@ class CollectTyFlowData(pyblish.api.InstancePlugin,
                 "productType": product_type,
                 "productBaseType": product_type,
                 "creator_identifier": (
-                    f"io.openpype.creators.max.{product_type}"),
+                    f"io.ayon.creators.max.{product_type}"),
                 "publish_attributes": {
                     "ValidateTyCacheFrameRange": {
                         "active": attr_values.get("has_frame_range_validator")}

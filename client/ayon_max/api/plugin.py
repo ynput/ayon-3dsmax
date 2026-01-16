@@ -18,7 +18,7 @@ from ayon_core.pipeline import (
 
 from .lib import imprint, lsattr, read, get_tyflow_export_operators
 
-MS_CUSTOM_ATTRIB = """attributes "openPypeData"
+MS_CUSTOM_ATTRIB = """attributes "ayonData"
 (
     parameters main rollout:OPparams
     (
@@ -313,7 +313,7 @@ class MaxCreatorBase(object):
         attrs = rt.Execute(MS_CUSTOM_ATTRIB)
         modifier = rt.EmptyModifier()
         rt.addModifier(node, modifier)
-        node.modifiers[0].name = "OP Data"
+        node.modifiers[0].name = "Ayon Data"
         rt.custAttributes.add(node.modifiers[0], attrs)
 
         return node
@@ -373,10 +373,10 @@ class MaxCreator(Creator, MaxCreatorBase):
 
             # Setting the property
             rt.setProperty(
-                instance_node.modifiers[0].openPypeData,
+                instance_node.modifiers[0].ayonData,
                 "all_handles", node_list)
             rt.setProperty(
-                instance_node.modifiers[0].openPypeData,
+                instance_node.modifiers[0].ayonData,
                 "sel_list", sel_list)
 
         self._add_instance_to_context(instance)

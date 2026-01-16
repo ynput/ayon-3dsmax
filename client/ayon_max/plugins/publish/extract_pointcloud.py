@@ -20,7 +20,7 @@ class ExtractPointCloud(publish.Extractor):
 
         self.get_operators(): get the export_particle operator
 
-        self.get_custom_attr(): get all custom channel attributes from Openpype
+        self.get_custom_attr(): get all custom channel attributes from Ayon
             setting and sets it as job arguments before exporting
 
         self.get_files(): get the files with tyFlow naming convention

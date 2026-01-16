@@ -678,9 +678,11 @@ def update_modifier_node_names(event, node):
     if not containers:
         return
     for container in containers:
-        ayon_data = container.modifiers[0].openPypeData
-        updated_node_names = [str(node.node) for node
-                              in ayon_data.all_handles]
+        modifier = container.modifiers[0]
+        ayon_data = get_ayon_data(modifier)
+        updated_node_names = [
+            str(node.node) for node in ayon_data.all_handles
+        ]
         rt.setProperty(ayon_data, "sel_list", updated_node_names)
 
 
@@ -829,3 +831,18 @@ def reset_render_outputs(max_filename_before, max_filename_after):
 
         if vr_settings.output_splitgbuffer:
             vr_settings.output_splitfilename = rt.rendOutputFilename
+
+
+def get_ayon_data(container_modifier):
+    """Get the AYON custom attribute data from container modifier
+
+    Args:
+        container_modifier: container modifier
+
+    Returns:
+        Property: ayonData custom attribute data
+    """
+    if rt.isProperty(container_modifier, "ayonData"):
+        return container_modifier.ayonData
+    else:
+        return container_modifier.openPypeData
