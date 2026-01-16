@@ -5,7 +5,7 @@ from ayon_max.api import plugin
 
 class CreateModel(plugin.MaxCreator):
     """Creator plugin for Model."""
-    identifier = "io.openpype.creators.max.model"
+    identifier = "io.ayon.creators.max.model"
     label = "Model"
     product_type = "model"
     product_base_type = "model"

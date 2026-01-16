@@ -274,6 +274,7 @@ class MaxCreatorBase(object):
             return shared_data
 
         shared_data["max_cached_instances"] = {}
+        shared_data["max_cached_legacy_instances"] = {}
 
         cached_instances = []
         for id_type in [AYON_INSTANCE_ID, AVALON_INSTANCE_ID]:
@@ -281,11 +282,18 @@ class MaxCreatorBase(object):
 
         for i in cached_instances:
             creator_id = rt.GetUserProp(i, "creator_identifier")
-            if creator_id not in shared_data["max_cached_instances"]:
-                shared_data["max_cached_instances"][creator_id] = [i.name]
+            if "openpype" not in creator_id:
+                if creator_id not in shared_data["max_cached_instances"]:
+                    shared_data["max_cached_instances"][creator_id] = [i.name]
+                else:
+                    shared_data[
+                        "max_cached_instances"][creator_id].append(i.name)
             else:
-                shared_data[
-                    "max_cached_instances"][creator_id].append(i.name)
+                # Legacy creator instance
+                family = rt.GetUserProp(i, "productType")
+                shared_data["max_cached_legacy_instances"].setdefault(
+                    family, []).append(i.name)
+
         return shared_data
 
     @staticmethod
