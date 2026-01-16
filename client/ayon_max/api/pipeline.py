@@ -371,7 +371,7 @@ def import_custom_attribute_data(container: str, selections: list):
     attrs = load_custom_attribute_data()
     modifier = rt.EmptyModifier()
     rt.addModifier(container, modifier)
-    container.modifiers[0].name = "Ayon Data"
+    container.modifiers[0].name = "AYON Data"
     rt.custAttributes.add(container.modifiers[0], attrs)
     node_list = []
     sel_list = []
@@ -382,10 +382,10 @@ def import_custom_attribute_data(container: str, selections: list):
 
     # Setting the property
     rt.setProperty(
-        container.modifiers[0].ayonData,
+        container.modifiers[0].AYONData,
         "all_handles", node_list)
     rt.setProperty(
-        container.modifiers[0].ayonData,
+        container.modifiers[0].AYONData,
         "sel_list", sel_list)
 
 
@@ -397,16 +397,16 @@ def update_custom_attribute_data(container: str, selections: list):
         selections (list): nodes to be added into
         group in custom attributes
     """
-    if container.modifiers[0].name not in {"OP Data", "Ayon Data"}:
+    if container.modifiers[0].name not in {"OP Data", "AYON Data"}:
         rt.deleteModifier(container, container.modifiers[0])
     import_custom_attribute_data(container, selections)
 
 
 def get_previous_loaded_object(container: str):
-    """Get previous loaded_object through the Ayon data
+    """Get previous loaded_object through the AYON Data
 
     Args:
-        container (str): the container which stores the Ayon data
+        container (str): the container which stores the AYON Data
 
     Returns:
         node_list(list): list of nodes which are previously loaded
@@ -427,7 +427,7 @@ def remove_container_data(container_node: str):
         container_node (str): container node
     """
     container_node_modifier = container_node.modifiers[0]
-    if container_node_modifier.name in {"OP Data", "Ayon Data"}:
+    if container_node_modifier.name in {"OP Data", "AYON Data"}:
         ayon_data = lib.get_ayon_data(container_node_modifier)
         all_set_members_names = [member.node for member in ayon_data.all_handles]
         # clean up the children of alembic dummy objects

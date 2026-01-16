@@ -840,9 +840,9 @@ def get_ayon_data(container_modifier):
         container_modifier: container modifier
 
     Returns:
-        Property: ayonData custom attribute data
+        Property: AYONData custom attribute data
     """
-    if rt.isProperty(container_modifier, "ayonData"):
-        return container_modifier.ayonData
+    if rt.isProperty(container_modifier, "AYONData"):
+        return container_modifier.AYONData
     else:
         return container_modifier.openPypeData
