@@ -33,7 +33,13 @@ class MaxTemplateBuilder(AbstractTemplateBuilder):
         filepath = Path(path)
         if not filepath.exists():
             return False
-        rt.MergeMaxFile(filepath.as_posix(), quiet=True)
+        rt.MergeMaxFile(
+            filepath.as_posix(),
+            rt.Name("deleteOldDups"),
+            rt.Name("useMergedMtlDups"),
+            quiet=True,
+            includeFullGroup=True
+        )
         max_objects = rt.getLastMergedNodes()
         if not max_objects:
             return True
