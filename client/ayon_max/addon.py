@@ -17,19 +17,18 @@ class MaxAddon(AYONAddon, IHostAddon):
         new_addon_paths = [
             os.path.join(MAX_HOST_DIR, "startup")
         ]
+        # 3dsmax docs state this is a semi-colon separated list. It does not
+        # state it uses the path separator, hence we use ; directly instead
+        # of os.pathsep
         old_addon_paths = env.get("ADSK_3DSMAX_STARTUPSCRIPTS_ADDON_DIR") or ""
-        for path in old_addon_paths.split(os.pathsep):
+        for path in old_addon_paths.split(";"):
             if not path:
                 continue
 
             norm_path = os.path.normpath(path)
             if norm_path not in new_addon_paths:
                 new_addon_paths.append(norm_path)
-
-        # 3dsmax docs state this is a semi-colon separated list. It does not
-        # state it uses the path separator, hence we use ; directly instead
-        # of os.pathsep
-        env["ADSK_3DSMAX_STARTUPSCRIPTS_ADDON_DIR"] = os.pathsep.join(
+        env["ADSK_3DSMAX_STARTUPSCRIPTS_ADDON_DIR"] = ";".join(
             new_addon_paths
         )
         # Remove auto screen scale factor for Qt
