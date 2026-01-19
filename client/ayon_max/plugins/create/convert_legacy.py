@@ -24,7 +24,7 @@ class MaxLegacyConvertor(ProductConvertorPlugin):
         "io.openpype.creators.max.pointcache": "io.ayon.creators.max.pointcache",
         "io.openpype.creators.max.pointcloud": "io.ayon.creators.max.pointcloud",
         "io.openpype.creators.max.redshiftproxy": "io.ayon.creators.max.redshiftproxy",
-        "io.openpype.creators.max.maxrender": "io.ayon.creators.max.render",
+        "io.openpype.creators.max.render": "io.ayon.creators.max.render",
         "io.openpype.creators.max.review": "io.ayon.creators.max.review",
         "io.openpype.creators.max.tyflow": "io.ayon.creators.max.tyflow",
         "io.openpype.creators.max.workfile": "io.ayon.creators.max.workfile",
