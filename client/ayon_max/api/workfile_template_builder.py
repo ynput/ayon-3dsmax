@@ -57,11 +57,13 @@ class MaxTemplateBuilder(AbstractTemplateBuilder):
             rt.setUserProp(obj, "folderPath", folder_path)
         return True
 
-def build_workfile_template(*args):
+def build_workfile_template(*args) -> None:
+    """Build the workfile template for 3ds Max."""
     builder = MaxTemplateBuilder(registered_host())
     builder.build_template()
 
 
-def update_workfile_template(*args):
+def update_workfile_template(*args) -> None:
+    """Update the workfile template for 3ds Max."""
     builder = MaxTemplateBuilder(registered_host())
     builder.rebuild_template()
