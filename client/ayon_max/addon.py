@@ -20,6 +20,9 @@ class MaxAddon(AYONAddon, IHostAddon):
         # 3dsmax docs state this is a semi-colon separated list. It does not
         # state it uses the path separator, hence we use ; directly instead
         # of os.pathsep
+        # TODO: Confirm unix platforms actually use os.pathsep with this env var
+        #  because the 3dsmax docs state this is a list of semi-colon delimited
+        #  paths, so it may be semi-colon on Unix too.
         old_addon_paths = env.get("ADSK_3DSMAX_STARTUPSCRIPTS_ADDON_DIR") or ""
         for path in old_addon_paths.split(";"):
             if not path:
