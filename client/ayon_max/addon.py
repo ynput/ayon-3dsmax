@@ -29,7 +29,7 @@ class MaxAddon(AYONAddon, IHostAddon):
         # 3dsmax docs state this is a semi-colon separated list. It does not
         # state it uses the path separator, hence we use ; directly instead
         # of os.pathsep
-        env["ADSK_3DSMAX_STARTUPSCRIPTS_ADDON_DIR"] = ";".join(
+        env["ADSK_3DSMAX_STARTUPSCRIPTS_ADDON_DIR"] = os.pathsep.join(
             new_addon_paths
         )
         # Remove auto screen scale factor for Qt
