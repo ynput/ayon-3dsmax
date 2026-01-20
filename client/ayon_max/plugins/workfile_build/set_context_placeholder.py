@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-
+"""Plugin to set context variables for workfile build in 3ds Max."""
 from ayon_max.api.workfile_template_builder import (
     MaxPlaceholderPlugin
 )
