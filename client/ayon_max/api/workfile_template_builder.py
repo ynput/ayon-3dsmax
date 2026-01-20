@@ -43,7 +43,7 @@ class MaxTemplateBuilder(AbstractTemplateBuilder):
         Returns:
             bool: Whether the template was successfully imported or not
         """
-        if not rt.getNodeByName(PLACEHOLDER_SET):
+        if rt.getNodeByName(PLACEHOLDER_SET):
             raise TemplateAlreadyImported((
                 "Build template already loaded\n"
                 "Clean scene if needed (File > New Scene)"
