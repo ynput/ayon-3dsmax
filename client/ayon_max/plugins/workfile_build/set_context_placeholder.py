@@ -7,7 +7,7 @@ from ayon_max.api.lib import set_context_settings
 from ayon_core.lib import BoolDef
 
 
-class SetContextMayaPlaceholderPlugin(MaxPlaceholderPlugin):
+class SetContextMaxPlaceholderPlugin(MaxPlaceholderPlugin):
     """Set context variables for the workfile build.
     This placeholder allows the workfile build process to
     set context variables dynamically.
