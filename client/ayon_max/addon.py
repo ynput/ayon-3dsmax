@@ -13,6 +13,27 @@ class MaxAddon(AYONAddon, IHostAddon):
     host_name = "max"
 
     def add_implementation_envs(self, env, _app):
+        # Add requirements to ADSK_3DSMAX_STARTUPSCRIPTS_ADDON_DIR
+        new_addon_paths = [
+            os.path.join(MAX_HOST_DIR, "startup")
+        ]
+        # 3dsmax docs state this is a semi-colon separated list. It does not
+        # state it uses the path separator, hence we use ; directly instead
+        # of os.pathsep
+        # TODO: Confirm unix platforms actually use os.pathsep with this env var
+        #  because the 3dsmax docs state this is a list of semi-colon delimited
+        #  paths, so it may be semi-colon on Unix too.
+        old_addon_paths = env.get("ADSK_3DSMAX_STARTUPSCRIPTS_ADDON_DIR") or ""
+        for path in old_addon_paths.split(";"):
+            if not path:
+                continue
+
+            norm_path = os.path.normpath(path)
+            if norm_path not in new_addon_paths:
+                new_addon_paths.append(norm_path)
+        env["ADSK_3DSMAX_STARTUPSCRIPTS_ADDON_DIR"] = ";".join(
+            new_addon_paths
+        )
         # Remove auto screen scale factor for Qt
         # - let 3dsmax decide it's value
         env.pop("QT_AUTO_SCREEN_SCALE_FACTOR", None)

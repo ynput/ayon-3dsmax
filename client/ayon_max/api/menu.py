@@ -40,16 +40,18 @@ class AYONMenu(object):
         self.menu = None
 
         timer = QtCore.QTimer()
-        # set number of event loops to wait.
+        # set number of event loops to wait - increased to ensure menu bar
+        # is fully initialized and not overwritten by other tools
         timer.setInterval(1)
         timer.timeout.connect(self._on_timer)
         timer.start()
 
         self._timer = timer
         self._counter = 0
+        self._max_retries = 10  # Number of event loops to wait
 
     def _on_timer(self):
-        if self._counter < 1:
+        if self._counter < self._max_retries:
             self._counter += 1
             return
 
@@ -86,20 +88,29 @@ class AYONMenu(object):
         menu_bar = self.get_main_menubar()
         menu_items = menu_bar.findChildren(
             QtWidgets.QMenu, options=QtCore.Qt.FindDirectChildrenOnly)
-        help_action = None
+        # Check if AYON menu already exists in the menu bar
         for item in menu_items:
             if name in item.title():
                 # we already have AYON menu
+                self.menu = item
                 return item
-
+        # Find the position to insert before (Help menu by default)
+        help_action = None
+        for item in menu_items:
             if before in item.title():
                 help_action = item.menuAction()
+                break
         tab_menu_label = os.environ.get("AYON_MENU_LABEL") or "AYON"
-        op_menu = QtWidgets.QMenu("&{}".format(tab_menu_label))
-        menu_bar.insertMenu(help_action, op_menu)
+        ay_menu = QtWidgets.QMenu("&{}".format(tab_menu_label))
+        # Insert menu before Help, or at the end if Help is not found
+        if int(lib.get_max_version()) < 2026:
+            menu_bar.insertMenu(help_action, ay_menu)
+        else:
+            # Fallback: append at the end if Help menu not found
+            menu_bar.addMenu(ay_menu)
 
-        self.menu = op_menu
-        return op_menu
+        self.menu = ay_menu
+        return ay_menu
 
     def _build_ayon_menu(self) -> QtWidgets.QAction:
         """Build items in AYON menu."""

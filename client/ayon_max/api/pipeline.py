@@ -141,14 +141,14 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         root_scene = rt.rootScene
 
         create_attr_script = ("""
-attributes "OpenPypeContext"
+attributes "AYONContext"
 (
     parameters main rollout:params
     (
         context type: #string
     )
 
-    rollout params "OpenPype Parameters"
+    rollout params "AYON Parameters"
     (
         editText editTextContext "Context" type: #string
     )
@@ -158,20 +158,19 @@ attributes "OpenPypeContext"
         attr = rt.execute(create_attr_script)
         rt.custAttributes.add(root_scene, attr)
 
-        return root_scene.OpenPypeContext.context
+        return root_scene.AYONContext.context
 
     def update_context_data(self, data, changes):
         try:
-            _ = rt.rootScene.OpenPypeContext.context
+            _ = rt.rootScene.AYONContext.context
         except AttributeError:
             # context node doesn't exists
             self.create_context_node()
 
-        rt.rootScene.OpenPypeContext.context = json.dumps(data)
-
+        rt.rootScene.AYONContext.context = json.dumps(data)
     def get_context_data(self):
         try:
-            context = rt.rootScene.OpenPypeContext.context
+            context = rt.rootScene.AYONContext.context
         except AttributeError:
             # context node doesn't exists
             context = self.create_context_node()
@@ -204,7 +203,7 @@ def parse_container(container):
     data = lib.read(container)
 
     # Backwards compatibility pre-schemas for containers
-    data["schema"] = data.get("schema", "openpype:container-3.0")
+    data["schema"] = data.get("schema", "ayon:container-3.0")
 
     # Append transient data
     data["objectName"] = container.Name
@@ -237,8 +236,8 @@ def on_new():
 def containerise(name: str, nodes: list, context,
                  namespace=None, loader=None, suffix="_CON"):
     data = {
-        "schema": "openpype:container-2.0",
-        "id": AVALON_CONTAINER_ID,
+        "schema": "ayon:container-3.0",
+        "id": AYON_CONTAINER_ID,
         "name": name,
         "namespace": namespace or "",
         "loader": loader,
@@ -362,7 +361,7 @@ def load_custom_attribute_data():
 
 
 def import_custom_attribute_data(container: str, selections: list):
-    """Importing the Openpype/AYON custom parameter built by the creator
+    """Importing the AYON custom parameter built by the creator
 
     Args:
         container (str): target container which adds custom attributes
@@ -372,7 +371,7 @@ def import_custom_attribute_data(container: str, selections: list):
     attrs = load_custom_attribute_data()
     modifier = rt.EmptyModifier()
     rt.addModifier(container, modifier)
-    container.modifiers[0].name = "OP Data"
+    container.modifiers[0].name = "AYON Data"
     rt.custAttributes.add(container.modifiers[0], attrs)
     node_list = []
     sel_list = []
@@ -383,10 +382,10 @@ def import_custom_attribute_data(container: str, selections: list):
 
     # Setting the property
     rt.setProperty(
-        container.modifiers[0].openPypeData,
+        container.modifiers[0].AYONData,
         "all_handles", node_list)
     rt.setProperty(
-        container.modifiers[0].openPypeData,
+        container.modifiers[0].AYONData,
         "sel_list", sel_list)
 
 
@@ -398,23 +397,24 @@ def update_custom_attribute_data(container: str, selections: list):
         selections (list): nodes to be added into
         group in custom attributes
     """
-    if container.modifiers[0].name == "OP Data":
+    if container.modifiers[0].name not in {"OP Data", "AYON Data"}:
         rt.deleteModifier(container, container.modifiers[0])
     import_custom_attribute_data(container, selections)
 
 
 def get_previous_loaded_object(container: str):
-    """Get previous loaded_object through the OP data
+    """Get previous loaded_object through the AYON Data
 
     Args:
-        container (str): the container which stores the OP data
+        container (str): the container which stores the AYON Data
 
     Returns:
         node_list(list): list of nodes which are previously loaded
     """
     node_list = []
-    node_transform_monitor_list = rt.getProperty(
-        container.modifiers[0].openPypeData, "all_handles")
+    container_modifier = container.modifiers[0]
+    ayon_data = lib.get_ayon_data(container_modifier)
+    node_transform_monitor_list = rt.getProperty(ayon_data, "all_handles")
     for node_transform_monitor in node_transform_monitor_list:
         node_list.append(node_transform_monitor.node)
     return node_list
@@ -426,10 +426,10 @@ def remove_container_data(container_node: str):
     Args:
         container_node (str): container node
     """
-    if container_node.modifiers[0].name == "OP Data":
-        all_set_members_names = [
-            member.node for member
-            in container_node.modifiers[0].openPypeData.all_handles]
+    container_node_modifier = container_node.modifiers[0]
+    if container_node_modifier.name in {"OP Data", "AYON Data"}:
+        ayon_data = lib.get_ayon_data(container_node_modifier)
+        all_set_members_names = [member.node for member in ayon_data.all_handles]
         # clean up the children of alembic dummy objects
         for current_set_member in all_set_members_names:
             shape_list = [members for members in current_set_member.Children

@@ -12,7 +12,9 @@ from ayon_core.pipeline import (
     get_current_folder_path,
     get_current_task_name,
     colorspace,
-    registered_host
+    registered_host,
+    AYON_INSTANCE_ID,
+    AVALON_INSTANCE_ID,
 )
 from ayon_core.tools.utils import SimplePopup
 from ayon_core.settings import get_project_settings
@@ -679,7 +681,10 @@ def update_modifier_node_names(event, node):
         for obj in rt.Objects
         if (
             rt.ClassOf(obj) == rt.Container
-            and rt.getUserProp(obj, "id") == "pyblish.avalon.instance"
+            and rt.getUserProp(obj, "id") not in {
+                AVALON_INSTANCE_ID,
+                AYON_INSTANCE_ID
+            }
             and rt.getUserProp(obj, "productType") not in {
                 "workfile", "tyflow"
             }
@@ -688,9 +693,11 @@ def update_modifier_node_names(event, node):
     if not containers:
         return
     for container in containers:
-        ayon_data = container.modifiers[0].openPypeData
-        updated_node_names = [str(node.node) for node
-                              in ayon_data.all_handles]
+        modifier = container.modifiers[0]
+        ayon_data = get_ayon_data(modifier)
+        updated_node_names = [
+            str(node.node) for node in ayon_data.all_handles
+        ]
         rt.setProperty(ayon_data, "sel_list", updated_node_names)
 
 
@@ -839,6 +846,21 @@ def reset_render_outputs(max_filename_before, max_filename_after):
 
         if vr_settings.output_splitgbuffer:
             vr_settings.output_splitfilename = rt.rendOutputFilename
+
+
+def get_ayon_data(container_modifier):
+    """Get the AYON custom attribute data from container modifier
+
+    Args:
+        container_modifier: container modifier
+
+    Returns:
+        Property: AYONData custom attribute data
+    """
+    if rt.isProperty(container_modifier, "AYONData"):
+        return container_modifier.AYONData
+    else:
+        return container_modifier.openPypeData
 
 
 def update_content_on_context_change():
