@@ -245,7 +245,7 @@ def update_workfile_template(*args) -> None:
     builder.rebuild_template()
 
 
-def create_placeholder(*args):
+def create_placeholder(*args) -> None:
     """Create Workfile Placeholder for 3ds Max."""
     host = registered_host()
     builder = MaxTemplateBuilder(host)
@@ -254,7 +254,7 @@ def create_placeholder(*args):
     window.show()
 
 
-def update_placeholder(*args):
+def update_placeholder(*args) -> None:
     """Update Workfile Placeholder for 3ds Max."""
     host = registered_host()
     builder = MaxTemplateBuilder(host)
