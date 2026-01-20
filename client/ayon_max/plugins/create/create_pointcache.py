@@ -5,7 +5,7 @@ from ayon_max.api import plugin
 
 class CreatePointCache(plugin.MaxCreator):
     """Creator plugin for Point caches."""
-    identifier = "io.openpype.creators.max.pointcache"
+    identifier = "io.ayon.creators.max.pointcache"
     label = "Point Cache"
     product_type = "pointcache"
     product_base_type = "pointcache"

@@ -7,7 +7,7 @@ from ayon_core.lib import BoolDef, EnumDef, NumberDef
 class CreateReview(plugin.MaxCreator):
     """Review in 3dsMax"""
 
-    identifier = "io.openpype.creators.max.review"
+    identifier = "io.ayon.creators.max.review"
     label = "Review"
     product_type = "review"
     product_base_type = "review"

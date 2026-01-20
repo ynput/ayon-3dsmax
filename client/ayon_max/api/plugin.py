@@ -18,7 +18,7 @@ from ayon_core.pipeline import (
 
 from .lib import imprint, lsattr, read, get_tyflow_export_operators
 
-MS_CUSTOM_ATTRIB = """attributes "openPypeData"
+MS_CUSTOM_ATTRIB = """attributes "AYONData"
 (
     parameters main rollout:OPparams
     (
@@ -274,6 +274,7 @@ class MaxCreatorBase(object):
             return shared_data
 
         shared_data["max_cached_instances"] = {}
+        shared_data["max_cached_legacy_instances"] = {}
 
         cached_instances = []
         for id_type in [AYON_INSTANCE_ID, AVALON_INSTANCE_ID]:
@@ -281,11 +282,14 @@ class MaxCreatorBase(object):
 
         for i in cached_instances:
             creator_id = rt.GetUserProp(i, "creator_identifier")
-            if creator_id not in shared_data["max_cached_instances"]:
-                shared_data["max_cached_instances"][creator_id] = [i.name]
+            if "openpype" in creator_id:
+                # Legacy creator instance
+                shared_data["max_cached_legacy_instances"].setdefault(
+                    creator_id, []).append(i.name)
             else:
-                shared_data[
-                    "max_cached_instances"][creator_id].append(i.name)
+                shared_data["max_cached_instances"].setdefault(
+                    creator_id, []).append(i.name)
+
         return shared_data
 
     @staticmethod
@@ -308,7 +312,7 @@ class MaxCreatorBase(object):
         attrs = rt.Execute(MS_CUSTOM_ATTRIB)
         modifier = rt.EmptyModifier()
         rt.addModifier(node, modifier)
-        node.modifiers[0].name = "OP Data"
+        node.modifiers[0].name = "AYON Data"
         rt.custAttributes.add(node.modifiers[0], attrs)
 
         return node
@@ -368,10 +372,10 @@ class MaxCreator(Creator, MaxCreatorBase):
 
             # Setting the property
             rt.setProperty(
-                instance_node.modifiers[0].openPypeData,
+                instance_node.modifiers[0].AYONData,
                 "all_handles", node_list)
             rt.setProperty(
-                instance_node.modifiers[0].openPypeData,
+                instance_node.modifiers[0].AYONData,
                 "sel_list", sel_list)
 
         self._add_instance_to_context(instance)

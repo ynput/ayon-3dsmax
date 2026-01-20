@@ -11,7 +11,7 @@ from pymxs import runtime as rt
 
 class CreateRender(plugin.MaxCreator):
     """Creator plugin for Renders."""
-    identifier = "io.openpype.creators.max.render"
+    identifier = "io.ayon.creators.max.render"
     label = "Render"
     product_type = "maxrender"
     product_base_type = "maxrender"
