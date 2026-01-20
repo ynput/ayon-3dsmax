@@ -136,7 +136,7 @@ class MaxPlaceholderPlugin(PlaceholderPlugin):
         placeholder_data["plugin_identifier"] = self.identifier
         placeholder_name = self._create_placeholder_name(placeholder_data)
 
-        placeholder = rt.Container(name=placeholder_name)[0]
+        placeholder = rt.Container(name=placeholder_name)
         if parent_object:
             parent_object.children = placeholder
             imprinted_placeholder = parent_object.name
