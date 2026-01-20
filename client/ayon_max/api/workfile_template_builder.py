@@ -263,9 +263,9 @@ def update_placeholder(*args):
         for placeholder_item in builder.get_placeholders()
     }
     placeholder_items = []
-    for node_name in rt.getCurrentSelection():
-        if node_name in placeholder_items_by_id:
-            placeholder_items.append(placeholder_items_by_id[node_name])
+    for node in rt.getCurrentSelection():
+        if node.name in placeholder_items_by_id:
+            placeholder_items.append(placeholder_items_by_id[node.name])
 
     # TODO show UI at least
     if len(placeholder_items) == 0:
