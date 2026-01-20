@@ -370,7 +370,7 @@ def get_fps_for_current_context():
     return task_entity["attrib"]["fps"]
 
 
-def validate_unit_scale(project_settings=None):
+def validate_unit_scale(project_settings=None, scene_units=False):
     """Apply the unit scale setting to 3dsMax
     """
 
@@ -380,7 +380,7 @@ def validate_unit_scale(project_settings=None):
         project_name = get_current_project_name()
         project_settings = get_project_settings(project_name).get("max")
     scene_scale_enabled = project_settings["unit_scale_settings"]["enabled"]
-    if not scene_scale_enabled:
+    if not scene_scale_enabled or not scene_units:
         log.info("Using default scale display type.")
         rt.units.DisplayType = rt.Name("Generic")
         return
@@ -429,7 +429,10 @@ def convert_unit_scale():
     return unit_scale_dict[current_unit_scale]
 
 
-def set_context_setting():
+def set_context_settings(resolution=True,
+                         frame_range=True,
+                         scene_units=False,
+                         colorspace=True):
     """Apply the project settings from the project definition
 
     Settings can be overwritten by an folder if the folder.attrib contains
@@ -442,10 +445,14 @@ def set_context_setting():
     Returns:
         None
     """
-    reset_scene_resolution()
-    reset_frame_range()
-    validate_unit_scale()
-    reset_colorspace()
+    if resolution:
+        reset_scene_resolution()
+    if frame_range:
+        reset_frame_range()
+    if scene_units:
+        validate_unit_scale(scene_units=scene_units)
+    if colorspace:
+        reset_colorspace()
 
 
 def get_max_version():

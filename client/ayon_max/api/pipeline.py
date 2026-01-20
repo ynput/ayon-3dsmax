@@ -120,7 +120,7 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         )
         rt.callbacks.addScript(
             rt.Name('systemPostNew'),
-            lib.set_context_setting,
+            lib.set_context_settings,
             id=rt.name("AyonCallbacks")
         )
         rt.callbacks.addScript(
@@ -231,7 +231,7 @@ def on_new():
     last_workfile = os.getenv("AYON_LAST_WORKFILE")
     if os.getenv("AVALON_OPEN_LAST_WORKFILE") != "1"  \
         or not os.path.exists(last_workfile):
-            lib.set_context_setting()
+            lib.set_context_settings()
 
 
 def containerise(name: str, nodes: list, context,

@@ -19,6 +19,8 @@ from ayon_max.api import lib
 from .workfile_template_builder import (
     build_workfile_template,
     update_workfile_template,
+    create_placeholder,
+    update_placeholder
 )
 
 
@@ -175,6 +177,18 @@ class AYONMenu(object):
             self.update_workfile_template_callback)
         template_builder.addAction(update_workfile_template_action)
 
+        create_placeholders_action = QtWidgets.QAction(
+            "Create Workfile Placeholders", template_builder)
+        create_placeholders_action.triggered.connect(
+            self.create_placeholders_callback)
+        template_builder.addAction(create_placeholders_action)
+
+        update_placeholders_action = QtWidgets.QAction(
+            "Update Workfile Placeholders", template_builder)
+        update_placeholders_action.triggered.connect(
+            self.update_placeholders_callback)
+        template_builder.addAction(update_placeholders_action)
+
         return ayon_menu
 
     def load_callback(self):
@@ -226,3 +240,11 @@ class AYONMenu(object):
         """Callback to update workfile from template."""
         # TODO: Implement template update
         update_workfile_template()
+
+    def create_placeholders_callback(self):
+        """Callback to create workfile placeholders."""
+        create_placeholder()
+
+    def update_placeholders_callback(self):
+        """Callback to update workfile placeholders."""
+        update_placeholder()
