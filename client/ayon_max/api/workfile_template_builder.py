@@ -158,7 +158,7 @@ class MaxPlaceholderPlugin(PlaceholderPlugin):
         nodes_by_identifier = self._collect_scene_placeholders()
         for node in nodes_by_identifier.get(self.identifier, []):
             # TODO do data validations and maybe upgrades if they are invalid
-            placeholder_data = self.read(node)
+            placeholder_data = read(node)
             placeholders.append(
                 self.item_class(scene_identifier=node,
                                 data=placeholder_data,
@@ -210,19 +210,6 @@ class MaxPlaceholderPlugin(PlaceholderPlugin):
 
         imprint(node, data)
 
-    def read(self, node):
-        """Read call for placeholder node"""
-
-        data = read(node)
-
-        # Complicated data that can't be represented as flat 3dsmax attributes
-        # we read from json strings, e.g. multiselection EnumDef
-        for key, value in data.items():
-            if isinstance(value, str) and value.startswith("JSON::"):
-                value = value[len("JSON::"):]   # strip of JSON:: prefix
-                data[key] = json.loads(value)
-
-        return data
 
 def build_workfile_template(*args) -> None:
     """Build the workfile template for 3ds Max."""

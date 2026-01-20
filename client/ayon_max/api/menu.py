@@ -233,12 +233,10 @@ class AYONMenu(object):
 
     def build_workfile_template_callback(self):
         """Callback to build workfile from template."""
-        # TODO: Implement template building
         build_workfile_template()
 
     def update_workfile_template_callback(self):
         """Callback to update workfile from template."""
-        # TODO: Implement template update
         update_workfile_template()
 
     def create_placeholders_callback(self):

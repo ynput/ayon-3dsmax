@@ -372,7 +372,7 @@ def get_fps_for_current_context():
     return task_entity["attrib"]["fps"]
 
 
-def validate_unit_scale(project_settings=None, scene_units=False):
+def validate_unit_scale(project_settings=None):
     """Apply the unit scale setting to 3dsMax
     """
 
@@ -382,7 +382,7 @@ def validate_unit_scale(project_settings=None, scene_units=False):
         project_name = get_current_project_name()
         project_settings = get_project_settings(project_name).get("max")
     scene_scale_enabled = project_settings["unit_scale_settings"]["enabled"]
-    if not scene_scale_enabled or not scene_units:
+    if not scene_scale_enabled:
         log.info("Using default scale display type.")
         rt.units.DisplayType = rt.Name("Generic")
         return
@@ -403,15 +403,21 @@ def validate_unit_scale(project_settings=None, scene_units=False):
     dialog.show()
 
 
-def set_unit_scale(project_settings=None):
+def set_unit_scale(project_settings=None, scene_units=False):
     """Function to set unit scale in Metric
+    Args:
+        project_settings (dict, optional): project settings.
+        scene_units (bool, optional): whether to set scene units.
     """
     if project_settings is None:
         project_name = get_current_project_name()
         project_settings = get_project_settings(project_name).get("max")
-    scene_scale = project_settings["unit_scale_settings"]["scene_unit_scale"]
-    rt.units.DisplayType = rt.Name("Metric")
-    rt.units.MetricType = rt.Name(scene_scale)
+    scale_settings = project_settings["unit_scale_settings"]
+    scene_scale_enabled = scale_settings.get("enabled", False)
+    if scene_scale_enabled or scene_units:
+        scene_scale = scale_settings["scene_unit_scale"]
+        rt.units.DisplayType = rt.Name("Metric")
+        rt.units.MetricType = rt.Name(scene_scale)
 
 
 def convert_unit_scale():
@@ -452,7 +458,7 @@ def set_context_settings(resolution=True,
     if frame_range:
         reset_frame_range()
     if scene_units:
-        validate_unit_scale(scene_units=scene_units)
+        set_unit_scale(scene_units=scene_units)
     if colorspace:
         reset_colorspace()
 
