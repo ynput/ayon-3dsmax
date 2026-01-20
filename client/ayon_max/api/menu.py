@@ -97,7 +97,7 @@ class AYONMenu(object):
         tab_menu_label = os.environ.get("AYON_MENU_LABEL") or "AYON"
         ay_menu = QtWidgets.QMenu("&{}".format(tab_menu_label))
         # Insert menu before Help, or at the end if Help is not found
-        if help_action is not None:
+        if int(lib.get_max_version()) < 2026:
             menu_bar.insertMenu(help_action, ay_menu)
         else:
             # Fallback: append at the end if Help menu not found
