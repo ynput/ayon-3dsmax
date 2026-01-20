@@ -8,12 +8,7 @@ try:
 except ImportError:
     rt = None
 
-from ayon_core.pipeline import (
-    registered_host,
-    get_current_folder_path,
-    AYON_INSTANCE_ID,
-    AVALON_INSTANCE_ID,
-)
+from ayon_core.pipeline import registered_host
 from ayon_core.pipeline.workfile.workfile_template_builder import (
     TemplateAlreadyImported,
     AbstractTemplateBuilder,
@@ -24,7 +19,12 @@ from ayon_core.tools.workfile_template_build import (
     WorkfileBuildPlaceholderDialog,
 )
 
-from .lib import imprint, read, get_main_window
+from .lib import (
+    imprint,
+    read,
+    get_main_window,
+    update_content_on_context_change,
+)
 
 
 PLACEHOLDER_SET = "PLACEHOLDERS_SET"
@@ -67,16 +67,7 @@ class MaxTemplateBuilder(AbstractTemplateBuilder):
             return True
 
         # update imported sets information
-        folder_path = get_current_folder_path()
-        for obj in max_objects:
-            if rt.classOf(obj) == rt.Container:
-                if rt.GetUserProp(obj, "id") in (
-                    AYON_INSTANCE_ID, AVALON_INSTANCE_ID
-                ):
-                    continue
-                if not rt.GetUserProp(obj, "folderPath"):
-                    continue
-            rt.setUserProp(obj, "folderPath", folder_path)
+        update_content_on_context_change()
         return True
 
 
