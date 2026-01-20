@@ -5,7 +5,7 @@ from ayon_max.api import plugin
 
 class CreateCamera(plugin.MaxCreator):
     """Creator plugin for Camera."""
-    identifier = "io.openpype.creators.max.camera"
+    identifier = "io.ayon.creators.max.camera"
     label = "Camera"
     product_type = "camera"
     product_base_type = "camera"

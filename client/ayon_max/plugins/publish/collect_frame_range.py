@@ -15,11 +15,11 @@ class CollectFrameRange(pyblish.api.InstancePlugin):
                 "tyspline", "redshiftproxy"]
 
     def process(self, instance):
-        if instance.data["productType"] == "maxrender":
+        if instance.data["productBaseType"] == "maxrender":
             instance.data["frameStartHandle"] = int(rt.rendStart)
             instance.data["frameEndHandle"] = int(rt.rendEnd)
 
-        elif instance.data["family"] in {"tycache", "tyspline"}:
+        elif instance.data["productBaseType"] in {"tycache", "tyspline"}:
             operator = instance.data["operator"]
             instance.data["frameStartHandle"] = rt.getProperty(operator, "frameStart")
             instance.data["frameEndHandle"] = rt.getProperty(operator, "frameEnd")
