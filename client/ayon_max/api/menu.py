@@ -176,6 +176,7 @@ class AYONMenu(object):
         ayon_menu.addSeparator()
         template_builder = ayon_menu.addMenu("Template Builder")
 
+        template_builder.addSeparator()
         build_workfile_template_action = QtWidgets.QAction(
             "Build Workfile from Template", template_builder)
         build_workfile_template_action.triggered.connect(
@@ -188,6 +189,7 @@ class AYONMenu(object):
             self.update_workfile_template_callback)
         template_builder.addAction(update_workfile_template_action)
 
+        template_builder.addSeparator()
         create_placeholders_action = QtWidgets.QAction(
             "Create Workfile Placeholders", template_builder)
         create_placeholders_action.triggered.connect(
