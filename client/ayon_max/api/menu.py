@@ -17,6 +17,7 @@ from ayon_core.pipeline import get_current_project_name
 from ayon_core.pipeline.workfile import save_next_version
 from ayon_max.api import lib
 from .workfile_template_builder import (
+    create_first_workfile_from_template,
     build_workfile_template,
     update_workfile_template,
     create_placeholder,
@@ -177,6 +178,12 @@ class AYONMenu(object):
         template_builder = ayon_menu.addMenu("Template Builder")
 
         template_builder.addSeparator()
+        create_first_workfile_template_action = QtWidgets.QAction(
+            "Create First Workfile from Template", template_builder)
+        create_first_workfile_template_action.triggered.connect(
+            self.create_first_workfile_template_callback)
+
+        template_builder.addAction(create_first_workfile_template_action)
         build_workfile_template_action = QtWidgets.QAction(
             "Build Workfile from Template", template_builder)
         build_workfile_template_action.triggered.connect(
@@ -243,6 +250,10 @@ class AYONMenu(object):
     def version_up_callback(self):
         """Callback to version up current workfile."""
         return save_next_version()
+
+    def create_first_workfile_template_callback(self):
+        """Callback to create the first workfile from template."""
+        create_first_workfile_from_template()
 
     def build_workfile_template_callback(self):
         """Callback to build workfile from template."""
