@@ -216,6 +216,7 @@ def create_first_workfile_from_template(*args) -> None:
     builder = MaxTemplateBuilder(registered_host())
     builder.build_template(workfile_creation_enabled=True)
 
+
 def build_workfile_template(*args) -> None:
     """Build the workfile template for 3ds Max."""
     builder = MaxTemplateBuilder(registered_host())

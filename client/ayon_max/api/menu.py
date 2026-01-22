@@ -134,6 +134,12 @@ class AYONMenu(object):
 
         ayon_menu.addSeparator()
 
+        workfiles_action = QtWidgets.QAction("Work Files...", ayon_menu)
+        workfiles_action.triggered.connect(self.workfiles_callback)
+        ayon_menu.addAction(workfiles_action)
+
+        ayon_menu.addSeparator()
+
         load_action = QtWidgets.QAction("Load...", ayon_menu)
         load_action.triggered.connect(self.load_callback)
         ayon_menu.addAction(load_action)
@@ -149,12 +155,6 @@ class AYONMenu(object):
         library_action = QtWidgets.QAction("Library...", ayon_menu)
         library_action.triggered.connect(self.library_callback)
         ayon_menu.addAction(library_action)
-
-        ayon_menu.addSeparator()
-
-        workfiles_action = QtWidgets.QAction("Work Files...", ayon_menu)
-        workfiles_action.triggered.connect(self.workfiles_callback)
-        ayon_menu.addAction(workfiles_action)
 
         ayon_menu.addSeparator()
 
@@ -190,21 +190,22 @@ class AYONMenu(object):
             self.build_workfile_template_callback)
         template_builder.addAction(build_workfile_template_action)
 
-        update_workfile_template_action = QtWidgets.QAction(
-            "Update Workfile from Template", template_builder)
-        update_workfile_template_action.triggered.connect(
-            self.update_workfile_template_callback)
-        template_builder.addAction(update_workfile_template_action)
+        # TODO: it would be implemented after load placeholder fully implemented
+        # update_workfile_template_action = QtWidgets.QAction(
+        #     "Update Workfile from Template", template_builder)
+        # update_workfile_template_action.triggered.connect(
+        #     self.update_workfile_template_callback)
+        # template_builder.addAction(update_workfile_template_action)
 
         template_builder.addSeparator()
         create_placeholders_action = QtWidgets.QAction(
-            "Create Workfile Placeholders", template_builder)
+            "Create Placeholders", template_builder)
         create_placeholders_action.triggered.connect(
             self.create_placeholders_callback)
         template_builder.addAction(create_placeholders_action)
 
         update_placeholders_action = QtWidgets.QAction(
-            "Update Workfile Placeholders", template_builder)
+            "Update Placeholders", template_builder)
         update_placeholders_action.triggered.connect(
             self.update_placeholders_callback)
         template_builder.addAction(update_placeholders_action)
