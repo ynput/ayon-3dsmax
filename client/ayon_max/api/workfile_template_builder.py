@@ -234,7 +234,7 @@ def open_template(*args) -> None:
     """Open the workfile template UI for 3ds Max."""
     host = registered_host()
     builder = MaxTemplateBuilder(host)
-    open_template_ui(host, builder, main_window=get_main_window())
+    open_template_ui(builder, main_window=get_main_window())
 
 
 def create_placeholder(*args) -> None:
