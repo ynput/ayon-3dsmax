@@ -18,6 +18,7 @@ from ayon_core.pipeline.workfile.workfile_template_builder import (
 from ayon_core.tools.workfile_template_build import (
     WorkfileBuildPlaceholderDialog,
 )
+from ayon_core.tools.workfile_template_build import open_template_ui
 
 from .lib import (
     imprint,
@@ -227,6 +228,13 @@ def update_workfile_template(*args) -> None:
     """Update the workfile template for 3ds Max."""
     builder = MaxTemplateBuilder(registered_host())
     builder.rebuild_template()
+
+
+def open_template(*args) -> None:
+    """Open the workfile template UI for 3ds Max."""
+    host = registered_host()
+    builder = MaxTemplateBuilder(host)
+    open_template_ui(host, builder, main_window=get_main_window())
 
 
 def create_placeholder(*args) -> None:

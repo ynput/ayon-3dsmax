@@ -20,6 +20,7 @@ from .workfile_template_builder import (
     create_first_workfile_from_template,
     build_workfile_template,
     update_workfile_template,
+    open_template,
     create_placeholder,
     update_placeholder
 )
@@ -198,6 +199,11 @@ class AYONMenu(object):
         # template_builder.addAction(update_workfile_template_action)
 
         template_builder.addSeparator()
+        import_template_action = QtWidgets.QAction(
+            "Open Template", template_builder)
+        import_template_action.triggered.connect(
+            self.import_template_callback)
+        template_builder.addAction(import_template_action)
         create_placeholders_action = QtWidgets.QAction(
             "Create Placeholders", template_builder)
         create_placeholders_action.triggered.connect(
@@ -263,6 +269,10 @@ class AYONMenu(object):
     def update_workfile_template_callback(self):
         """Callback to update workfile from template."""
         update_workfile_template()
+
+    def import_template_callback(self):
+        """Callback to import workfile template."""
+        open_template()
 
     def create_placeholders_callback(self):
         """Callback to create workfile placeholders."""
