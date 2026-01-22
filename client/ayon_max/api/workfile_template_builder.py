@@ -211,7 +211,7 @@ class MaxPlaceholderPlugin(PlaceholderPlugin):
         imprint(node, data)
 
 
-def create_first_worfile_from_template(*args) -> None:
+def create_first_workfile_from_template(*args) -> None:
     """Create the first workfile from template for 3ds Max."""
     builder = MaxTemplateBuilder(registered_host())
     builder.build_template(workfile_creation_enabled=True)
