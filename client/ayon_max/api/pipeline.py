@@ -116,19 +116,25 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         rt.callbacks.removeScripts(id=rt.name("AyonCallbacks"))
         rt.callbacks.addScript(
             rt.Name('welcomeScreenDone'),
-            on_new, id=rt.name("AyonCallbacks")
+            self.on_new, id=rt.name("AyonCallbacks")
         )
         rt.callbacks.addScript(
             rt.Name('systemPostNew'),
             lib.set_context_setting,
             id=rt.name("AyonCallbacks")
         )
-        rt.callbacks.addScript(
-            rt.Name('postWorkspaceChange'),
-            self._deferred_menu_creation,
-            id=rt.name("AyonCallbacks"))
+        if lib.get_max_version() < 2026:
+            rt.callbacks.addScript(
+                rt.Name('postWorkspaceChange'),
+                self._deferred_menu_creation,
+                id=rt.name("AyonCallbacks"))
         rt.NodeEventCallback(
             nameChanged=lib.update_modifier_node_names)
+
+    def on_new(self):
+        if not self.menu and lib.get_max_version() >= 2026:
+            self._deferred_menu_creation()
+        on_new()
 
     def _deferred_menu_creation(self):
         self.log.info("Building menu ...")
