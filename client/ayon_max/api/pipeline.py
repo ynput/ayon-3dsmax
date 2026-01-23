@@ -114,11 +114,11 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         rt.callbacks.removeScripts(id=rt.name("AyonCallbacks"))
         rt.callbacks.addScript(
             rt.Name('welcomeScreenDone'),
-            self.on_new, id=rt.name("AyonCallbacks")
+            self.on_init, id=rt.name("AyonCallbacks")
         )
         rt.callbacks.addScript(
             rt.Name('systemPostNew'),
-            lib.set_context_setting,
+            on_new,
             id=rt.name("AyonCallbacks")
         )
         if lib.get_max_version() < 2026:
@@ -126,13 +126,14 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
                 rt.Name('postWorkspaceChange'),
                 self._deferred_menu_creation,
                 id=rt.name("AyonCallbacks"))
+
         rt.NodeEventCallback(
             nameChanged=lib.update_modifier_node_names)
 
-    def on_new(self):
+    def on_init(self):
         if not self.menu and lib.get_max_version() >= 2026:
             self._deferred_menu_creation()
-        on_new()
+        on_init()
 
     def _deferred_menu_creation(self):
         self.log.info("Building menu ...")
@@ -228,13 +229,17 @@ def ls():
         yield parse_container(container)
 
 
-def on_new():
+def on_init():
     if not os.path.exists(rt.ColorPipelineMgr.OCIOConfigPath):
         lib.reset_colorspace()
     last_workfile = os.getenv("AYON_LAST_WORKFILE")
     if os.getenv("AVALON_OPEN_LAST_WORKFILE") != "1"  \
         or not os.path.exists(last_workfile):
             lib.set_context_setting()
+
+
+def on_new():
+    lib.set_context_setting()
 
 
 def containerise(name: str, nodes: list, context,
