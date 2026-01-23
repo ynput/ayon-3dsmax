@@ -82,8 +82,6 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         _set_project()
         _set_autobackup_dir()
 
-        self.menu = AYONMenu()
-
         register_event_callback("workfile.open.before", on_before_open)
         register_event_callback("workfile.open.after", on_after_open)
         register_event_callback("before.save", before_save)
