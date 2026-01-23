@@ -8,7 +8,10 @@ import json
 
 from ayon_core.host import HostBase, IWorkfileHost, ILoadHost, IPublishHost
 
-from ayon_core.lib import register_event_callback
+from ayon_core.lib import (
+    register_event_callback,
+    emit_event,
+)
 import pyblish.api
 from ayon_core.pipeline import (
     register_creator_plugin_path,
@@ -82,6 +85,7 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         _set_project()
         _set_autobackup_dir()
 
+        register_event_callback("new", on_new)
         register_event_callback("workfile.open.before", on_before_open)
         register_event_callback("workfile.open.after", on_after_open)
         register_event_callback("before.save", before_save)
@@ -118,7 +122,7 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         )
         rt.callbacks.addScript(
             rt.Name('systemPostNew'),
-            on_new,
+            _on_scene_new,
             id=rt.name("AyonCallbacks")
         )
         if lib.get_max_version() < 2026:
@@ -193,6 +197,10 @@ attributes "AYONContext"
             context_action = actions[0]
             context_label = lib.get_context_label()
             context_action.setText(f"{context_label}")
+
+
+def _on_scene_new(*args):
+    emit_event("new")
 
 
 def parse_container(container):
