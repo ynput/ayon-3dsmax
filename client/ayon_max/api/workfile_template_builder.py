@@ -161,6 +161,9 @@ class MaxPlaceholderPlugin(PlaceholderPlugin):
             # TODO do data validations and maybe upgrades if they are invalid
             node = rt.getNodeByName(node_name)
             placeholder_data = read(node)
+            # Ensure order is converted to int for proper sorting
+            if "order" in placeholder_data:
+                placeholder_data["order"] = int(placeholder_data["order"])
             placeholders.append(
                 self.item_class(scene_identifier=node_name,
                                 data=placeholder_data,
