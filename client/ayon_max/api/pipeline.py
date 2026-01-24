@@ -85,7 +85,10 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         _set_project()
         _set_autobackup_dir()
 
+        register_event_callback("init", on_init)
         register_event_callback("new", on_new)
+        register_event_callback("save", on_save)
+        register_event_callback("open", on_open)
         register_event_callback("workfile.open.before", on_before_open)
         register_event_callback("workfile.open.after", on_after_open)
         register_event_callback("before.save", before_save)
@@ -125,6 +128,16 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
             _on_scene_new,
             id=rt.name("AyonCallbacks")
         )
+        rt.callbacks.addScript(
+            rt.Name('filePostSave'),
+            _on_scene_save,
+            id=rt.name("AyonCallbacks")
+        )
+        rt.callbacks.addScript(
+            rt.Name('filePostOpen'),
+            _on_scene_open,
+            id=rt.name("AyonCallbacks")
+        )
         if lib.get_max_version() < 2026:
             rt.callbacks.addScript(
                 rt.Name('postWorkspaceChange'),
@@ -137,7 +150,7 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
     def on_init(self):
         if not self.menu and lib.get_max_version() >= 2026:
             self._deferred_menu_creation()
-        on_init()
+        _on_scene_init()
 
     def _deferred_menu_creation(self):
         self.log.info("Building menu ...")
@@ -199,8 +212,20 @@ attributes "AYONContext"
             context_action.setText(f"{context_label}")
 
 
+def _on_scene_init(*args):
+    emit_event("init")
+
+
 def _on_scene_new(*args):
     emit_event("new")
+
+
+def _on_scene_save(*args):
+    emit_event("save")
+
+
+def _on_scene_open(*args):
+    emit_event("open")
 
 
 def parse_container(container):
@@ -248,6 +273,14 @@ def on_init():
 
 def on_new():
     lib.set_context_setting()
+
+
+def on_save():
+    log.info("Saving workfile.")
+
+
+def on_open():
+    log.info("Opening workfile.")
 
 
 def containerise(name: str, nodes: list, context,
