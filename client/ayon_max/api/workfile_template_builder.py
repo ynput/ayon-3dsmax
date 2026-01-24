@@ -152,7 +152,7 @@ class MaxPlaceholderPlugin(PlaceholderPlugin):
             if rt.getUserProp(target_node, key) is not None:
                 rt.deleteUserProp(target_node, key)
 
-        self.imprint(node_name, changed_values)
+        self.imprint(target_node, changed_values)
 
     def collect_placeholders(self):
         placeholders = []
