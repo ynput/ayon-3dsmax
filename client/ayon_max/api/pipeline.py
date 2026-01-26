@@ -87,8 +87,6 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
 
         register_event_callback("init", on_init)
         register_event_callback("new", on_new)
-        register_event_callback("save", on_save)
-        register_event_callback("open", on_open)
         register_event_callback("workfile.open.before", on_before_open)
         register_event_callback("workfile.open.after", on_after_open)
         register_event_callback("before.save", before_save)
