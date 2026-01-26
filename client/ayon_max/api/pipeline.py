@@ -146,7 +146,7 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
             nameChanged=lib.update_modifier_node_names)
 
     def on_init(self):
-        if not self.menu and lib.get_max_version() >= 2026:
+        if not self.menu:
             self._deferred_menu_creation()
         _on_scene_init()
 
