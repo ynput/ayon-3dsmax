@@ -9,6 +9,7 @@ from .create_review_settings import (
 from .publishers import (
     PublishersModel, DEFAULT_PUBLISH_SETTINGS
 )
+from .templated_workfile_build import TemplatedWorkfileBuildModel
 
 
 def unit_scale_enum():
@@ -71,6 +72,11 @@ class MaxSettings(BaseSettingsModel):
         default_factory=ImageIOSettings,
         title="Color Management (ImageIO)"
     )
+    templated_workfile_build: TemplatedWorkfileBuildModel = SettingsField(
+        title="Templated Workfile Build",
+        default_factory=TemplatedWorkfileBuildModel
+    )
+
     RenderSettings: RenderSettingsModel = SettingsField(
         default_factory=RenderSettingsModel,
         title="Render Settings"
@@ -118,6 +124,9 @@ DEFAULT_VALUES = {
     },
     "auto_key_default":{
         "defualt_key_time": 0
+    },
+    "templated_workfile_build": {
+        "profiles": []
     },
     "RenderSettings": DEFAULT_RENDER_SETTINGS,
     "CreateReview": DEFAULT_CREATE_REVIEW_SETTINGS,

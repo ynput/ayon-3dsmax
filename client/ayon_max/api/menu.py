@@ -16,6 +16,14 @@ from ayon_core.settings import get_project_settings
 from ayon_core.pipeline import get_current_project_name
 from ayon_core.pipeline.workfile import save_next_version
 from ayon_max.api import lib
+from .workfile_template_builder import (
+    create_first_workfile_from_template,
+    build_workfile_template,
+    update_workfile_template,
+    open_template,
+    create_placeholder,
+    update_placeholder
+)
 
 
 class AYONMenu(object):
@@ -127,6 +135,12 @@ class AYONMenu(object):
 
         ayon_menu.addSeparator()
 
+        workfiles_action = QtWidgets.QAction("Work Files...", ayon_menu)
+        workfiles_action.triggered.connect(self.workfiles_callback)
+        ayon_menu.addAction(workfiles_action)
+
+        ayon_menu.addSeparator()
+
         load_action = QtWidgets.QAction("Load...", ayon_menu)
         load_action.triggered.connect(self.load_callback)
         ayon_menu.addAction(load_action)
@@ -145,12 +159,6 @@ class AYONMenu(object):
 
         ayon_menu.addSeparator()
 
-        workfiles_action = QtWidgets.QAction("Work Files...", ayon_menu)
-        workfiles_action.triggered.connect(self.workfiles_callback)
-        ayon_menu.addAction(workfiles_action)
-
-        ayon_menu.addSeparator()
-
         res_action = QtWidgets.QAction("Set Resolution", ayon_menu)
         res_action.triggered.connect(self.resolution_callback)
         ayon_menu.addAction(res_action)
@@ -166,6 +174,47 @@ class AYONMenu(object):
         unit_scale_action = QtWidgets.QAction("Set Unit Scale", ayon_menu)
         unit_scale_action.triggered.connect(self.unit_scale_callback)
         ayon_menu.addAction(unit_scale_action)
+
+        ayon_menu.addSeparator()
+        template_builder = ayon_menu.addMenu("Template Builder")
+
+        template_builder.addSeparator()
+        create_first_workfile_template_action = QtWidgets.QAction(
+            "Create First Workfile from Template", template_builder)
+        create_first_workfile_template_action.triggered.connect(
+            self.create_first_workfile_template_callback)
+
+        template_builder.addAction(create_first_workfile_template_action)
+        build_workfile_template_action = QtWidgets.QAction(
+            "Build Workfile from Template", template_builder)
+        build_workfile_template_action.triggered.connect(
+            self.build_workfile_template_callback)
+        template_builder.addAction(build_workfile_template_action)
+
+        # TODO: it would be implemented after load placeholder fully implemented
+        # update_workfile_template_action = QtWidgets.QAction(
+        #     "Update Workfile from Template", template_builder)
+        # update_workfile_template_action.triggered.connect(
+        #     self.update_workfile_template_callback)
+        # template_builder.addAction(update_workfile_template_action)
+
+        template_builder.addSeparator()
+        import_template_action = QtWidgets.QAction(
+            "Open Template", template_builder)
+        import_template_action.triggered.connect(
+            self.import_template_callback)
+        template_builder.addAction(import_template_action)
+        create_placeholders_action = QtWidgets.QAction(
+            "Create Placeholders", template_builder)
+        create_placeholders_action.triggered.connect(
+            self.create_placeholders_callback)
+        template_builder.addAction(create_placeholders_action)
+
+        update_placeholders_action = QtWidgets.QAction(
+            "Update Placeholders", template_builder)
+        update_placeholders_action.triggered.connect(
+            self.update_placeholders_callback)
+        template_builder.addAction(update_placeholders_action)
 
         return ayon_menu
 
@@ -208,3 +257,27 @@ class AYONMenu(object):
     def version_up_callback(self):
         """Callback to version up current workfile."""
         return save_next_version()
+
+    def create_first_workfile_template_callback(self):
+        """Callback to create the first workfile from template."""
+        create_first_workfile_from_template()
+
+    def build_workfile_template_callback(self):
+        """Callback to build workfile from template."""
+        build_workfile_template()
+
+    def update_workfile_template_callback(self):
+        """Callback to update workfile from template."""
+        update_workfile_template()
+
+    def import_template_callback(self):
+        """Callback to import workfile template."""
+        open_template()
+
+    def create_placeholders_callback(self):
+        """Callback to create workfile placeholders."""
+        create_placeholder()
+
+    def update_placeholders_callback(self):
+        """Callback to update workfile placeholders."""
+        update_placeholder()
