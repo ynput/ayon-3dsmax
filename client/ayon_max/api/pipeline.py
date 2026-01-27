@@ -8,7 +8,10 @@ import json
 
 from ayon_core.host import HostBase, IWorkfileHost, ILoadHost, IPublishHost
 
-from ayon_core.lib import register_event_callback
+from ayon_core.lib import (
+    register_event_callback,
+    emit_event,
+)
 import pyblish.api
 from ayon_core.pipeline import (
     register_creator_plugin_path,
@@ -85,8 +88,8 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         _set_project()
         _set_autobackup_dir()
 
-        self.menu = AYONMenu()
-
+        register_event_callback("init", on_init)
+        register_event_callback("new", on_new)
         register_event_callback("workfile.open.before", on_before_open)
         register_event_callback("workfile.open.after", on_after_open)
         register_event_callback("before.save", before_save)
@@ -119,19 +122,36 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         rt.callbacks.removeScripts(id=rt.name("AyonCallbacks"))
         rt.callbacks.addScript(
             rt.Name('welcomeScreenDone'),
-            on_new, id=rt.name("AyonCallbacks")
+            self.on_init, id=rt.name("AyonCallbacks")
         )
         rt.callbacks.addScript(
             rt.Name('systemPostNew'),
-            lib.set_context_settings,
+            _on_scene_new,
             id=rt.name("AyonCallbacks")
         )
         rt.callbacks.addScript(
-            rt.Name('postWorkspaceChange'),
-            self._deferred_menu_creation,
-            id=rt.name("AyonCallbacks"))
+            rt.Name('filePostSave'),
+            _on_scene_save,
+            id=rt.name("AyonCallbacks")
+        )
+        rt.callbacks.addScript(
+            rt.Name('filePostOpen'),
+            _on_scene_open,
+            id=rt.name("AyonCallbacks")
+        )
+        if lib.get_max_version() < 2026:
+            rt.callbacks.addScript(
+                rt.Name('postWorkspaceChange'),
+                self._deferred_menu_creation,
+                id=rt.name("AyonCallbacks"))
+
         rt.NodeEventCallback(
             nameChanged=lib.update_modifier_node_names)
+
+    def on_init(self):
+        if not self.menu:
+            self._deferred_menu_creation()
+        _on_scene_init()
 
     def _deferred_menu_creation(self):
         self.log.info("Building menu ...")
@@ -193,6 +213,22 @@ attributes "AYONContext"
             context_action.setText(f"{context_label}")
 
 
+def _on_scene_init(*args):
+    emit_event("init")
+
+
+def _on_scene_new(*args):
+    emit_event("new")
+
+
+def _on_scene_save(*args):
+    emit_event("save")
+
+
+def _on_scene_open(*args):
+    emit_event("open")
+
+
 def parse_container(container):
     """Return the container node's full container data.
 
@@ -227,13 +263,25 @@ def ls():
         yield parse_container(container)
 
 
-def on_new():
+def on_init():
     if not os.path.exists(rt.ColorPipelineMgr.OCIOConfigPath):
         lib.reset_colorspace()
     last_workfile = os.getenv("AYON_LAST_WORKFILE")
     if os.getenv("AVALON_OPEN_LAST_WORKFILE") != "1"  \
         or not os.path.exists(last_workfile):
             lib.set_context_settings()
+
+
+def on_new():
+    lib.set_context_settings()
+
+
+def on_save():
+    log.info("Saving workfile.")
+
+
+def on_open():
+    log.info("Opening workfile.")
 
 
 def containerise(name: str, nodes: list, context,
