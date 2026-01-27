@@ -16,6 +16,7 @@ import pyblish.api
 from ayon_core.pipeline import (
     register_creator_plugin_path,
     register_loader_plugin_path,
+    register_workfile_build_plugin_path,
     AVALON_CONTAINER_ID,
     AYON_CONTAINER_ID,
     get_current_project_name
@@ -41,6 +42,7 @@ PUBLISH_PATH = os.path.join(PLUGINS_DIR, "publish")
 LOAD_PATH = os.path.join(PLUGINS_DIR, "load")
 CREATE_PATH = os.path.join(PLUGINS_DIR, "create")
 INVENTORY_PATH = os.path.join(PLUGINS_DIR, "inventory")
+WORKFILE_BUILD_PATH = os.path.join(PLUGINS_DIR, "workfile_build")
 
 
 class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
@@ -81,6 +83,7 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         pyblish.api.register_plugin_path(PUBLISH_PATH)
         register_loader_plugin_path(LOAD_PATH)
         register_creator_plugin_path(CREATE_PATH)
+        register_workfile_build_plugin_path(WORKFILE_BUILD_PATH)
 
         _set_project()
         _set_autobackup_dir()
@@ -266,11 +269,11 @@ def on_init():
     last_workfile = os.getenv("AYON_LAST_WORKFILE")
     if os.getenv("AVALON_OPEN_LAST_WORKFILE") != "1"  \
         or not os.path.exists(last_workfile):
-            lib.set_context_setting()
+            lib.set_context_settings()
 
 
 def on_new():
-    lib.set_context_setting()
+    lib.set_context_settings()
 
 
 def on_save():

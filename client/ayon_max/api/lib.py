@@ -12,6 +12,7 @@ from ayon_core.pipeline import (
     get_current_folder_path,
     get_current_task_name,
     colorspace,
+    registered_host,
     AYON_INSTANCE_ID,
     AVALON_INSTANCE_ID,
 )
@@ -20,6 +21,7 @@ from ayon_core.settings import get_project_settings
 from ayon_core.pipeline.context_tools import (
     get_current_task_entity
 )
+from ayon_core.pipeline.create import CreateContext
 from ayon_core.style import load_stylesheet
 
 
@@ -403,15 +405,21 @@ def validate_unit_scale(project_settings=None):
     dialog.show()
 
 
-def set_unit_scale(project_settings=None):
+def set_unit_scale(project_settings=None, scene_units=False):
     """Function to set unit scale in Metric
+    Args:
+        project_settings (dict, optional): project settings.
+        scene_units (bool, optional): whether to set scene units.
     """
     if project_settings is None:
         project_name = get_current_project_name()
         project_settings = get_project_settings(project_name).get("max")
-    scene_scale = project_settings["unit_scale_settings"]["scene_unit_scale"]
-    rt.units.DisplayType = rt.Name("Metric")
-    rt.units.MetricType = rt.Name(scene_scale)
+    scale_settings = project_settings["unit_scale_settings"]
+    scene_scale_enabled = scale_settings.get("enabled", False)
+    if scene_scale_enabled or scene_units:
+        scene_scale = scale_settings["scene_unit_scale"]
+        rt.units.DisplayType = rt.Name("Metric")
+        rt.units.MetricType = rt.Name(scene_scale)
 
 
 def convert_unit_scale():
@@ -431,7 +439,10 @@ def convert_unit_scale():
     return unit_scale_dict[current_unit_scale]
 
 
-def set_context_setting():
+def set_context_settings(resolution=True,
+                         frame_range=True,
+                         scene_units=False,
+                         colorspace=True):
     """Apply the project settings from the project definition
 
     Settings can be overwritten by an folder if the folder.attrib contains
@@ -444,10 +455,14 @@ def set_context_setting():
     Returns:
         None
     """
-    reset_scene_resolution()
-    reset_frame_range()
-    validate_unit_scale()
-    reset_colorspace()
+    if resolution:
+        reset_scene_resolution()
+    if frame_range:
+        reset_frame_range()
+    if scene_units:
+        set_unit_scale(scene_units=scene_units)
+    if colorspace:
+        reset_colorspace()
 
 
 def get_max_version():
@@ -846,3 +861,51 @@ def get_ayon_data(container_modifier):
         return container_modifier.AYONData
     else:
         return container_modifier.openPypeData
+
+
+def update_content_on_context_change():
+    """
+    This will update scene content to match new folder on context change
+    """
+
+    host = registered_host()
+    create_context = CreateContext(host, discover_publish_plugins=False)
+    task_entity = create_context.get_current_task_entity()
+
+    instance_values = {
+        "folderPath": create_context.get_current_folder_path(),
+        "task": task_entity["name"],
+    }
+    creator_attribute_values = {
+        "frameStart": float(task_entity["attrib"]["frameStart"]),
+        "frameEnd": float(task_entity["attrib"]["frameEnd"]),
+        "handleStart": float(task_entity["attrib"]["handleStart"]),
+        "handleEnd": float(task_entity["attrib"]["handleEnd"]),
+    }
+
+    has_changes = False
+    for instance in create_context.instances:
+        for key, value in instance_values.items():
+            if key not in instance or instance[key] == value:
+                continue
+
+            # Update instance value
+            print(f"Updating {instance.product_name} {key} to: {value}")
+            instance[key] = value
+            has_changes = True
+
+        creator_attributes = instance.creator_attributes
+        for key, value in creator_attribute_values.items():
+            if (
+                    key not in creator_attributes
+                    or creator_attributes[key] == value
+            ):
+                continue
+
+            # Update instance creator attribute value
+            print(f"Updating {instance.product_name} {key} to: {value}")
+            creator_attributes[key] = value
+            has_changes = True
+
+    if has_changes:
+        create_context.save_changes()
