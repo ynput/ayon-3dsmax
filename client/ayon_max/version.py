@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 """Package declaring AYON addon 'max' version."""
-__version__ = "0.2.17+dev"
+__version__ = "0.3.0"
