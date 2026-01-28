@@ -12,7 +12,11 @@ from ayon_max.api.lib_rendersettings import (
     RenderSettings,
     is_supported_renderer
 )
-from ayon_max.api.lib import get_default_render_folder
+from ayon_max.api.lib import (
+    get_default_render_folder,
+    get_current_renderer,
+    get_multipass_setting,
+)
 
 
 class ValidateRenderPasses(OptionalPyblishPluginMixin,
@@ -94,6 +98,7 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
         invalid_image_format = cls.get_invalid_image_format(
             instance, ext.lstrip("."))
         invalid.extend(invalid_image_format)
+
         if is_supported_renderer(renderer):
             render_elem = rt.maxOps.GetCurRenderElementMgr()
             render_elem_num = render_elem.NumRenderElements()
@@ -118,10 +123,9 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
                 "Renderpass validation does not support Arnold yet,"
                 " validation skipped...")
         elif renderer.startswith("V-Ray"):
-            cls.log.debug(
-                "Renderpass validation does not support V-Ray."
-                " As V-Ray Frame Buffer takes care of this."
-            )
+            invalid_settings = cls.get_invalid_vray_settings(
+                instance, renderer, ext, project_settings)
+            invalid.extend(invalid_settings)
         else:
             cls.log.debug(
                 "Skipping render element validation "
@@ -188,9 +192,87 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
         return invalid
 
     @classmethod
+    def get_invalid_vray_settings(cls, instance, renderer, extension, setting):
+        """Function to get invalid V-Ray filenames from render outputs.
+
+        Args:
+            instance (pyblish.api.Instance): instance
+        Returns:
+            list: invalid filenames
+        """
+        invalid = []
+
+        renderer_class = get_current_renderer()
+        if "GPU" in renderer:
+            vr_settings = renderer_class.V_Ray_settings
+        else:
+            vr_settings = renderer_class
+
+        multipass_enabled = get_multipass_setting(renderer, setting)
+        if multipass_enabled != vr_settings.output_splitgbuffer:
+            invalid.append((
+                "Invalid V-Ray multipass setting",
+                f"Expected: {multipass_enabled}, "
+                f"Found: {vr_settings.output_splitgbuffer}"
+            ))
+        if extension == "exr":
+            vr_output_filename = vr_settings.output_rawfilename
+            vr_output_path = Path(vr_output_filename)
+            vr_output_fname = vr_output_path.name
+            vr_name, ext = os.path.splitext(vr_output_fname)
+            invalid_filenames = cls.get_invalid_filenames(
+                instance, vr_name, ext)
+            invalid.extend(invalid_filenames)
+
+        if multipass_enabled:
+            vr_split_filename = vr_settings.output_splitfilename
+            vr_split_path = Path(vr_split_filename)
+            vr_split_fname = vr_split_path.name
+            vr_split_name, ext = os.path.splitext(vr_split_fname)
+            invalid_filenames = cls.get_invalid_filenames(
+                instance, vr_split_name, ext)
+            invalid.extend(invalid_filenames)
+        else:
+            cls.log.debug("V-Ray multipass is not enabled, "
+                          "skipping split gbuffer validation.")
+
+        return invalid
+
+    @classmethod
     def repair(cls, instance):
         container = instance.data.get("instance_node")
         # TODO: need to rename the function of render_output
         RenderSettings().render_output(container)
         cls.log.debug("Finished repairing the render output "
                       "folder and filenames.")
+
+
+class ValidateRenderPreset(ValidateRenderPasses):
+    """Validates Render Preset settings against project template.
+
+    This validator compares the current render preset settings in the
+    3dsMax scene with the render preset template defined in project settings.
+    It ensures that render presets conform to project standards.
+    """
+    families = ["renderpreset"]
+    label = "Validate Render Preset"
+    optional = True
+
+    settings_category = "max"
+
+    def process(self, instance):
+        if not self.is_active(instance.data):
+            return
+        invalid = self.get_invalid(instance)
+        if invalid:
+            bullet_point_invalid_statement = "\n".join(
+                f"- {err_type}: {filepath}" for err_type, filepath
+                in invalid
+            )
+            report = (
+                "Invalid render preset settings found.\n\n"
+                f"{bullet_point_invalid_statement}\n\n"
+                "You can use repair action to fix the invalid filepath."
+            )
+            raise PublishValidationError(
+                report, title="Invalid Render Settings for Render Preset")
