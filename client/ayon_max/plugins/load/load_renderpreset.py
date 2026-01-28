@@ -1,5 +1,3 @@
-import os
-
 from ayon_core.pipeline import load
 from ayon_core.pipeline.load import LoadError
 from ayon_max.api.pipeline import containerise, remove_container_data
