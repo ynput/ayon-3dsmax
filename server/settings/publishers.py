@@ -78,12 +78,6 @@ class BasicValidateModel(BaseSettingsModel):
     active: bool = SettingsField(title="Active")
 
 
-class ValidateRenderPresetModel(BaseSettingsModel):
-    enabled: bool = SettingsField(title="Enabled")
-    optional: bool = SettingsField(title="Optional")
-    active: bool = SettingsField(title="Active")
-
-
 class PublishersModel(BaseSettingsModel):
     ValidateInstanceInContext: BasicValidateModel = SettingsField(
         default_factory=BasicValidateModel,
@@ -129,10 +123,6 @@ class PublishersModel(BaseSettingsModel):
     ValidateRenderPasses: BasicValidateModel = SettingsField(
         default_factory=BasicValidateModel,
         title="Validate Render Passes"
-    )
-    ValidateRenderPreset: ValidateRenderPresetModel = SettingsField(
-        default_factory=ValidateRenderPresetModel,
-        title="Validate Render Preset"
     )
     ExtractModelObj: BasicValidateModel = SettingsField(
         default_factory=BasicValidateModel,
@@ -212,11 +202,6 @@ DEFAULT_PUBLISH_SETTINGS = {
         "enabled": True,
         "optional": False,
         "active": True
-    },
-    "ValidateRenderPreset": {
-        "enabled": False,
-        "optional": True,
-        "active": False
     },
     "ExtractModelObj": {
         "enabled": True,
