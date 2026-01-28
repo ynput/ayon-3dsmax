@@ -4,7 +4,6 @@ from ayon_core.pipeline import publish
 from pymxs import runtime as rt
 
 
-
 class ExtractRenderPreset(publish.Extractor):
     """Extract Render Preset"""
 
@@ -31,12 +30,10 @@ class ExtractRenderPreset(publish.Extractor):
             "stagingDir": staging_dir,
         }
 
-        self.log.debug(f"{representation}")
-
         if "representations" not in instance.data:
             instance.data["representations"] = []
 
         instance.data["representations"].append(representation)
-        self.log.info(
+        self.log.debug(
             "Extracted instance '%s' to: %s" % (instance.name, filepath)
         )

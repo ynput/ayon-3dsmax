@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-"""Creator plugin for creating camera."""
+"""Creator plugin for creating render preset."""
 from ayon_max.api import plugin
 
 

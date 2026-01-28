@@ -477,6 +477,9 @@ def remove_container_data(container_node: str):
     Args:
         container_node (str): container node
     """
+    if not rt.isProperty(container_node, "modifiers"):
+        return
+
     container_node_modifier = container_node.modifiers[0]
     if container_node_modifier.name in {"OP Data", "AYON Data"}:
         ayon_data = lib.get_ayon_data(container_node_modifier)

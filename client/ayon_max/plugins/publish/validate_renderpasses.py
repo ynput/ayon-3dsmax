@@ -25,7 +25,7 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
     """
 
     order = ValidateContentsOrder
-    families = ["maxrender"]
+    families = ["maxrender", "renderpreset"]
     hosts = ["max"]
     label = "Validate Render Passes"
     actions = [RepairAction]
@@ -33,6 +33,8 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
     settings_category = "max"
 
     def process(self, instance):
+        if not self.is_active(instance.data):
+            return
         invalid = self.get_invalid(instance)
         if invalid:
             bullet_point_invalid_statement = "\n".join(
@@ -245,34 +247,3 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
         RenderSettings().render_output(container)
         cls.log.debug("Finished repairing the render output "
                       "folder and filenames.")
-
-
-class ValidateRenderPreset(ValidateRenderPasses):
-    """Validates Render Preset settings against project template.
-
-    This validator compares the current render preset settings in the
-    3dsMax scene with the render preset template defined in project settings.
-    It ensures that render presets conform to project standards.
-    """
-    families = ["renderpreset"]
-    label = "Validate Render Preset"
-    optional = True
-
-    settings_category = "max"
-
-    def process(self, instance):
-        if not self.is_active(instance.data):
-            return
-        invalid = self.get_invalid(instance)
-        if invalid:
-            bullet_point_invalid_statement = "\n".join(
-                f"- {err_type}: {filepath}" for err_type, filepath
-                in invalid
-            )
-            report = (
-                "Invalid render preset settings found.\n\n"
-                f"{bullet_point_invalid_statement}\n\n"
-                "You can use repair action to fix the invalid filepath."
-            )
-            raise PublishValidationError(
-                report, title="Invalid Render Settings for Render Preset")
