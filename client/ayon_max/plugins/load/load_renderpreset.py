@@ -1,3 +1,4 @@
+import os
 from ayon_core.pipeline import load
 from ayon_core.pipeline.load import LoadError
 from ayon_max.api.pipeline import containerise, remove_container_data
@@ -23,7 +24,9 @@ class RenderPresetLoader(load.LoaderPlugin):
                 "Render Scene Dialog is not open. "
                 "Make sure it is open before loading render presets."
             )
-        filepath = self.filepath_from_context(context)
+        # adding os.path.normpath to fix
+        # special FileName typeError in 3dsMax
+        filepath = os.path.normpath(self.filepath_from_context(context))
         rt.renderpresets.LoadAll(0, filepath)
         return containerise(
             name, [], context,
@@ -36,7 +39,9 @@ class RenderPresetLoader(load.LoaderPlugin):
                 "Make sure it is open before loading render presets."
             )
         repre_entity = context["representation"]
-        path = self.filepath_from_context(context)
+        # adding os.path.normpath to fix
+        # special FileName typeError in 3dsMax
+        path = os.path.normpath(self.filepath_from_context(context))
         rt.renderpresets.LoadAll(0, path)
         lib.imprint(container["instance_node"], {
             "representation": repre_entity["id"],

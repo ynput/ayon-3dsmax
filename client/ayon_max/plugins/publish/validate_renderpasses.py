@@ -91,7 +91,11 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
             invalid.append(("Invalid render output folder",
                             os.path.dirname(rt.rendOutputFilename)))
 
-        renderer = instance.data["renderer"]
+        renderer = instance.data.get("renderer")
+        if not renderer:
+            renderer_class = get_current_renderer()
+            renderer = str(renderer_class).split(":")[0]
+
         beauty_fname = render_output.name
         beauty_name, ext = os.path.splitext(beauty_fname)
         invalid_filenames = cls.get_invalid_filenames(
