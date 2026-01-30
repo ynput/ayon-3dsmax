@@ -27,6 +27,12 @@ class RenderPresetLoader(load.LoaderPlugin):
         # adding os.path.normpath to fix
         # special FileName typeError in 3dsMax
         filepath = os.path.normpath(self.filepath_from_context(context))
+        folder_name = context["folder"]["name"]
+        namespace = lib.unique_namespace(
+            name + "_",
+            prefix=f"{folder_name}_",
+            suffix="_",
+        )
         rt.renderpresets.LoadAll(0, filepath)
         return containerise(
             name, [], context,
@@ -38,13 +44,12 @@ class RenderPresetLoader(load.LoaderPlugin):
                 "Render Scene Dialog is not open. "
                 "Make sure it is open before loading render presets."
             )
-        repre_entity = context["representation"]
         # adding os.path.normpath to fix
         # special FileName typeError in 3dsMax
         path = os.path.normpath(self.filepath_from_context(context))
         rt.renderpresets.LoadAll(0, path)
         lib.imprint(container["instance_node"], {
-            "representation": repre_entity["id"],
+            "representation": context["representation"],
             "project_name": context["project"]["name"]
         })
 
@@ -52,4 +57,5 @@ class RenderPresetLoader(load.LoaderPlugin):
         self.update(container, context)
 
     def remove(self, container):
-        remove_container_data(container)
+        node = rt.GetNodeByName(container["instance_node"])
+        remove_container_data(node)
