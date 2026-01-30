@@ -18,6 +18,7 @@ class PointCloudLoader(load.LoaderPlugin):
     """Point Cloud Loader."""
 
     product_types = {"*"}
+    label = "Load Point Cloud"
     representations = {"prt"}
     order = -8
     icon = "code-fork"

@@ -251,16 +251,18 @@ def parse_container(container):
 
 def ls():
     """Get all AYON containers."""
-    objs = rt.objects
-    containers = [
-        obj for obj in objs
+    containers = get_containers()
+    for container in sorted(containers, key=attrgetter("name")):
+        yield parse_container(container)
+
+
+def get_containers():
+    return [
+        obj for obj in rt.objects
         if rt.getUserProp(obj, "id") in {
             AYON_CONTAINER_ID, AVALON_CONTAINER_ID
         }
     ]
-
-    for container in sorted(containers, key=attrgetter("name")):
-        yield parse_container(container)
 
 
 def on_init():
