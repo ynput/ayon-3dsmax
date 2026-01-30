@@ -251,16 +251,18 @@ def parse_container(container):
 
 def ls():
     """Get all AYON containers."""
-    objs = rt.objects
-    containers = [
-        obj for obj in objs
+    containers = get_containers()
+    for container in sorted(containers, key=attrgetter("name")):
+        yield parse_container(container)
+
+
+def get_containers():
+    return [
+        obj for obj in rt.objects
         if rt.getUserProp(obj, "id") in {
             AYON_CONTAINER_ID, AVALON_CONTAINER_ID
         }
     ]
-
-    for container in sorted(containers, key=attrgetter("name")):
-        yield parse_container(container)
 
 
 def on_init():
@@ -477,6 +479,11 @@ def remove_container_data(container_node: str):
     Args:
         container_node (str): container node
     """
+    if not rt.isProperty(container_node, "modifiers"):
+        rt.Delete(container_node)
+        rt.redrawViews()
+        return
+
     container_node_modifier = container_node.modifiers[0]
     if container_node_modifier.name in {"OP Data", "AYON Data"}:
         ayon_data = lib.get_ayon_data(container_node_modifier)

@@ -23,7 +23,7 @@ class ModelUSDLoader(load.LoaderPlugin):
     """Loading model with the USD loader."""
 
     product_types = {"model"}
-    label = "Load Model(USD)"
+    label = "Load Model (USD)"
     representations = {"usda"}
     order = -10
     icon = "code-fork"
