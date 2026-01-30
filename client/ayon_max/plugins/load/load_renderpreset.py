@@ -40,7 +40,7 @@ class RenderPresetLoader(load.LoaderPlugin):
         path = os.path.normpath(self.filepath_from_context(context))
         rt.renderpresets.LoadAll(0, path)
         lib.imprint(container["instance_node"], {
-            "representation": context["representation"],
+            "representation": context["representation"]["id"],
             "project_name": context["project"]["name"]
         })
 
