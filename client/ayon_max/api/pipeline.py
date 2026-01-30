@@ -481,6 +481,7 @@ def remove_container_data(container_node: str):
     """
     if not rt.isProperty(container_node, "modifiers"):
         rt.Delete(container_node)
+        rt.redrawViews()
         return
 
     container_node_modifier = container_node.modifiers[0]

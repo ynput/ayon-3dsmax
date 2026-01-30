@@ -19,11 +19,7 @@ class RenderPresetLoader(load.LoaderPlugin):
     color = "white"
 
     def load(self, context, name=None, namespace=None, data=None):
-        if not rt.renderSceneDialog.isOpen():
-            raise LoadError(
-                "Render Scene Dialog is not open. "
-                "Make sure it is open before loading render presets."
-            )
+        rt.renderSceneDialog.open()
         # adding os.path.normpath to fix
         # special FileName typeError in 3dsMax
         filepath = os.path.normpath(self.filepath_from_context(context))
@@ -39,11 +35,7 @@ class RenderPresetLoader(load.LoaderPlugin):
             namespace, loader=self.__class__.__name__)
 
     def update(self, container, context):
-        if not rt.renderSceneDialog.isOpen():
-            raise LoadError(
-                "Render Scene Dialog is not open. "
-                "Make sure it is open before loading render presets."
-            )
+        rt.renderSceneDialog.open()
         # adding os.path.normpath to fix
         # special FileName typeError in 3dsMax
         path = os.path.normpath(self.filepath_from_context(context))
