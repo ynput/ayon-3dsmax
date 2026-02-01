@@ -34,7 +34,6 @@ class RenderPresetLoader(load.LoaderPlugin):
             namespace, loader=self.__class__.__name__)
 
     def update(self, container, context):
-        rt.renderSceneDialog.open()
         # adding os.path.normpath to fix
         # special FileName typeError in 3dsMax
         path = os.path.normpath(self.filepath_from_context(context))
