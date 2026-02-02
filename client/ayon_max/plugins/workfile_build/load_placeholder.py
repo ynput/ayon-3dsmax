@@ -94,28 +94,34 @@ class MaxPlaceholderLoadPlugin(MaxPlaceholderPlugin, PlaceholderLoadMixin):
         if not container:
             return
 
-        loaded_containers: list[rt.objects] = get_containers()
+        loaded_containers: list[rt.objects] = [
+            target_container
+            for target_container in get_containers()
+            if container == target_container.name
+        ]
 
-        parents = rt.getNodeByName(placeholder.scene_identifier) or []
-        if parents:
+        placeholder_node = rt.getNodeByName(placeholder.scene_identifier) or []
+        if placeholder_node:
             loaded_containers_to_be_stored = []
             loaded_containers_name = []
             modifier = rt.EmptyModifier()
-            rt.addModifier(parents, modifier)
+            rt.addModifier(placeholder_node, modifier)
             attrs = rt.Execute(MS_CUSTOM_ATTRIB)
-            parents.modifiers[0].name = "AYON Placeholder Data"
-            rt.custAttributes.add(parents.modifiers[0], attrs)
+            placeholder_node.modifiers[0].name = "AYON Placeholder Data"
+            rt.custAttributes.add(placeholder_node.modifiers[0], attrs)
             # add the node reference of the loaded containers into
             # the placeholder container
             # all_handles attributes would store the node reference
             # sel_list attribute would store the name of the nodes
+            # By this, we can keep a reference to the loaded containers,
+            # as needed for update template from workfile.
             for i in loaded_containers:
                 node_ref = rt.NodeTransformMonitor(node=i)
                 loaded_containers_to_be_stored.append(node_ref)
                 loaded_containers_name.append(str(i))
             rt.setProperty(
-                parents.modifiers[0].AYONPlaceholderData,
+                placeholder_node.modifiers[0].AYONPlaceholderData,
                 "all_handles", loaded_containers_to_be_stored)
             rt.setProperty(
-                parents.modifiers[0].AYONPlaceholderData,
+                placeholder_node.modifiers[0].AYONPlaceholderData,
                 "sel_list", loaded_containers_name)
