@@ -67,6 +67,8 @@ class MaxPlaceholderLoadPlugin(MaxPlaceholderPlugin, PlaceholderLoadMixin):
 
     def populate_placeholder(self, placeholder):
         self.populate_load_placeholder(placeholder)
+        if not placeholder.data.get("keep_placeholder", True):
+            self.delete_placeholder(placeholder)
 
     def repopulate_placeholder(self, placeholder):
         repre_ids = self._get_loaded_repre_ids()
