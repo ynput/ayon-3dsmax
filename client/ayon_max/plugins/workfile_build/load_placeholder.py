@@ -9,6 +9,7 @@ from ayon_core.pipeline.workfile.workfile_template_builder import (
 
 from ayon_max.api.pipeline import get_containers
 from ayon_max.api.lib import read
+from ayon_max.api.plugin import MS_CUSTOM_ATTRIB
 from ayon_max.api.workfile_template_builder import (
     MaxPlaceholderPlugin,
 )
@@ -49,6 +50,7 @@ class MaxPlaceholderLoadPlugin(MaxPlaceholderPlugin, PlaceholderLoadMixin):
         if loaded_representation_ids is None:
             try:
                 containers = get_containers()
+
             except ValueError:
                 containers = []
 
@@ -86,21 +88,35 @@ class MaxPlaceholderLoadPlugin(MaxPlaceholderPlugin, PlaceholderLoadMixin):
         ie : Set loaded content as placeholder's sibling
 
         Args:
-            container (str): Placeholder loaded containers
+            container (str): Placeholder loaded container
         """
 
         if not container:
             return
 
-        containers: list[str] = get_containers()
+        loaded_containers: list[str] = get_containers()
 
         container_nodes: list[str] = []
-        for container in containers:
-            container_node = rt.getNodeByName(container)
+        for loaded_container in loaded_containers:
+            container_node = rt.getNodeByName(loaded_container)
             container_nodes.append(container_node)
 
-        # Add the loaded roots to the holding sets if they exist
         parents = rt.getNodeByName(placeholder.scene_identifier) or []
         if parents:
-            for container_node in container_nodes:
-                parents.children = container_node
+            loaded_containers_to_be_stored = []
+            loaded_containers_name = []
+            modifier = rt.EmptyModifier()
+            rt.addModifier(parents, modifier)
+            attrs = rt.Execute(MS_CUSTOM_ATTRIB)
+            parents.modifiers[0].name = "AYON Placeholder Data"
+            rt.custAttributes.add(parents.modifiers[0], attrs)
+            for i in loaded_containers:
+                node_ref = rt.NodeTransformMonitor(node=i)
+                loaded_containers_to_be_stored.append(node_ref)
+                loaded_containers_name.append(str(i))
+            rt.setProperty(
+                parents.modifiers[0].AYONPlaceholderData,
+                "all_handles", loaded_containers_to_be_stored)
+            rt.setProperty(
+                parents.modifiers[0].AYONPlaceholderData,
+                "sel_list", loaded_containers_name)
