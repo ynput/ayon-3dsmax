@@ -18,7 +18,6 @@ class RenderPresetLoader(load.LoaderPlugin):
     color = "white"
 
     def load(self, context, name=None, namespace=None, data=None):
-        rt.renderSceneDialog.open()
         # adding os.path.normpath to fix
         # special FileName typeError in 3dsMax
         filepath = os.path.normpath(self.filepath_from_context(context))
