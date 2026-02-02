@@ -100,7 +100,7 @@ class MaxPlaceholderLoadPlugin(MaxPlaceholderPlugin, PlaceholderLoadMixin):
             if container == target_container.name
         ]
 
-        placeholder_node = rt.getNodeByName(placeholder.scene_identifier) or []
+        placeholder_node = rt.getNodeByName(placeholder.scene_identifier)
         if not placeholder_node:
             return
 
