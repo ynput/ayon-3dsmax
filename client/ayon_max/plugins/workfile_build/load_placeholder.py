@@ -101,27 +101,29 @@ class MaxPlaceholderLoadPlugin(MaxPlaceholderPlugin, PlaceholderLoadMixin):
         ]
 
         placeholder_node = rt.getNodeByName(placeholder.scene_identifier) or []
-        if placeholder_node:
-            loaded_containers_to_be_stored = []
-            loaded_containers_name = []
-            modifier = rt.EmptyModifier()
-            rt.addModifier(placeholder_node, modifier)
-            attrs = rt.Execute(MS_CUSTOM_ATTRIB)
-            placeholder_node.modifiers[0].name = "AYON Placeholder Data"
-            rt.custAttributes.add(placeholder_node.modifiers[0], attrs)
-            # add the node reference of the loaded containers into
-            # the placeholder container
-            # all_handles attributes would store the node reference
-            # sel_list attribute would store the name of the nodes
-            # By this, we can keep a reference to the loaded containers,
-            # as needed for update template from workfile.
-            for i in loaded_containers:
-                node_ref = rt.NodeTransformMonitor(node=i)
-                loaded_containers_to_be_stored.append(node_ref)
-                loaded_containers_name.append(str(i))
-            rt.setProperty(
-                placeholder_node.modifiers[0].AYONPlaceholderData,
-                "all_handles", loaded_containers_to_be_stored)
-            rt.setProperty(
-                placeholder_node.modifiers[0].AYONPlaceholderData,
-                "sel_list", loaded_containers_name)
+        if not placeholder_node:
+            return
+
+        loaded_containers_to_be_stored = []
+        loaded_containers_name = []
+        modifier = rt.EmptyModifier()
+        rt.addModifier(placeholder_node, modifier)
+        attrs = rt.Execute(MS_CUSTOM_ATTRIB)
+        placeholder_node.modifiers[0].name = "AYON Placeholder Data"
+        rt.custAttributes.add(placeholder_node.modifiers[0], attrs)
+        # add the node reference of the loaded containers into
+        # the placeholder container
+        # all_handles attributes would store the node reference
+        # sel_list attribute would store the name of the nodes
+        # By this, we can keep a reference to the loaded containers,
+        # as needed for update template from workfile.
+        for i in loaded_containers:
+            node_ref = rt.NodeTransformMonitor(node=i)
+            loaded_containers_to_be_stored.append(node_ref)
+            loaded_containers_name.append(str(i))
+        rt.setProperty(
+            placeholder_node.modifiers[0].AYONPlaceholderData,
+            "all_handles", loaded_containers_to_be_stored)
+        rt.setProperty(
+            placeholder_node.modifiers[0].AYONPlaceholderData,
+            "sel_list", loaded_containers_name)
