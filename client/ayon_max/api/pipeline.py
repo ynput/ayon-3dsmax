@@ -5,6 +5,7 @@ import logging
 from operator import attrgetter
 
 import json
+from typing import Generator, List
 
 from ayon_core.host import HostBase, IWorkfileHost, ILoadHost, IPublishHost
 
@@ -191,6 +192,7 @@ attributes "AYONContext"
             self.create_context_node()
 
         rt.rootScene.AYONContext.context = json.dumps(data)
+
     def get_context_data(self):
         try:
             context = rt.rootScene.AYONContext.context
@@ -249,14 +251,19 @@ def parse_container(container):
     return data
 
 
-def ls():
+def ls() -> Generator[dict, None, None]:
     """Get all AYON containers."""
     containers = get_containers()
     for container in sorted(containers, key=attrgetter("name")):
         yield parse_container(container)
 
 
-def get_containers():
+def get_containers() -> List:
+    """Get all container nodes in the scene.
+
+    Returns:
+        list : list of container nodes in the scene
+    """
     return [
         obj for obj in rt.objects
         if rt.getUserProp(obj, "id") in {
