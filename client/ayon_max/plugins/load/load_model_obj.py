@@ -20,6 +20,7 @@ class ObjLoader(load.LoaderPlugin):
     """Obj Loader."""
 
     product_types = {"model"}
+    label = "Load Model (Obj)"
     representations = {"obj"}
     order = -9
     icon = "code-fork"

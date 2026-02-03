@@ -18,6 +18,7 @@ class FbxModelLoader(load.LoaderPlugin):
     """Fbx Model Loader."""
 
     product_types = {"model"}
+    label = "Load Model (Fbx)"
     representations = {"fbx"}
     order = -9
     icon = "code-fork"
