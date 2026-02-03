@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """Library of functions useful for 3dsmax pipeline."""
 import os
-import sys
-import platform
 import contextlib
 import logging
 import json
@@ -264,17 +262,6 @@ def get_multipass_setting(renderer, project_setting=None):
         )
 
     return False
-
-
-def get_max_batch_executable() -> str:
-    """Get the path to maxbatch executable"""
-    maxbatch_exe = os.path.join(
-        os.path.dirname(sys.executable), "3dsmaxbatch")
-    maxbatch_exe = maxbatch_exe.replace("\\", "/")
-    if platform.system().lower() == "windows":
-        maxbatch_exe += ".exe"
-        maxbatch_exe = os.path.normpath(maxbatch_exe)
-    return maxbatch_exe
 
 
 def set_scene_resolution(width: int, height: int):
