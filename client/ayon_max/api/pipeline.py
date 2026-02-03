@@ -457,7 +457,7 @@ def update_custom_attribute_data(container: str, selections: list):
         selections (list): nodes to be added into
         group in custom attributes
     """
-    if container.modifiers[0].name not in {"OP Data", "AYON Data"}:
+    if container.modifiers[0].name in {"OP Data", "AYON Data"}:
         rt.deleteModifier(container, container.modifiers[0])
     import_custom_attribute_data(container, selections)
 
@@ -494,12 +494,15 @@ def remove_container_data(container_node: str):
     container_node_modifier = container_node.modifiers[0]
     if container_node_modifier.name in {"OP Data", "AYON Data"}:
         ayon_data = lib.get_ayon_data(container_node_modifier)
-        all_set_members_names = [member.node for member in ayon_data.all_handles]
+        all_set_members_names = [
+            member.node for member in ayon_data.all_handles]
         # clean up the children of alembic dummy objects
         for current_set_member in all_set_members_names:
-            shape_list = [members for members in current_set_member.Children
-                          if rt.ClassOf(members) == rt.AlembicObject
-                          or rt.isValidNode(members)]
+            shape_list = [
+                members for members in current_set_member
+                if rt.ClassOf(members) == rt.AlembicObject
+                or rt.isValidNode(members)
+            ]
             if shape_list:  # noqa
                 rt.Delete(shape_list)
             rt.Delete(current_set_member)
