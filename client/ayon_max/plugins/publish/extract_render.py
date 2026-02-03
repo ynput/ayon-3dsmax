@@ -3,7 +3,6 @@ from ayon_core.pipeline import publish
 
 try:
     from pymxs import runtime as rt
-
 except ImportError:
     rt = None
 
