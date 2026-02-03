@@ -260,6 +260,17 @@ class RenderSettings(object):
             render_elem.SetRenderElementFileName(i, aov_name)
 
     def batch_render_layers_by_multi_camera(self, container, output_dir, cameras):
+        """Get the list of renderlayers for the multi-camera from batch render
+        manager.
+
+        Args:
+            container (str): container name
+            output_dir (str): output render directory
+            cameras (list): Cameras to create render layers for.
+
+        Returns:
+            list: List of output filenames for the render layers
+        """
         outputs = list()
         output = os.path.join(output_dir, container)
         img_fmt = self._project_settings["max"]["RenderSettings"]["image_format"]   # noqa
