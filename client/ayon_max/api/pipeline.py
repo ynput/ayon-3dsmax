@@ -495,7 +495,13 @@ def remove_container_data(container_node: str):
     if container_node_modifier.name in {"OP Data", "AYON Data"}:
         ayon_data = lib.get_ayon_data(container_node_modifier)
         all_set_members_names = [
-            member.node for member in ayon_data.all_handles]
+            member.node for member in ayon_data.all_handles
+        ]
+        if not all_set_members_names:
+            rt.deleteModifier(container_node, container_node.modifiers[0])
+            rt.Delete(container_node)
+            rt.redrawViews()
+            return
         # clean up the children of alembic dummy objects
         for current_set_member in all_set_members_names:
             shape_list = [
