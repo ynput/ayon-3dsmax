@@ -2,6 +2,7 @@
 """Collect Render"""
 import os
 import pyblish.api
+import ayon_api
 
 from pymxs import runtime as rt
 from ayon_core.pipeline.publish import KnownPublishError
@@ -108,10 +109,10 @@ class CollectRender(pyblish.api.InstancePlugin):
         farm_render: bool = (
             creator_attribute.get("render_target", "farm") == "farm"
         )
+        self._precollect_required_data(instance)
         # also need to get the render dir for conversion
         data = {
             "folderPath": instance.data["folderPath"],
-            "taskEntity": context.data["taskEntity"],
             "productName": str(instance.name),
             "publish": True,
             "original_workfile_pattern": render_dir.rsplit("\\")[-1],
@@ -137,3 +138,34 @@ class CollectRender(pyblish.api.InstancePlugin):
                     "renderers.current.separateAovFiles")})
 
         self.log.info("data: {0}".format(data))
+
+    def _precollect_required_data(self, instance):
+        """Ensure required data is present.
+
+        Some data may not exist yet in the instance at this point, so we need
+        to ensure it is there for certain function calls, like
+        `create_instances_for_aov` requiring `taskEntity` in instance data
+        if setting `use_legacy_product_names_for_renders` is disabled which is
+        usually collected at a later order by `CollectAnatomyInstanceData`.
+        """""
+
+        project_name: str = instance.context.data["projectName"]
+
+        # Add folderEntity
+        if "folderEntity" not in instance.data:
+            self.log.debug("Collecting folder entity for instance...")
+            instance.data["folderEntity"] = ayon_api.get_folder_by_path(
+                project_name=project_name,
+                folder_path=instance.data["folderPath"],
+            )
+        folder_entity = instance.data["folderEntity"]
+
+        # Add taskEntity
+        if "taskEntity" not in instance.data:
+            self.log.debug("Collecting task entity for instance...")
+            project_name: str = instance.context.data["projectName"]
+            instance.data["taskEntity"] = ayon_api.get_task_by_name(
+                project_name=project_name,
+                task_name=instance.data["task"],
+                folder_id=folder_entity["id"],
+            )
