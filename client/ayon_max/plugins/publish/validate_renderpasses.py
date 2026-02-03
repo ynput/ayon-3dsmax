@@ -161,6 +161,7 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
             cls.log.error("The renderpass filename should contain the instance name.")
             invalid.append(("Invalid instance name",
                             file_name))
+        # TODO: check on the renderpass if _camera has been included when the multi-camera options disabled.
         if renderpass is not None and render_filename is not None:
             renderpass_token = f"{renderpass}.{ext}"
             if not render_filename.endswith(renderpass_token):

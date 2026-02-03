@@ -259,8 +259,7 @@ class RenderSettings(object):
             aov_name = f"{directory}_{camera}_{renderpass}..{ext}"
             render_elem.SetRenderElementFileName(i, aov_name)
 
-    def batch_render_layer(self, container,
-                           output_dir, cameras):
+    def batch_render_layers_by_multi_camera(self, container, output_dir, cameras):
         outputs = list()
         output = os.path.join(output_dir, container)
         img_fmt = self._project_settings["max"]["RenderSettings"]["image_format"]   # noqa

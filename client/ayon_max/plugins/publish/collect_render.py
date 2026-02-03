@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Collect Render"""
 import os
+import re
 import pyblish.api
 
 from pymxs import runtime as rt
@@ -64,7 +65,7 @@ class CollectRender(pyblish.api.InstancePlugin):
             sel_cam = get_camera_from_node(cameras)
 
             container_name = instance.data.get("instance_node")
-            outputs = RenderSettings().batch_render_layer(
+            outputs = RenderSettings().batch_render_layers_by_multi_camera(
                 container_name, render_dir, sel_cam
             )
 
@@ -104,6 +105,10 @@ class CollectRender(pyblish.api.InstancePlugin):
         instance.data["publishJobState"] = "Suspended"
         instance.data["attachTo"] = []
         product_type = "maxrender"
+        creator_attribute = instance.data["creator_attributes"]
+        farm_render: bool = (
+            creator_attribute.get("render_target", "farm") == "farm"
+        )
         # also need to get the render dir for conversion
         data = {
             "folderPath": instance.data["folderPath"],
@@ -120,7 +125,7 @@ class CollectRender(pyblish.api.InstancePlugin):
             "plugin": "3dsmax",
             "frameStart": instance.data["frameStartHandle"],
             "frameEnd": instance.data["frameEndHandle"],
-            "farm": True
+            "farm": farm_render
         }
         instance.data.update(data)
         self.log.debug(instance.data)
