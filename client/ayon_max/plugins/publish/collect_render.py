@@ -104,7 +104,7 @@ class CollectRender(pyblish.api.InstancePlugin):
         instance.data["publishJobState"] = "Suspended"
         instance.data["attachTo"] = []
         product_type = "maxrender"
-        creator_attribute = instance.data["creator_attributes"]
+        creator_attribute = instance.data.get("creator_attributes", {})
         farm_render: bool = (
             creator_attribute.get("render_target", "farm") == "farm"
         )
