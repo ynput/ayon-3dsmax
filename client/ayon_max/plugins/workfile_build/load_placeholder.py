@@ -99,6 +99,10 @@ class MaxPlaceholderLoadPlugin(MaxPlaceholderPlugin, PlaceholderLoadMixin):
             for target_container in get_containers()
             if container == target_container.name
         ]
+        if not loaded_containers:
+            return
+
+        loaded_container = loaded_containers[0]
 
         placeholder_node = rt.getNodeByName(placeholder.scene_identifier)
         if not placeholder_node:
@@ -117,10 +121,9 @@ class MaxPlaceholderLoadPlugin(MaxPlaceholderPlugin, PlaceholderLoadMixin):
         # sel_list attribute would store the name of the nodes
         # By this, we can keep a reference to the loaded containers,
         # as needed for update template from workfile.
-        for i in loaded_containers:
-            node_ref = rt.NodeTransformMonitor(node=i)
-            loaded_containers_to_be_stored.append(node_ref)
-            loaded_containers_name.append(str(i))
+        node_ref = rt.NodeTransformMonitor(node=loaded_container)
+        loaded_containers_to_be_stored.append(node_ref)
+        loaded_containers_name.append(str(loaded_container.name))
         rt.setProperty(
             placeholder_node.modifiers[0].AYONPlaceholderData,
             "all_handles", loaded_containers_to_be_stored)
