@@ -45,9 +45,11 @@ class CollectRender(pyblish.api.InstancePlugin):
         renderer_class = get_current_renderer()
         renderer = str(renderer_class).split(":")[0]
         render_dir = os.path.dirname(rt.rendOutputFilename)
-
-        files_by_aov = RenderProducts().get_beauty(instance.name, renderer, filename)
-        aovs = RenderProducts().get_aovs(instance.name, filename)
+        original_workfile_pattern = render_dir.rsplit("\\")[-1]
+        files_by_aov = RenderProducts().get_beauty(
+            instance.name, renderer, original_workfile_pattern)
+        aovs = RenderProducts().get_aovs(
+            instance.name, original_workfile_pattern)
         files_by_aov.update(aovs)
 
         camera = rt.viewport.GetCamera()
@@ -82,6 +84,7 @@ class CollectRender(pyblish.api.InstancePlugin):
             instance.data["files"] = list()
             instance.data["expectedFiles"].append(files_by_aov)
             instance.data["files"].append(files_by_aov)
+        self.log.debug(f"Files by AOV: {files_by_aov}")
         img_format = RenderProducts().image_format()
         # OCIO config not support in
         # most of the 3dsmax renderers
@@ -115,7 +118,7 @@ class CollectRender(pyblish.api.InstancePlugin):
             "folderPath": instance.data["folderPath"],
             "productName": str(instance.name),
             "publish": True,
-            "original_workfile_pattern": render_dir.rsplit("\\")[-1],
+            "original_workfile_pattern": original_workfile_pattern,
             "maxversion": str(get_max_version()),
             "imageFormat": img_format,
             "productType": product_type,
