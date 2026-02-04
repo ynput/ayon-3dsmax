@@ -18,6 +18,7 @@ from ayon_max.api.lib import (
     get_current_renderer,
     get_default_render_folder,
     get_multipass_setting,
+    get_vray_settings,
 )
 
 
@@ -123,10 +124,7 @@ class RenderSettings(object):
             self.render_element_layer(output, width, height, img_fmt)
 
         elif renderer.startswith("V_Ray_"):
-            if "GPU" in renderer:
-                vr_settings = renderer_class.V_Ray_settings
-            else:
-                vr_settings = renderer_class
+            vr_settings = get_vray_settings(renderer)
             vr_settings.output_force32bit_3dsmax_vfb = True
             vr_settings.output_splitgbuffer = multipass_enabled
             if img_fmt == "exr":
