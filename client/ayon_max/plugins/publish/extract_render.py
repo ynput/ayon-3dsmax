@@ -1,7 +1,5 @@
 from __future__ import annotations
-import contextlib
 from ayon_core.pipeline import publish
-from ayon_max.api.lib import get_vray_settings
 
 try:
     from pymxs import runtime as rt
