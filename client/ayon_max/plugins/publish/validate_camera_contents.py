@@ -25,11 +25,15 @@ class ValidateCameraContent(pyblish.api.InstancePlugin):
     def get_invalid(self, instance):
         """Get invalid nodes that are not cameras or valid containers."""
         from pymxs import runtime as rt
-
+        invalid = []
+        if instance.data["productType"] == "render":
+            self.log.debug(
+                f"The instance {instance.name} is Render product type, "
+                "skipping camera content validation.")
+            return invalid
         container = instance.data["instance_node"]
         self.log.info(f"Validating camera content for {container}")
 
-        invalid = []
         members = instance.data["members"]
 
         for member in members:

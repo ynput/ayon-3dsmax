@@ -78,7 +78,7 @@ if render_elem_num > 0:
         render_elem.SetRenderElementFileName(i, aov_name)
 rt.saveMaxFile(new_filepath)
 if not farm:
-    for frame in range(rt.rendStart, rt.rendEnd + 1):
+    for frame in range(int(rt.rendStart), int(rt.rendEnd) + 1):
         rt.render(frame=frame, vfb=False)
         """).format(filename=instance.name,
                     new_filepath=new_filepath,

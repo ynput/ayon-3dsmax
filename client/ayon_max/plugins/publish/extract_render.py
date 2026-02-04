@@ -27,7 +27,7 @@ class ExtractLocalRender(publish.Extractor):
             )
             return
         if not instance.data.get("multiCamera"):
-            for frame in range(rt.rendStart, rt.rendEnd + 1):
+            for frame in range(int(rt.rendStart), int(rt.rendEnd) + 1):
                 rt.render(frame=frame, vfb=False)
                 self.log.debug("Local render extraction completed.")
         else:
