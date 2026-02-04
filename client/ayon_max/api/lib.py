@@ -210,9 +210,9 @@ def get_default_render_folder(project_setting=None):
     return os.path.join(folder, render_folder)
 
 
-def get_expected_render_folder(setting, original_workfile_pattern):
+def get_expected_render_folder(setting, filename):
     render_folder = get_default_render_folder(setting)
-    return os.path.join(render_folder, original_workfile_pattern)
+    return os.path.join(render_folder, filename)
 
 
 def set_render_frame_range(start_frame, end_frame):

@@ -27,10 +27,10 @@ class RenderProducts(object):
                 get_current_project_name()
             )
 
-    def get_beauty(self, container, renderer, original_workfile_pattern):
+    def get_beauty(self, container, renderer, filename):
         """Get beauty render output file path."""
         setting = self._project_settings
-        render_dir = get_expected_render_folder(setting, original_workfile_pattern)
+        render_dir = get_expected_render_folder(setting, filename)
         output_file = os.path.join(render_dir, container)
         img_fmt = setting["max"]["RenderSettings"]["image_format"]   # noqa
 
@@ -133,9 +133,9 @@ class RenderProducts(object):
 
         return aovs_frames
 
-    def get_aovs(self, container, original_workfile_pattern):
+    def get_aovs(self, container, filename):
         setting = self._project_settings
-        render_dir = get_expected_render_folder(setting, original_workfile_pattern)
+        render_dir = get_expected_render_folder(setting, filename)
         output_file = os.path.join(render_dir, container)
         img_fmt = setting["max"]["RenderSettings"]["image_format"]   # noqa
 
