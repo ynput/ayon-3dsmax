@@ -32,6 +32,6 @@ class ExtractLocalRender(publish.Extractor):
                 self.log.debug("Local render extraction completed.")
         else:
             self.log.debug(
-                "Local render extraction for multi-camera would be "
+                "Local render extraction for multi-camera is already "
                 "performed during multi-camera scene extraction."
             )
