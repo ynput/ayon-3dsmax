@@ -289,7 +289,7 @@ class RenderProducts(object):
             renderlayer = render_elem.GetRenderElement(i)
             if renderlayer.enabled:
                 renderpass = renderlayer.elementname
-                render_name.append(renderpass)
+                render_name.append(str(renderpass))
 
         return render_name
 
