@@ -16,6 +16,7 @@ from ayon_core.pipeline import load
 class TyCacheLoader(load.LoaderPlugin):
     """TyCache Loader."""
 
+    label = "Load TyCache"
     product_types = {"tycache"}
     representations = {"tyc"}
     order = -8
@@ -73,6 +74,7 @@ class TyCacheLoader(load.LoaderPlugin):
 class TySplineCacheLoader(TyCacheLoader):
     """TyCache(Spline) Loader."""
 
+    label = "Load TySpline Cache"
     product_types = {"tyspline"}
     representations = {"tyc"}
     order = -8

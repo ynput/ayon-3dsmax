@@ -191,12 +191,11 @@ class AYONMenu(object):
             self.build_workfile_template_callback)
         template_builder.addAction(build_workfile_template_action)
 
-        # TODO: it would be implemented after load placeholder fully implemented
-        # update_workfile_template_action = QtWidgets.QAction(
-        #     "Update Workfile from Template", template_builder)
-        # update_workfile_template_action.triggered.connect(
-        #     self.update_workfile_template_callback)
-        # template_builder.addAction(update_workfile_template_action)
+        update_workfile_template_action = QtWidgets.QAction(
+            "Update Workfile from Template", template_builder)
+        update_workfile_template_action.triggered.connect(
+            self.update_workfile_template_callback)
+        template_builder.addAction(update_workfile_template_action)
 
         template_builder.addSeparator()
         import_template_action = QtWidgets.QAction(

@@ -123,7 +123,7 @@ class MaxPlaceholderPlugin(PlaceholderPlugin):
                     "More than one node is selected. "
                     "Please select only one to define the parent."
                 )
-            parent_object = selection[0] if selection else None
+            parent_object = selection[0] if len(selection) > 0 else None
 
         placeholder_data["plugin_identifier"] = self.identifier
         placeholder_name = self._create_placeholder_name(placeholder_data)
@@ -192,7 +192,7 @@ class MaxPlaceholderPlugin(PlaceholderPlugin):
         if placeholder_set:
             placeholder_set = rt.Container(name=PLACEHOLDER_SET)
         placeholder_set.children = node
-        node.isHidden = True
+        placeholder_set.isHidden = True
 
     def delete_placeholder(self, placeholder):
         """Remove placeholder if building was successful
