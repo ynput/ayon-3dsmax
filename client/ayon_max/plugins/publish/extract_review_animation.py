@@ -18,7 +18,7 @@ class ExtractReviewAnimation(publish.Extractor):
     families = ["review"]
 
     def process(self, instance):
-        if instance.data.get("productBaseType") == "render":
+        if instance.data.get("productBaseType") == "maxrender":
             self.log.debug(
                 f"The instance {instance.name} is Render product type, "
                 "skipping review animation extraction.")
