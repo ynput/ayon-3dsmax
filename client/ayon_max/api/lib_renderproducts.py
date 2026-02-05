@@ -286,9 +286,9 @@ class RenderProducts(object):
             return render_name
         # get render elements from the renders
         for i in range(render_elem_num):
-            renderlayer_name = render_elem.GetRenderElement(i)
-            if renderlayer_name.enabled:
-                _, renderpass = str(renderlayer_name).split(":")
+            renderlayer = render_elem.GetRenderElement(i)
+            if renderlayer.enabled:
+                renderpass = renderlayer.elementname
                 render_name.append(renderpass)
 
         return render_name
