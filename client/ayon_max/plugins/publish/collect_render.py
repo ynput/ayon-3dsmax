@@ -62,7 +62,8 @@ class CollectRender(pyblish.api.InstancePlugin):
             if not cameras:
                 raise KnownPublishError("There should be at least"
                                         " one renderable camera in container")
-            sel_cam = get_camera_from_node(cameras)
+
+            sel_cam = [camera.name for camera in get_camera_from_node(cameras)]
 
             container_name = instance.data.get("instance_node")
             outputs = RenderSettings().batch_render_layers_by_multi_camera(
@@ -120,6 +121,7 @@ class CollectRender(pyblish.api.InstancePlugin):
             "maxversion": str(get_max_version()),
             "imageFormat": img_format,
             "productType": product_type,
+            "productBaseType": product_type,
             "family": product_type,
             "families": [product_type],
             "renderer": renderer,

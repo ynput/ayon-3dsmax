@@ -14,7 +14,9 @@ class CollectLocalRenderInstances(pyblish.api.InstancePlugin):
     label = "Collect local render instances"
 
     transfer_keys = {
-        "creator_attributes"
+        "creator_attributes",
+        "instance_node",
+        "members",
     }
 
     def process(self, instance):
@@ -34,9 +36,10 @@ class CollectLocalRenderInstances(pyblish.api.InstancePlugin):
             families_transfer=[],
             instance_transfer={},
         )
-        for key in self.transfer_keys:
-            if key in instance.data:
-                skeleton[key] = instance.data[key]
+        # Only transfer creator_attributes before deepcopy, since instance_node
+        # and members contain non-picklable 3ds Max objects
+        if "creator_attributes" in instance.data:
+            skeleton["creator_attributes"] = instance.data["creator_attributes"]
 
         aov_instances = create_instances_for_aov(
             instance=instance,
@@ -45,6 +48,12 @@ class CollectLocalRenderInstances(pyblish.api.InstancePlugin):
             skip_integration_repre_list=[],
             do_not_add_review=False,
         )
+
+        # Add non-picklable instance data to AOV instances after creation
+        for aov_instance in aov_instances:
+            for key in self.transfer_keys:
+                if key in instance.data:
+                    aov_instance[key] = instance.data[key]
 
         # Create instances for each AOV
         context = instance.context
