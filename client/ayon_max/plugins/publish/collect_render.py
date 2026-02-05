@@ -108,7 +108,6 @@ class CollectRender(pyblish.api.InstancePlugin):
         data = {
             "folderPath": instance.data["folderPath"],
             "productName": str(instance.name),
-            "publish": True,
             "original_workfile_pattern": render_dir.rsplit("\\")[-1],
             "maxversion": str(get_max_version()),
             "imageFormat": img_format,
