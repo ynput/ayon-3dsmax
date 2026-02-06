@@ -79,6 +79,8 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         )
 
     def install(self):
+        print("Installing AYON 3dsmax host integration...")
+        print("Registering AYON plug-ins...")
         pyblish.api.register_host("max")
 
         pyblish.api.register_plugin_path(PUBLISH_PATH)
@@ -86,9 +88,12 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         register_creator_plugin_path(CREATE_PATH)
         register_workfile_build_plugin_path(WORKFILE_BUILD_PATH)
 
+        print("AYON Set Project...")
         _set_project()
+        print("AYON Set Autobackup Dir...")
         _set_autobackup_dir()
 
+        print("AYON Registering event callbacks...")
         register_event_callback("init", on_init)
         register_event_callback("new", on_new)
         register_event_callback("workfile.open.before", on_before_open)
@@ -96,6 +101,7 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         register_event_callback("before.save", before_save)
         register_event_callback("taskChanged", self.on_task_changed)
         self._has_been_setup = True
+        print("AYON Registering 3dsmax callbacks...")
         self._register_callbacks()
 
     def workfile_has_unsaved_changes(self):

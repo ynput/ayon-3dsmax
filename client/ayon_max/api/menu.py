@@ -37,6 +37,7 @@ class AYONMenu(object):
     """
 
     def __init__(self):
+        print("Installing AYON menu...")
         super().__init__()
         self.main_widget = self.get_main_widget()
         self.menu = None
