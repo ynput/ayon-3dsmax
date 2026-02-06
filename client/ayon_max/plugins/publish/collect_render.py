@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """Collect Render"""
-from __future__ import annotations
 import os
 import pyblish.api
 
@@ -111,6 +110,7 @@ class CollectRender(pyblish.api.InstancePlugin):
             "productName": str(instance.name),
             "original_workfile_pattern": render_dir.rsplit("\\")[-1],
             "maxversion": str(get_max_version()),
+            "publish": True,
             "imageFormat": img_format,
             "productType": product_type,
             "family": product_type,
