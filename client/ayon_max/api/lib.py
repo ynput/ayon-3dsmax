@@ -483,8 +483,13 @@ def is_headless():
     If it returns True, it runs in 3dsbatch.exe
     If it returns False, it runs in 3dsmax.exe
     """
-    return rt.maxops.isInNonInteractiveMode()
-
+    return (
+        rt.maxops.isInNonInteractiveMode()
+        # It seems that Deadline render jobs even though headless do not
+        # register as 'non-interactive-mode' so we just assume any
+        # AYON_RENDER_JOB will be headless
+        or os.getenv("AYON_RENDER_JOB") == "1"
+    )
 
 def set_timeline(frameStart, frameEnd):
     """Set frame range for timeline editor in Max
