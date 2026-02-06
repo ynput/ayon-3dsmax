@@ -79,8 +79,8 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         )
 
     def install(self):
-        print("Installing AYON 3dsmax host integration...")
-        print("Registering AYON plug-ins...")
+        log.info("Installing AYON 3dsmax host integration...")
+        log.info("Registering AYON plug-ins...")
         pyblish.api.register_host("max")
 
         pyblish.api.register_plugin_path(PUBLISH_PATH)
@@ -91,12 +91,12 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         if lib.is_headless():
             return
 
-        print("AYON Set Project...")
+        log.info("AYON Set Project...")
         _set_project()
-        print("AYON Set Autobackup Dir...")
+        log.info("AYON Set Autobackup Dir...")
         _set_autobackup_dir()
 
-        print("AYON Registering event callbacks...")
+        log.info("AYON Registering event callbacks...")
         register_event_callback("init", on_init)
         register_event_callback("new", on_new)
         register_event_callback("workfile.open.before", on_before_open)
@@ -104,7 +104,7 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         register_event_callback("before.save", before_save)
         register_event_callback("taskChanged", self.on_task_changed)
         self._has_been_setup = True
-        print("AYON Registering 3dsmax callbacks...")
+        log.info("AYON Registering 3dsmax callbacks...")
         self._register_callbacks()
 
     def workfile_has_unsaved_changes(self):
@@ -414,7 +414,7 @@ def before_save(event):
         return
 
     if max_filename_before != max_filename_after:
-        print(f"Detected scene name change from {max_filename_before} to "
+        log.info(f"Detected scene name change from {max_filename_before} to "
               f"{max_filename_after}")
     max_filename_before = os.path.splitext(max_filename_before)[0]
     max_filename_after = os.path.splitext(max_filename_after)[0]

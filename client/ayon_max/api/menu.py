@@ -25,6 +25,10 @@ from .workfile_template_builder import (
     update_placeholder
 )
 
+import logging
+
+log = logging.getLogger(__name__)
+
 
 class AYONMenu(object):
     """Object representing AYON menu.
@@ -37,7 +41,7 @@ class AYONMenu(object):
     """
 
     def __init__(self):
-        print("Installing AYON menu...")
+        log.info("Installing AYON menu...")
         super().__init__()
         self.main_widget = self.get_main_widget()
         self.menu = None
