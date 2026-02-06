@@ -295,18 +295,32 @@ class RenderProducts(object):
         return render_names
 
     def _add_vray_additional_outputs(self, render_name, renderer_class):
-        """Add additional V-Ray outputs like Alpha and RGB_color to render names.
+        """Add additional V-Ray outputs and light groups to render names.
+
+        Replaces VRayLightMix with actual light group names and adds
+        optional split outputs (Alpha, RGB_color) based on renderer settings.
 
         Args:
-            render_name (list): List of existing render element names
-            renderer_class: V-Ray renderer instance
+            render_name (list): List of existing render element names.
+            renderer_class: V-Ray renderer instance.
 
         Returns:
-            list: Updated list with additional outputs
+            list: Updated list with light groups and optional split outputs.
         """
-        if hasattr(renderer_class, 'output_splitAlpha') and renderer_class.output_splitAlpha:
+        # Add light groups if VRayLightMix is present
+        if "VRayLightMix" in render_name:
+            vray_light_group = {
+                light_obj.name for light_obj in rt.Objects if
+                rt.ClassOf(light_obj) == rt.VrayLight
+            }
+            render_name.extend(list(vray_light_group))
+            # Remove VRayLightMix from the list
+            render_name.remove("VRayLightMix")
+
+        # Add optional split outputs
+        if getattr(renderer_class, 'output_splitAlpha', False):
             render_name.append("Alpha")
-        if hasattr(renderer_class, 'output_splitRGB') and renderer_class.output_splitRGB:
+        if getattr(renderer_class, 'output_splitRGB', False):
             render_name.append("RGB_color")
 
         return render_name
