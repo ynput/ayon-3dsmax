@@ -140,7 +140,7 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
             _on_scene_open,
             id=rt.name("AyonCallbacks")
         )
-        if lib.get_max_version() < 2026:
+        if not lib.is_headless() and lib.get_max_version() < 2026:
             rt.callbacks.addScript(
                 rt.Name('postWorkspaceChange'),
                 self._deferred_menu_creation,
@@ -150,7 +150,7 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
             nameChanged=lib.update_modifier_node_names)
 
     def on_init(self):
-        if not self.menu:
+        if not lib.is_headless() and not self.menu:
             self._deferred_menu_creation()
         _on_scene_init()
 
@@ -371,7 +371,8 @@ def _set_project():
                 os.makedirs(proj_dir, exist_ok=True)
 
     # avoid glitching viewport
-    rt.viewport.ResetAllViews()
+    if not lib.is_headless():
+        rt.viewport.ResetAllViews()
 
 
 def _set_autobackup_dir():
