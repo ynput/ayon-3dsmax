@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Collect Render"""
+from __future__ import annotations
 import os
 import pyblish.api
 
