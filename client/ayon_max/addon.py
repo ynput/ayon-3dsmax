@@ -13,11 +13,6 @@ class MaxAddon(AYONAddon, IHostAddon):
     host_name = "max"
 
     def add_implementation_envs(self, env, _app):
-        if os.getenv("AYON_RENDER_JOB") == "1":
-            # Avoid adding startup script paths when running in a render job,
-            # as this can cause issues with 3dsmax's commandline rendering
-            #  and is not needed in a render job context.
-            return
         # Add requirements to ADSK_3DSMAX_STARTUPSCRIPTS_ADDON_DIR
         new_addon_paths = [
             os.path.join(MAX_HOST_DIR, "startup")
