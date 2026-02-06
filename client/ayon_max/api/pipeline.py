@@ -88,6 +88,9 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         register_creator_plugin_path(CREATE_PATH)
         register_workfile_build_plugin_path(WORKFILE_BUILD_PATH)
 
+        if lib.is_headless():
+            return
+
         print("AYON Set Project...")
         _set_project()
         print("AYON Set Autobackup Dir...")
