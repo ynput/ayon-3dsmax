@@ -12,7 +12,7 @@ from ayon_max.api.lib_rendersettings import RenderSettings
 from ayon_max.api.lib_renderproducts import RenderProducts
 
 
-def get_camera_from_node(members):
+def get_cameras_from_node(members):
     """Get camera from instance members."""
     cameras = []
     for member in members:
@@ -51,7 +51,7 @@ class CollectRender(pyblish.api.InstancePlugin):
         files_by_aov.update(aovs)
 
         camera = rt.viewport.GetCamera()
-        camera_list = get_camera_from_node(instance.data.get("members"))
+        camera_list = get_cameras_from_node(instance.data.get("members"))
         if camera_list:
             camera = camera_list[-1]
 
@@ -63,7 +63,7 @@ class CollectRender(pyblish.api.InstancePlugin):
                 raise KnownPublishError("There should be at least"
                                         " one renderable camera in container")
 
-            sel_cam = [camera.name for camera in get_camera_from_node(cameras)]
+            sel_cam = [camera.name for camera in get_cameras_from_node(cameras)]
 
             container_name = instance.data.get("instance_node")
             outputs = RenderSettings().batch_render_layers_by_multi_camera(

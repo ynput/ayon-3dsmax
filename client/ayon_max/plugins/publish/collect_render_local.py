@@ -36,10 +36,6 @@ class CollectLocalRenderInstances(pyblish.api.InstancePlugin):
             families_transfer=[],
             instance_transfer={},
         )
-        # Only transfer creator_attributes before deepcopy, since instance_node
-        # and members contain non-picklable 3ds Max objects
-        if "creator_attributes" in instance.data:
-            skeleton["creator_attributes"] = instance.data["creator_attributes"]
 
         aov_instances = create_instances_for_aov(
             instance=instance,
