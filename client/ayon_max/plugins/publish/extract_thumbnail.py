@@ -14,7 +14,7 @@ class ExtractThumbnail(publish.Extractor):
     families = ["review"]
 
     def process(self, instance):
-        if instance.data.get("productBaseType") == "maxrender":
+        if instance.data.get("productType") == "maxrender":
             self.log.debug(
                 f"The instance {instance.name} is Render product type, "
                 "skipping thumbnail extraction.")
