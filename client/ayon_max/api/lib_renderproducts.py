@@ -2,7 +2,6 @@
 # https://help.autodesk.com/view/MAXDEV/2022/ENU/?guid=GUID-E8F75D47-B998-4800-A3A5-610E22913CFC
 # arnold
 # https://help.autodesk.com/view/ARNOL/ENU/?guid=arnold_for_3ds_max_ax_maxscript_commands_ax_renderview_commands_html
-from __future__ import annotations
 import os
 
 
@@ -81,9 +80,9 @@ class RenderProducts(object):
                 "Default_Scanline_Renderer",
                 "Quicksilver_Hardware_Renderer",
             ]:
-                render_names = self.get_render_elements_names()
-                if render_names:
-                    for name in render_names:
+                render_name = self.get_render_elements_name()
+                if render_name:
+                    for name in render_name:
                         aovs_frames.update({
                             f"{camera}_{name}": self.get_expected_aovs(
                                 filename, name, start_frame,
@@ -93,23 +92,23 @@ class RenderProducts(object):
                 if not renderer_class.output_splitgbuffer:
                     return aovs_frames
 
-                render_names = self.get_render_elements_names()
-                render_names = self._add_vray_additional_outputs(render_names, renderer_class)
-                if render_names:
-                    for name in render_names:
+                render_name = self.get_render_elements_name()
+                render_name = self._add_vray_additional_outputs(render_name, renderer_class)
+                if render_name:
+                    for name in render_name:
                         aovs_frames.update({
                             f"{camera}_{name}": self.get_expected_aovs(
                             filename, name, start_frame,
                             end_frame, ext, renderer)
                     })
             elif renderer == "Redshift_Renderer":
-                render_names = self.get_render_elements_names()
-                if render_names:
+                render_name = self.get_render_elements_name()
+                if render_name:
                     rs_aov_files = rt.Execute("renderers.current.separateAovFiles")     # noqa
                     # this doesn't work, always returns False
                     # rs_AovFiles = rt.RedShift_Renderer().separateAovFiles
                     if ext == "exr" and not rs_aov_files:
-                        for name in render_names:
+                        for name in render_name:
                             if name == "RsCryptomatte":
                                 aovs_frames.update({
                                     f"{camera}_{name}": self.get_expected_aovs(
@@ -117,7 +116,7 @@ class RenderProducts(object):
                                         end_frame, ext, renderer)
                                 })
                     else:
-                        for name in render_names:
+                        for name in render_name:
                             aovs_frames.update({
                                 f"{camera}_{name}": self.get_expected_aovs(
                                     filename, name, start_frame,
@@ -151,9 +150,9 @@ class RenderProducts(object):
             "Default_Scanline_Renderer",
             "Quicksilver_Hardware_Renderer",
         ]:
-            render_names = self.get_render_elements_names()
-            if render_names:
-                for name in render_names:
+            render_name = self.get_render_elements_name()
+            if render_name:
+                for name in render_name:
                     render_dict.update({
                         name: self.get_expected_aovs(
                             output_file, name, start_frame,
@@ -164,11 +163,11 @@ class RenderProducts(object):
             if not renderer_class.output_splitgbuffer:
                 return render_dict
 
-            render_names = self.get_render_elements_names()
-            render_names = self._add_vray_additional_outputs(render_names, renderer_class)
+            render_name = self.get_render_elements_name()
+            render_name = self._add_vray_additional_outputs(render_name, renderer_class)
 
-            if render_names:
-                for name in render_names:
+            if render_name:
+                for name in render_name:
                     render_dict.update({
                         name: self.get_expected_aovs(
                             output_file, name, start_frame,
@@ -176,13 +175,13 @@ class RenderProducts(object):
                             renderer)
                     })
         elif renderer == "Redshift_Renderer":
-            render_names = self.get_render_elements_names()
-            if render_names:
+            render_name = self.get_render_elements_name()
+            if render_name:
                 rs_aov_files = rt.Execute("renderers.current.separateAovFiles")
                 # this doesn't work, always returns False
                 # rs_AovFiles = rt.RedShift_Renderer().separateAovFiles
                 if img_fmt == "exr" and not rs_aov_files:
-                    for name in render_names:
+                    for name in render_name:
                         if name == "RsCryptomatte":
                             render_dict.update({
                                 name: self.get_expected_aovs(
@@ -191,7 +190,7 @@ class RenderProducts(object):
                                     renderer)
                             })
                 else:
-                    for name in render_names:
+                    for name in render_name:
                         render_dict.update({
                             name: self.get_expected_aovs(
                                 output_file, name, start_frame,
@@ -278,49 +277,35 @@ class RenderProducts(object):
 
         return aov_list
 
-    def get_render_elements_names(self) -> list[str]:
-        """Get all the render element names for general"""
-        render_names: list[str] = []
+    def get_render_elements_name(self):
+        """Get all the render element names for general """
+        render_name = []
         render_elem = rt.maxOps.GetCurRenderElementMgr()
         render_elem_num = render_elem.NumRenderElements()
         if render_elem_num < 1:
-            return render_names
+            return render_name
         # get render elements from the renders
         for i in range(render_elem_num):
-            renderlayer = render_elem.GetRenderElement(i)
-            if renderlayer.enabled:
-                renderpass = renderlayer.elementname
-                render_names.append(str(renderpass))
+            renderlayer_name = render_elem.GetRenderElement(i)
+            if renderlayer_name.enabled:
+                _, renderpass = str(renderlayer_name).split(":")
+                render_name.append(renderpass)
 
-        return render_names
+        return render_name
 
     def _add_vray_additional_outputs(self, render_name, renderer_class):
-        """Add additional V-Ray outputs and light groups to render names.
-
-        Replaces VRayLightMix with actual light group names and adds
-        optional split outputs (Alpha, RGB_color) based on renderer settings.
+        """Add additional V-Ray outputs like Alpha and RGB_color to render names.
 
         Args:
-            render_name (list): List of existing render element names.
-            renderer_class: V-Ray renderer instance.
+            render_name (list): List of existing render element names
+            renderer_class: V-Ray renderer instance
 
         Returns:
-            list: Updated list with light groups and optional split outputs.
+            list: Updated list with additional outputs
         """
-        # Add light groups if VRayLightMix is present
-        if "VRayLightMix" in render_name:
-            vray_light_group = {
-                light_obj.name for light_obj in rt.Objects if
-                rt.ClassOf(light_obj) == rt.VrayLight
-            }
-            render_name.extend(list(vray_light_group))
-            # Remove VRayLightMix from the list
-            render_name.remove("VRayLightMix")
-
-        # Add optional split outputs
-        if getattr(renderer_class, 'output_splitAlpha', False):
+        if hasattr(renderer_class, 'output_splitAlpha') and renderer_class.output_splitAlpha:
             render_name.append("Alpha")
-        if getattr(renderer_class, 'output_splitRGB', False):
+        if hasattr(renderer_class, 'output_splitRGB') and renderer_class.output_splitRGB:
             render_name.append("RGB_color")
 
         return render_name
