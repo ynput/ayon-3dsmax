@@ -91,9 +91,8 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
             invalid.append(("Invalid render output folder",
                             os.path.dirname(rt.rendOutputFilename)))
 
-        if not instance.data.get("farm"):
-            invalid_local_render_output = cls.get_invalid_local_render_output(instance)
-            invalid.extend(invalid_local_render_output)
+        invalid_local_render_output = cls.get_invalid_local_render_output(instance)
+        invalid.extend(invalid_local_render_output)
         renderer = instance.data.get("renderer")
         if not renderer:
             renderer_class = get_current_renderer()
