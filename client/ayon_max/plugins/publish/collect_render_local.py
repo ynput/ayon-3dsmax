@@ -28,12 +28,15 @@ class CollectLocalRenderInstances(pyblish.api.InstancePlugin):
         self.log.debug("Expected files for local render: %s",
                        instance.data.get("expectedFiles"))
 
+        render_target = instance.data.get("creator_attributes", {}).get(
+            "render_target", "local"
+        )
         # Use same logic as how instances get created for farm submissions
         skeleton = create_skeleton_instance(
             instance,
             # TODO: These should be fixed in core to just allow the default
             #  None to work
-            families_transfer=[],
+            families_transfer=[f"render.{render_target}"],
             instance_transfer={},
         )
 
@@ -55,10 +58,6 @@ class CollectLocalRenderInstances(pyblish.api.InstancePlugin):
         context = instance.context
         anatomy = context.data["anatomy"]
 
-        render_target = instance.data.get("creator_attributes", {}).get(
-            "render_target", "local"
-        )
-
         # Add the instances directly to the current publish context
         for aov_instance_data in aov_instances:
             # The `create_instances_for_aov` makes some paths rootless paths,
@@ -71,11 +70,6 @@ class CollectLocalRenderInstances(pyblish.api.InstancePlugin):
                 aov_instance_data["productName"]
             )
             aov_instance.data.update(aov_instance_data)
-            aov_instance.data["families"] = [f"render.{render_target}"]
-
-            # Pass on 'review' family
-            if "review" in aov_instance_data["families"]:
-                aov_instance.data["families"].append("review")
 
         # Skip integrating original render instance.
         # We are not removing it because it's used to trigger the render.
