@@ -130,7 +130,7 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
             cls.log.debug(
                 "Renderpass validation does not support Arnold yet,"
                 " validation skipped...")
-        elif renderer.startswith("V-Ray"):
+        elif renderer.startswith("V_Ray_"):
             invalid_settings = cls.get_invalid_vray_settings(
                 instance, renderer, ext, project_settings)
             invalid.extend(invalid_settings)
