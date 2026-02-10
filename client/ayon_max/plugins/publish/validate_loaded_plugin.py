@@ -36,12 +36,6 @@ class ValidateLoadedPlugin(OptionalPyblishPluginMixin,
         if not family_plugins_mapping:
             return []
 
-        # Backward compatibility - settings did have 'product_types'
-        if "product_types" in family_plugins_mapping:
-            family_plugins_mapping["families"] = family_plugins_mapping.pop(
-                "product_types"
-            )
-
         invalid = []
         # Find all plug-in requirements for current instance
         instance_families = {instance.data["productType"]}
@@ -52,9 +46,6 @@ class ValidateLoadedPlugin(OptionalPyblishPluginMixin,
 
         for mapping in family_plugins_mapping:
             # Check for matching families
-            if not mapping:
-                return []
-
             match_families = {
                 fam.strip() for fam in mapping["families"]
             }
