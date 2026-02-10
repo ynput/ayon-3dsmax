@@ -17,7 +17,7 @@ class MaxLegacyConvertor(ProductConvertorPlugin):
 
     """
     identifier = "io.ayon.creators.max.legacy"
-    product_type_to_id = {
+    old_ids_mapping = {
         "io.openpype.creators.max.camera": "io.ayon.creators.max.camera",
         "io.openpype.creators.max.maxScene": "io.ayon.creators.max.maxScene",
         "io.openpype.creators.max.model": "io.ayon.creators.max.model",
@@ -65,9 +65,9 @@ class MaxLegacyConvertor(ProductConvertorPlugin):
             return
 
         for old_creator_id, instance_nodes in self.legacy_instances.items():
-            if old_creator_id in self.product_type_to_id:
+            if old_creator_id in self.old_ids_mapping:
                 for instance_node in instance_nodes:
-                    new_creator_id = self.product_type_to_id[old_creator_id]
+                    new_creator_id = self.old_ids_mapping[old_creator_id]
                     self.log.info(
                         "Converting {} to {}".format(instance_node,
                                                      new_creator_id)
