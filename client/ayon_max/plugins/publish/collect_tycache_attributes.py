@@ -43,21 +43,25 @@ class CollectTyFlowData(pyblish.api.InstancePlugin,
             prod_name = re.sub(r"\s+", "_", tyc_product_name)
             operator = next((node for node in get_tyflow_export_operators()
                              if node.name == tyc_product_name), None)   # noqa
-            product_type = "tycache" if operator.exportMode == 2 else "tyspline"
+            product_base_type = (
+                "tycache"
+                if operator.exportMode == 2
+                else "tyspline"
+            )
             tyc_instance.data.update({
                 "name": f"{container_name}_{prod_name}",
                 "label": f"{container_name}_{prod_name}",
-                "family": product_type,
-                "families": [product_type],
+                "family": product_base_type,
+                "families": [product_base_type],
                 "productName": f"{container_name}_{prod_name}",
                 # get the name of operator for the export
                 "operator": operator,
                 "exportMode": operator.exportMode,
                 "material_cache": attr_values.get("material"),
-                "productType": product_type,
-                "productBaseType": product_type,
+                "productType": product_base_type,
+                "productBaseType": product_base_type,
                 "creator_identifier": (
-                    f"io.ayon.creators.max.{product_type}"),
+                    f"io.ayon.creators.max.{product_base_type}"),
                 "publish_attributes": {
                     "ValidateTyCacheFrameRange": {
                         "active": attr_values.get("has_frame_range_validator")}

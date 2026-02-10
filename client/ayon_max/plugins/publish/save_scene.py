@@ -15,7 +15,7 @@ class SaveCurrentScene(pyblish.api.InstancePlugin):
         current_file = host.get_current_workfile()
 
         assert instance.context.data["currentFile"] == current_file
-        if instance.data["productType"] == "maxrender":
+        if instance.data["productBaseType"] == "maxrender":
             host.save_workfile(current_file)
 
         elif host.workfile_has_unsaved_changes():

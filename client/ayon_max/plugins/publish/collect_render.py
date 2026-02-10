@@ -29,7 +29,7 @@ class CollectRender(pyblish.api.InstancePlugin):
 
     order = pyblish.api.CollectorOrder + 0.02
     label = "Collect 3dsmax Render Layers"
-    hosts = ['max']
+    hosts = ["max"]
     families = ["maxrender"]
 
     def process(self, instance):
@@ -103,7 +103,7 @@ class CollectRender(pyblish.api.InstancePlugin):
         instance.data["renderProducts"] = colorspace.ARenderProduct()
         instance.data["publishJobState"] = "Suspended"
         instance.data["attachTo"] = []
-        product_type = "maxrender"
+        product_base_type = "maxrender"
         # also need to get the render dir for conversion
         data = {
             "folderPath": instance.data["folderPath"],
@@ -112,9 +112,10 @@ class CollectRender(pyblish.api.InstancePlugin):
             "original_workfile_pattern": render_dir.rsplit("\\")[-1],
             "maxversion": str(get_max_version()),
             "imageFormat": img_format,
-            "productType": product_type,
-            "family": product_type,
-            "families": [product_type],
+            "productBaseType": product_base_type,
+            "productType": product_base_type,
+            "family": product_base_type,
+            "families": [product_base_type],
             "renderer": renderer,
             "source": filepath,
             "plugin": "3dsmax",
