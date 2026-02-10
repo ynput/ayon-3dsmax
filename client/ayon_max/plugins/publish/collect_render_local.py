@@ -40,7 +40,7 @@ class CollectLocalRenderInstances(pyblish.api.InstancePlugin):
             instance_transfer={},
         )
         for key in (
-            "frameStartHandle"
+            "frameStartHandle",
             "frameEndHandle"
         ):
             skeleton.pop(key, None)
