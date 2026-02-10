@@ -17,6 +17,7 @@ class CollectLocalRenderInstances(pyblish.api.InstancePlugin):
         "creator_attributes",
         "instance_node",
         "members",
+        "cameras"
     }
 
     def process(self, instance):
@@ -76,7 +77,6 @@ class CollectLocalRenderInstances(pyblish.api.InstancePlugin):
             # Pass on 'review' family
             if "review" in aov_instance_data["families"]:
                 aov_instance.data["families"].append("review")
-            self.log.debug(f"Created instance: {aov_instance.data}")
         # Skip integrating original render instance.
         # We are not removing it because it's used to trigger the render.
         instance.data["integrate"] = False
