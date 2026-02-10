@@ -50,12 +50,6 @@ class CollectLocalRenderInstances(pyblish.api.InstancePlugin):
 
         # Add non-picklable instance data to AOV instances after creation
         for aov_instance in aov_instances:
-            for key in (
-                "frameStartHandle",
-                "frameEndHandle"
-            ):
-                aov_instance.pop(key, None)
-
             for key in self.transfer_keys:
                 if key in instance.data:
                     aov_instance[key] = instance.data[key]
