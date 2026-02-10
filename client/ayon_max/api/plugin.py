@@ -356,7 +356,8 @@ class MaxCreator(Creator, MaxCreatorBase):
         instance_node = self.create_instance_node(product_name)
         instance_data["instance_node"] = instance_node.name
         instance = CreatedInstance(
-            product_type=self.product_type,
+            product_type=self.product_base_type,
+            product_base_type=self.product_base_type,
             product_name=product_name,
             data=instance_data,
             creator=self,
@@ -448,7 +449,8 @@ class MaxCacheCreator(Creator, MaxTyFlowDataCreatorBase):
         instance_node = self.create_instance_node(product_name)
         instance_data["instance_node"] = instance_node.name
         instance = CreatedInstance(
-            product_type=self.product_type,
+            product_type=self.product_base_type,
+            product_base_type=self.product_base_type,
             product_name=product_name,
             data=instance_data,
             creator=self,

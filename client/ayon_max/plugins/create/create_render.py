@@ -29,9 +29,9 @@ class CreateRender(plugin.MaxCreator):
             rt.batchRenderMgr.DeleteView(num_of_renderlayer)
 
         container = rt.getNodeByName(product_name)
-        product_type = instance_data["productType"]
+        product_base_type = instance_data["productBaseType"]
         # check if there is existing render instance
-        if container and product_name.startswith(product_type):
+        if container and product_name.startswith(product_base_type):
             raise CreatorError("Render instance already exists")
 
         instance = super(CreateRender, self).create(
