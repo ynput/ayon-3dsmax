@@ -175,16 +175,13 @@ class ValidateTyFlowTySplineData(ValidateTyFlowData):
     def get_tyflow_operator(self, instance):
         invalid = []
         node_sub_anim = instance.data["operator"]
-        has_export_particle = []
-        if node_sub_anim is not None:
-            if rt.hasProperty(node_sub_anim, "exportMode"):
-                if node_sub_anim.exportMode == 2 or \
-                        node_sub_anim.exportMode == 6:
-                    has_export_particle.append("True")
-                else:
-                    has_export_particle.append("False")
-                    if "False" in has_export_particle:
-                        invalid.append(
-                            f"{node_sub_anim.name} has invalid Export Mode.")
+        if (
+            node_sub_anim is not None
+            and rt.hasProperty(node_sub_anim, "exportMode")
+            and node_sub_anim.exportMode not in (2, 6)
+        ):
+            invalid.append(
+                f"{node_sub_anim.name} has invalid Export Mode."
+            )
 
         return invalid
