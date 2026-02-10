@@ -17,7 +17,9 @@ class CollectLocalRenderInstances(pyblish.api.InstancePlugin):
         "creator_attributes",
         "instance_node",
         "members",
-        "cameras"
+        "cameras",
+        "frameStartHandle",
+        "frameEndHandle",
     }
 
     def process(self, instance):
@@ -37,6 +39,11 @@ class CollectLocalRenderInstances(pyblish.api.InstancePlugin):
             families_transfer=[],
             instance_transfer={},
         )
+        for key in (
+            "frameStartHandle"
+            "frameEndHandle"
+        ):
+            skeleton.pop(key, None)
 
         aov_instances = create_instances_for_aov(
             instance=instance,
