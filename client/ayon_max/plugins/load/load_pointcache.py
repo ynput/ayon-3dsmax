@@ -18,7 +18,8 @@ from ayon_max.api.pipeline import (
 class AbcLoader(load.LoaderPlugin):
     """Alembic loader."""
 
-    product_types = {"camera", "animation", "pointcache"}
+    product_base_types = {"camera", "animation", "pointcache"}
+    product_types = product_base_types
     label = "Load Alembic"
     representations = {"abc"}
     order = -10

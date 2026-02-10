@@ -11,7 +11,8 @@ class RenderPresetLoader(load.LoaderPlugin):
     """Load rps files with Render Preset"""
 
     label = "Load Render Preset"
-    product_types = {"renderpreset"}
+    product_base_types = {"renderpreset"}
+    product_types = product_base_types
     representations = {"rps"}
     order = -9
     icon = "code-fork"

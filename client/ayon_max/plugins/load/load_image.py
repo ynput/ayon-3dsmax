@@ -28,7 +28,8 @@ from pymxs import runtime as rt
 class ImageLoader(load.LoaderPlugin):
     """Loading image files to Slate Material Editor."""
 
-    product_types = {"render", "image", "plate", "texture"}
+    product_base_types = {"render", "image", "plate", "texture"}
+    product_types = product_base_types
     representations = {"*"}
     label = "Load Image"
     icon = "image"

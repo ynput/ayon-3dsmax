@@ -21,7 +21,8 @@ class RedshiftProxyLoader(load.LoaderPlugin):
     """Load rs files with Redshift Proxy"""
 
     label = "Load Redshift Proxy"
-    product_types = {"redshiftproxy"}
+    product_base_types = {"redshiftproxy"}
+    product_types = product_base_types
     representations = {"rs"}
     order = -9
     icon = "code-fork"
@@ -78,7 +79,8 @@ class RedshiftVolumeLoader(RedshiftProxyLoader):
     """Load vdb files with Redshift Volume Grid"""
 
     label = "Load VDB"
-    product_types = {"vdbcache"}
+    product_base_types = {"vdbcache"}
+    product_types = product_base_types
     representations = {"vdb"}
     order = -9
     icon = "code-fork"

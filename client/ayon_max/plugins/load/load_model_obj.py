@@ -19,7 +19,8 @@ from ayon_core.pipeline import load
 class ObjLoader(load.LoaderPlugin):
     """Obj Loader."""
 
-    product_types = {"model"}
+    product_base_types = {"model"}
+    product_types = product_base_types
     label = "Load Model (Obj)"
     representations = {"obj"}
     order = -9
