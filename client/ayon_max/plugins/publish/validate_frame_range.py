@@ -104,11 +104,15 @@ class ValidateFrameRange(pyblish.api.InstancePlugin,
         frame_start_handle = frame_range["frameStartHandle"]
         frame_end_handle = frame_range["frameEndHandle"]
 
-        if instance.data["productType"] == "maxrender" or (
-            instance.data["productBaseType"] == "render"
-        ):
+        if instance.data["productType"] == "maxrender":
             rt.rendStart = frame_start_handle
             rt.rendEnd = frame_end_handle
+
+        elif instance.data["productBaseType"] == "render":
+            rt.rendStart = frame_start_handle
+            rt.rendEnd = frame_end_handle
+            set_timeline(frame_start_handle, frame_end_handle)
+
         else:
             set_timeline(frame_start_handle, frame_end_handle)
 
