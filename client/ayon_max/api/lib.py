@@ -687,20 +687,21 @@ def update_modifier_node_names(event, node):
             Mandatory argument for rt.NodeEventCallback)
 
     """
-    containers = [
-        obj
-        for obj in rt.Objects
-        if (
-            rt.ClassOf(obj) == rt.Container
-            and rt.getUserProp(obj, "id") not in {
-                AVALON_INSTANCE_ID,
-                AYON_INSTANCE_ID
-            }
-            and rt.getUserProp(obj, "productType") not in {
-                "workfile", "tyflow"
-            }
-        )
-    ]
+    containers = []
+    for obj in rt.Objects:
+        if rt.ClassOf(obj) != rt.Container:
+            continue
+
+        if rt.getUserProp(obj, "id") in {
+            AVALON_INSTANCE_ID,
+            AYON_INSTANCE_ID
+        }:
+            continue
+
+        product_type = rt.getUserProp(obj, "productType")
+        if product_type in {"workfile", "tyflow"}:
+            containers.append(obj)
+
     if not containers:
         return
     for container in containers:
