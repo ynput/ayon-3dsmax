@@ -1,23 +1,23 @@
 # -*- coding: utf-8 -*-
 """Creator plugin for creating camera."""
 import os
-from ayon_max.api import plugin
+
 from ayon_core.lib import BoolDef
 from ayon_core.pipeline import CreatorError
+
+from ayon_max.api.plugin import MaxCreator
 from ayon_max.api.lib_rendersettings import RenderSettings
 
 from pymxs import runtime as rt
 
 
-class CreateRender(plugin.MaxCreator):
+class CreateRender(MaxCreator):
     """Creator plugin for Renders."""
     identifier = "io.ayon.creators.max.render"
     label = "Render"
-    product_type = "maxrender"
     product_base_type = "maxrender"
+    product_type = product_base_type
     icon = "gear"
-
-    settings_category = "max"
 
     def create(self, product_name, instance_data, pre_create_data):
         file = rt.maxFileName

@@ -345,6 +345,8 @@ class MaxTyFlowDataCreatorBase(MaxCreatorBase):
 
 
 class MaxCreator(Creator, MaxCreatorBase):
+    skip_discovery = True
+    settings_category = "max"
     selected_nodes = []
 
     def create(self, product_name, instance_data, pre_create_data):
@@ -440,7 +442,9 @@ class MaxCreator(Creator, MaxCreatorBase):
 
 
 class MaxCacheCreator(Creator, MaxTyFlowDataCreatorBase):
+    skip_discovery = True
     settings_category = "max"
+
     def create(self, product_name, instance_data, pre_create_data):
         tyflow_op_nodes = get_tyflow_export_operators()
         if not tyflow_op_nodes:

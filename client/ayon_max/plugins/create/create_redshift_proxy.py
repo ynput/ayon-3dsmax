@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 """Creator plugin for creating camera."""
-from ayon_max.api import plugin
+from ayon_max.api.plugin import MaxCreator
 
 
-class CreateRedshiftProxy(plugin.MaxCreator):
+class CreateRedshiftProxy(MaxCreator):
     identifier = "io.ayon.creators.max.redshiftproxy"
     label = "Redshift Proxy"
-    product_type = "redshiftproxy"
     product_base_type = "redshiftproxy"
+    product_type = product_base_type
     icon = "gear"
-
-    settings_category = "max"

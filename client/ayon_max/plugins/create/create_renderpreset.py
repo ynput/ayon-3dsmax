@@ -1,15 +1,13 @@
 """Creator plugin for creating render preset."""
-from ayon_max.api import plugin
+from ayon_max.api.plugin import MaxCreator
 
 
-class CreateRenderPreset(plugin.MaxCreator):
+class CreateRenderPreset(MaxCreator):
     identifier = "io.ayon.creators.max.renderpreset"
     label = "Render Preset"
-    product_type = "renderpreset"
     product_base_type = "renderpreset"
+    product_type = product_base_type
     icon = "tablet"
-
-    settings_category = "max"
 
     def get_pre_create_attr_defs(self):
         return []
