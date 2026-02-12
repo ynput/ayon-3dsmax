@@ -1,7 +1,5 @@
-import os
 import pyblish.api
-
-from pymxs import runtime as rt
+from ayon_core.pipeline import registered_host
 
 
 class CollectCurrentFile(pyblish.api.ContextPlugin):
@@ -13,11 +11,10 @@ class CollectCurrentFile(pyblish.api.ContextPlugin):
 
     def process(self, context):
         """Inject the current working file"""
-        folder = rt.maxFilePath
-        file = rt.maxFileName
-        if not folder or not file:
+        host = registered_host()
+        current_file = host.get_current_workfile()
+        if not current_file:
             self.log.error("Scene is not saved.")
-        current_file = os.path.join(folder, file)
 
         context.data["currentFile"] = current_file
         self.log.debug("Scene path: {}".format(current_file))
