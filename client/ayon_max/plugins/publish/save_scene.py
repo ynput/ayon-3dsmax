@@ -15,6 +15,10 @@ class SaveCurrentScene(pyblish.api.InstancePlugin):
         host = registered_host()
         current_file = host.get_current_workfile()
         if instance.context.data["currentFile"] != current_file:
+            self.log.error(
+                f"Current file in context: {instance.context.data['currentFile']} "
+                f"does not match the actual current file: {current_file}"
+            )
             raise PublishError(
                 "Current file in context does not match the actual current file."
             )
