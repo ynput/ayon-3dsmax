@@ -47,7 +47,7 @@ class ValidateResolutionSetting(pyblish.api.InstancePlugin,
                                          "on asset or shot.")
 
     def get_current_resolution(self, instance):
-        return rt.renderWidth, rt.renderHeight
+        return instance.data["resolutionWidth"], instance.data["resolutionHeight"]
 
     @classmethod
     def get_folder_resolution(cls, instance):
