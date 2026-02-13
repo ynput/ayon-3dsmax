@@ -224,7 +224,6 @@ def get_vray_settings(renderer):
         return renderer_class
 
 
-
 def set_render_frame_range(start_frame, end_frame):
     """
     Note:
