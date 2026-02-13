@@ -6,7 +6,7 @@ from pymxs import runtime as rt
 class CollectFrameRange(pyblish.api.InstancePlugin):
     """Collect Frame Range."""
 
-    order = pyblish.api.CollectorOrder + 0.011
+    order = pyblish.api.CollectorOrder + 0.0111
     label = "Collect Frame Range"
     hosts = ['max']
     families = ["camera", "maxrender",
@@ -15,9 +15,9 @@ class CollectFrameRange(pyblish.api.InstancePlugin):
                 "tyspline", "redshiftproxy"]
 
     def process(self, instance):
-        if instance.data["productBaseType"] == "maxrender":
-            instance.data["frameStartHandle"] = int(rt.rendStart)
-            instance.data["frameEndHandle"] = int(rt.rendEnd)
+        if instance.data["productBaseType"] == "render":
+            instance.data["frameStartHandle"] = instance.data["frameStart"]
+            instance.data["frameEndHandle"] = instance.data["frameEnd"]
 
         elif instance.data["productBaseType"] in {"tycache", "tyspline"}:
             operator = instance.data["operator"]

@@ -28,7 +28,7 @@ def get_cameras_from_node(members):
 class CollectRender(pyblish.api.InstancePlugin):
     """Collect Render for Deadline"""
 
-    order = pyblish.api.CollectorOrder + 0.02
+    order = pyblish.api.CollectorOrder + 0.011
     label = "Collect 3dsmax Render Layers"
     hosts = ['max']
     families = ["maxrender"]
@@ -127,8 +127,8 @@ class CollectRender(pyblish.api.InstancePlugin):
             "renderer": renderer,
             "source": filepath,
             "plugin": "3dsmax",
-            "frameStart": instance.data["frameStartHandle"],
-            "frameEnd": instance.data["frameEndHandle"],
+            "frameStart": int(rt.rendStart),
+            "frameEnd": int(rt.rendEnd),
             "resolutionWidth": rt.renderWidth,
             "resolutionHeight": rt.renderHeight,
             "farm": farm_render

@@ -18,10 +18,6 @@ class CollectLocalRenderInstances(pyblish.api.InstancePlugin):
         "instance_node",
         "members",
         "cameras",
-        "frameStartHandle",
-        "frameEndHandle",
-        "resolutionWidth",
-        "resolutionHeight",
     }
 
     def process(self, instance):
