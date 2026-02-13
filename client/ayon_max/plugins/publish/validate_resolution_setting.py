@@ -1,5 +1,4 @@
 import pyblish.api
-from pymxs import runtime as rt
 from ayon_core.pipeline import (
     OptionalPyblishPluginMixin
 )
