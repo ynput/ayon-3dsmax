@@ -114,7 +114,9 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         return filepath
 
     def get_current_workfile(self):
-        return os.path.join(rt.maxFilePath, rt.maxFileName)
+        return os.path.normpath(
+            os.path.join(rt.maxFilePath, rt.maxFileName)
+        )
 
     def get_containers(self):
         return ls()
