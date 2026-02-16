@@ -37,6 +37,10 @@ class RenderProducts(object):
         start_frame = int(rt.rendStart)
         end_frame = int(rt.rendEnd) + 1
         # todo: Support Custom Frames sequences 0,5-10,100-120
+        # we can add filtering frames list to get expected frames list
+        # instead of using start and end frame
+        # but if the custom frame disabled, we can still use start and end frame
+        # to get expected frames list
         return {
             "beauty": self.get_expected_beauty(
                 output_file, start_frame, end_frame, img_fmt,
@@ -76,6 +80,10 @@ class RenderProducts(object):
             start_frame = int(rt.rendStart)
             end_frame = int(rt.rendEnd) + 1
             # todo: Support Custom Frames sequences 0,5-10,100-120
+            # we can add filtering frames list to get expected frames list
+            # instead of using start and end frame
+            # but if the custom frame disabled, we can still use start and end frame
+            # to get expected frames list
             if renderer in [
                 "ART_Renderer",
                 "Default_Scanline_Renderer",
