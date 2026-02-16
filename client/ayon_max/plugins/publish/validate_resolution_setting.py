@@ -24,7 +24,10 @@ class ValidateResolutionSetting(pyblish.api.InstancePlugin,
     actions = [RepairAction]
 
     def process(self, instance):
-        if "render.local" in instance.data["families"]:
+        if (
+            "render.local" in instance.data["families"] or
+            "render.local_no_render" in instance.data["families"]
+        ):
             self.log.debug(
                 "Skipping Validate Frame Range for "
                 "local render instance as it is already validated."

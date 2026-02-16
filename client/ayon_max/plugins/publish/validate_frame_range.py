@@ -41,7 +41,7 @@ class ValidateFrameRange(pyblish.api.InstancePlugin,
     def process(self, instance):
         if (
             "render.local" in instance.data["families"] or
-            "local_no_render" in instance.data["families"]
+            "render.local_no_render" in instance.data["families"]
         ):
             self.log.debug(
                 "Skipping Validate Frame Range for "
