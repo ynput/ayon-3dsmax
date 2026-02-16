@@ -36,6 +36,7 @@ class RenderProducts(object):
 
         start_frame = int(rt.rendStart)
         end_frame = int(rt.rendEnd) + 1
+        # todo: Support Custom Frames sequences 0,5-10,100-120
         return {
             "beauty": self.get_expected_beauty(
                 output_file, start_frame, end_frame, img_fmt,
@@ -74,7 +75,7 @@ class RenderProducts(object):
             ext = ext.replace(".", "")
             start_frame = int(rt.rendStart)
             end_frame = int(rt.rendEnd) + 1
-
+            # todo: Support Custom Frames sequences 0,5-10,100-120
             if renderer in [
                 "ART_Renderer",
                 "Default_Scanline_Renderer",
