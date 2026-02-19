@@ -39,6 +39,15 @@ class ValidateFrameRange(pyblish.api.InstancePlugin,
     settings_category = "max"
 
     def process(self, instance):
+        if (
+            "render.local" in instance.data["families"] or
+            "render.local_no_render" in instance.data["families"]
+        ) and "review" in instance.data["families"]:
+            self.log.debug(
+                "Skipping Validate Frame Range for "
+                "local render instance as it is already validated."
+            )
+            return
         if not self.is_active(instance.data):
             self.log.debug("Skipping Validate Frame Range...")
             return
@@ -64,7 +73,8 @@ class ValidateFrameRange(pyblish.api.InstancePlugin,
             errors.append(
                 f"End frame ({inst_frame_end}) on instance does not match "
                 f"with the end frame ({frame_end_handle}) "
-                "from the folder attributes. ")
+                "from the folder attributes."
+            )
 
         if errors:
             bullet_point_errors = "\n".join(
@@ -110,7 +120,7 @@ class ValidateFrameRange(pyblish.api.InstancePlugin,
         else:
             set_timeline(frame_start_handle, frame_end_handle)
 
-
+        print(rt.rendStart, rt.rendEnd, "successfully set by repair action.")
 class ValidateTyCacheFrameRange(ValidateFrameRange):
     label = "Validate Frame Range (TyCache)"
     families = ["tycache", "tyspline"]

@@ -18,6 +18,7 @@ from ayon_max.api.lib import (
     get_current_renderer,
     get_default_render_folder,
     get_multipass_setting,
+    get_vray_settings,
 )
 
 
@@ -123,10 +124,7 @@ class RenderSettings(object):
             self.render_element_layer(output, width, height, img_fmt)
 
         elif renderer.startswith("V_Ray_"):
-            if "GPU" in renderer:
-                vr_settings = renderer_class.V_Ray_settings
-            else:
-                vr_settings = renderer_class
+            vr_settings = get_vray_settings(renderer)
             vr_settings.output_force32bit_3dsmax_vfb = True
             vr_settings.output_splitgbuffer = multipass_enabled
             if img_fmt == "exr":
@@ -259,8 +257,18 @@ class RenderSettings(object):
             aov_name = f"{directory}_{camera}_{renderpass}..{ext}"
             render_elem.SetRenderElementFileName(i, aov_name)
 
-    def batch_render_layer(self, container,
-                           output_dir, cameras):
+    def batch_render_layers_by_multi_camera(self, container, output_dir, cameras):
+        """Get the list of renderlayers for the multi-camera from batch render
+        manager.
+
+        Args:
+            container (str): container name
+            output_dir (str): output render directory
+            cameras (list): Cameras to create render layers for.
+
+        Returns:
+            list: List of output filenames for the render layers
+        """
         outputs = list()
         output = os.path.join(output_dir, container)
         img_fmt = self._project_settings["max"]["RenderSettings"]["image_format"]   # noqa

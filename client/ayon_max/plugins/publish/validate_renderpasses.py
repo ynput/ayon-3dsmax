@@ -91,6 +91,8 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
             invalid.append(("Invalid render output folder",
                             os.path.dirname(rt.rendOutputFilename)))
 
+        invalid_local_render_output = cls.get_invalid_local_render_output(instance)
+        invalid.extend(invalid_local_render_output)
         renderer = instance.data.get("renderer")
         if not renderer:
             renderer_class = get_current_renderer()
@@ -128,7 +130,7 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
             cls.log.debug(
                 "Renderpass validation does not support Arnold yet,"
                 " validation skipped...")
-        elif renderer.startswith("V-Ray"):
+        elif renderer.startswith("V_Ray_"):
             invalid_settings = cls.get_invalid_vray_settings(
                 instance, renderer, ext, project_settings)
             invalid.extend(invalid_settings)
@@ -161,6 +163,7 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
             cls.log.error("The renderpass filename should contain the instance name.")
             invalid.append(("Invalid instance name",
                             file_name))
+        # TODO: check on the renderpass if _camera has been included when the multi-camera options disabled.
         if renderpass is not None and render_filename is not None:
             renderpass_token = f"{renderpass}.{ext}"
             if not render_filename.endswith(renderpass_token):
@@ -242,6 +245,30 @@ class ValidateRenderPasses(OptionalPyblishPluginMixin,
             cls.log.debug("V-Ray multipass is not enabled, "
                           "skipping split gbuffer validation.")
 
+        return invalid
+
+    @classmethod
+    def get_invalid_local_render_output(cls, instance):
+        """Function to check if the local render output folder and filename
+        are correct.
+
+        Args:
+            instance (pyblish.api.Instance): instance
+        """
+        invalid = []
+        file = rt.maxFileName
+        workfile_name, ext = os.path.splitext(file)
+        # TODO: Remove this check once render output uses the $scene token template. See issue #123.
+        if workfile_name not in rt.rendOutputFilename:
+            cls.log.error(
+                "Render output folder must include"
+                f" the max scene name {workfile_name} "
+            )
+            invalid_folder_name = os.path.dirname(
+                rt.rendOutputFilename).replace(
+                    "\\", "/").split("/")[-1]
+            invalid.append(("Invalid Local Render Output Folder",
+                            invalid_folder_name))
         return invalid
 
     @classmethod

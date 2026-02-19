@@ -14,6 +14,11 @@ class ExtractThumbnail(publish.Extractor):
     families = ["review"]
 
     def process(self, instance):
+        if instance.data.get("productBaseType") == "render":
+            self.log.debug(
+                f"The instance {instance.name} is Render product type, "
+                "skipping thumbnail extraction.")
+            return
         ext = instance.data.get("imageFormat")
         frame = int(instance.data["frameStart"])
         staging_dir = self.staging_dir(instance)
