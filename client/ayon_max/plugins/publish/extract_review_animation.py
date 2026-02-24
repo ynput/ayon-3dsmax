@@ -18,6 +18,11 @@ class ExtractReviewAnimation(publish.Extractor):
     families = ["review"]
 
     def process(self, instance):
+        if instance.data.get("productBaseType") == "render":
+            self.log.debug(
+                f"The instance {instance.name} is Render product type, "
+                "skipping review animation extraction.")
+            return
         staging_dir = self.staging_dir(instance)
         ext = instance.data.get("imageFormat")
         start = int(instance.data["frameStart"])

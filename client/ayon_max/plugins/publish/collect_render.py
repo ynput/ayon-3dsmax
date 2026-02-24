@@ -2,6 +2,7 @@
 """Collect Render"""
 import os
 import pyblish.api
+import ayon_api
 
 from pymxs import runtime as rt
 from ayon_core.pipeline.publish import KnownPublishError
@@ -11,7 +12,7 @@ from ayon_max.api.lib_rendersettings import RenderSettings
 from ayon_max.api.lib_renderproducts import RenderProducts
 
 
-def get_camera_from_node(members):
+def get_cameras_from_node(members):
     """Get camera from instance members."""
     cameras = []
     for member in members:
@@ -50,7 +51,7 @@ class CollectRender(pyblish.api.InstancePlugin):
         files_by_aov.update(aovs)
 
         camera = rt.viewport.GetCamera()
-        camera_list = get_camera_from_node(instance.data.get("members"))
+        camera_list = get_cameras_from_node(instance.data.get("members"))
         if camera_list:
             camera = camera_list[-1]
 
@@ -61,10 +62,11 @@ class CollectRender(pyblish.api.InstancePlugin):
             if not cameras:
                 raise KnownPublishError("There should be at least"
                                         " one renderable camera in container")
-            sel_cam = get_camera_from_node(cameras)
+
+            sel_cam = [camera.name for camera in get_cameras_from_node(cameras)]
 
             container_name = instance.data.get("instance_node")
-            outputs = RenderSettings().batch_render_layer(
+            outputs = RenderSettings().batch_render_layers_by_multi_camera(
                 container_name, render_dir, sel_cam
             )
 
@@ -103,10 +105,18 @@ class CollectRender(pyblish.api.InstancePlugin):
         instance.data["renderProducts"] = colorspace.ARenderProduct()
         instance.data["publishJobState"] = "Suspended"
         instance.data["attachTo"] = []
+
         product_base_type = "maxrender"
+        creator_attribute = instance.data.get("creator_attributes", {})
+        farm_render: bool = (
+            creator_attribute.get("render_target", "farm") == "farm"
+        )
+        self._precollect_required_data(instance)
+
         # also need to get the render dir for conversion
         data = {
             "folderPath": instance.data["folderPath"],
+            "workfile_name": filename,
             "productName": str(instance.name),
             "publish": True,
             "original_workfile_pattern": render_dir.rsplit("\\")[-1],
@@ -121,7 +131,9 @@ class CollectRender(pyblish.api.InstancePlugin):
             "plugin": "3dsmax",
             "frameStart": instance.data["frameStartHandle"],
             "frameEnd": instance.data["frameEndHandle"],
-            "farm": True
+            "resolutionWidth": rt.renderWidth,
+            "resolutionHeight": rt.renderHeight,
+            "farm": farm_render
         }
         instance.data.update(data)
         self.log.debug(instance.data)
@@ -133,3 +145,34 @@ class CollectRender(pyblish.api.InstancePlugin):
                     "renderers.current.separateAovFiles")})
 
         self.log.info("data: {0}".format(data))
+
+    def _precollect_required_data(self, instance):
+        """Ensure required data is present.
+
+        Some data may not exist yet in the instance at this point, so we need
+        to ensure it is there for certain function calls, like
+        `create_instances_for_aov` requiring `taskEntity` in instance data
+        if setting `use_legacy_product_names_for_renders` is disabled which is
+        usually collected at a later order by `CollectAnatomyInstanceData`.
+        """""
+
+        project_name: str = instance.context.data["projectName"]
+
+        # Add folderEntity
+        if "folderEntity" not in instance.data:
+            self.log.debug("Collecting folder entity for instance...")
+            instance.data["folderEntity"] = ayon_api.get_folder_by_path(
+                project_name=project_name,
+                folder_path=instance.data["folderPath"],
+            )
+        folder_entity = instance.data["folderEntity"]
+
+        # Add taskEntity
+        if "taskEntity" not in instance.data:
+            self.log.debug("Collecting task entity for instance...")
+            project_name: str = instance.context.data["projectName"]
+            instance.data["taskEntity"] = ayon_api.get_task_by_name(
+                project_name=project_name,
+                task_name=instance.data["task"],
+                folder_id=folder_entity["id"],
+            )

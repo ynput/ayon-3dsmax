@@ -1,5 +1,4 @@
 import pyblish.api
-from pymxs import runtime as rt
 from ayon_core.pipeline import (
     OptionalPyblishPluginMixin
 )
@@ -25,6 +24,15 @@ class ValidateResolutionSetting(pyblish.api.InstancePlugin,
     actions = [RepairAction]
 
     def process(self, instance):
+        if (
+            "render.local" in instance.data["families"] or
+            "render.local_no_render" in instance.data["families"]
+        ):
+            self.log.debug(
+                "Skipping Validate Frame Range for "
+                "local render instance as it is already validated."
+            )
+            return
         if not self.is_active(instance.data):
             return
         width, height = self.get_folder_resolution(instance)
@@ -47,7 +55,7 @@ class ValidateResolutionSetting(pyblish.api.InstancePlugin,
                                          "on asset or shot.")
 
     def get_current_resolution(self, instance):
-        return rt.renderWidth, rt.renderHeight
+        return instance.data["resolutionWidth"], instance.data["resolutionHeight"]
 
     @classmethod
     def get_folder_resolution(cls, instance):
@@ -68,6 +76,7 @@ class ValidateResolutionSetting(pyblish.api.InstancePlugin,
 
 class ValidateReviewResolutionSetting(ValidateResolutionSetting):
     families = ["review"]
+    label = "Validate Review Resolution Setting"
     optional = True
     actions = [RepairAction]
 

@@ -215,6 +215,15 @@ def get_expected_render_folder(setting, filename):
     return os.path.join(render_folder, filename)
 
 
+def get_vray_settings(renderer):
+    """Get V-Ray specific settings from the renderer."""
+    renderer_class = get_current_renderer()
+    if "GPU" in renderer:
+        return renderer_class.V_Ray_settings
+    else:
+        return renderer_class
+
+
 def set_render_frame_range(start_frame, end_frame):
     """
     Note:
@@ -262,6 +271,7 @@ def get_multipass_setting(renderer, project_setting=None):
         )
 
     return False
+
 
 def set_scene_resolution(width: int, height: int):
     """Set the render resolution

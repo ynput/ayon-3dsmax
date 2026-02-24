@@ -36,6 +36,11 @@ class RenderProducts(object):
 
         start_frame = int(rt.rendStart)
         end_frame = int(rt.rendEnd) + 1
+        # todo: Support Custom Frames sequences 0,5-10,100-120
+        # we can add filtering frames list to get expected frames list
+        # instead of using start and end frame
+        # but if the custom frame disabled, we can still use start and end frame
+        # to get expected frames list
         return {
             "beauty": self.get_expected_beauty(
                 output_file, start_frame, end_frame, img_fmt,
@@ -74,7 +79,11 @@ class RenderProducts(object):
             ext = ext.replace(".", "")
             start_frame = int(rt.rendStart)
             end_frame = int(rt.rendEnd) + 1
-
+            # todo: Support Custom Frames sequences 0,5-10,100-120
+            # we can add filtering frames list to get expected frames list
+            # instead of using start and end frame
+            # but if the custom frame disabled, we can still use start and end frame
+            # to get expected frames list
             if renderer in [
                 "ART_Renderer",
                 "Default_Scanline_Renderer",
@@ -286,9 +295,9 @@ class RenderProducts(object):
             return render_name
         # get render elements from the renders
         for i in range(render_elem_num):
-            renderlayer_name = render_elem.GetRenderElement(i)
-            if renderlayer_name.enabled:
-                _, renderpass = str(renderlayer_name).split(":")
+            renderlayer = render_elem.GetRenderElement(i)
+            if renderlayer.enabled:
+                renderpass = renderlayer.elementname
                 render_name.append(renderpass)
 
         return render_name
