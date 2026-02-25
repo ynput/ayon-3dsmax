@@ -357,8 +357,11 @@ class MaxCreator(Creator, MaxCreatorBase):
 
         instance_node = self.create_instance_node(product_name)
         instance_data["instance_node"] = instance_node.name
+        product_type = instance_data.get("productType")
+        if not product_type:
+            product_type = self.product_base_type
         instance = CreatedInstance(
-            product_type=self.product_base_type,
+            product_type=product_type,
             product_base_type=self.product_base_type,
             product_name=product_name,
             data=instance_data,
@@ -452,8 +455,11 @@ class MaxCacheCreator(Creator, MaxTyFlowDataCreatorBase):
                                " found in tyCache Editor.")
         instance_node = self.create_instance_node(product_name)
         instance_data["instance_node"] = instance_node.name
+        product_type = instance_data.get("productType")
+        if not product_type:
+            product_type = self.product_base_type
         instance = CreatedInstance(
-            product_type=self.product_base_type,
+            product_type=product_type,
             product_base_type=self.product_base_type,
             product_name=product_name,
             data=instance_data,
