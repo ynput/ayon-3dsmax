@@ -3,8 +3,10 @@ from .imageio import ImageIOSettings
 from .render_settings import (
     RenderSettingsModel, DEFAULT_RENDER_SETTINGS
 )
+from .create import CreateModel
 from .create_review_settings import (
-    CreateReviewModel, DEFAULT_CREATE_REVIEW_SETTINGS
+    CreateReviewModel,
+    DEFAULT_CREATE_REVIEW_SETTINGS,
 )
 from .publishers import (
     PublishersModel, DEFAULT_PUBLISH_SETTINGS
@@ -88,6 +90,10 @@ class MaxSettings(BaseSettingsModel):
     PointCloud: PointCloudSettings = SettingsField(
         default_factory=PointCloudSettings,
         title="Point Cloud"
+    )
+    create: CreateModel = SettingsField(
+        default_factory=CreateModel,
+        title="Create Plugins"
     )
     publish: PublishersModel = SettingsField(
         default_factory=PublishersModel,

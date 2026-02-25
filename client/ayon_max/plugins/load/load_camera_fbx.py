@@ -18,7 +18,8 @@ from ayon_core.pipeline import load
 class FbxLoader(load.LoaderPlugin):
     """Fbx Loader."""
 
-    product_types = {"camera"}
+    product_base_types = {"camera"}
+    product_types = product_base_types
     label = "Load Camera (Fbx)"
     representations = {"fbx"}
     order = -9

@@ -27,9 +27,11 @@ class MaxPlaceholderLoadPlugin(MaxPlaceholderPlugin, PlaceholderLoadMixin):
         prefix, suffix = placeholder_data["builder_type"].split("_", 1)
         parts = [prefix]
 
-        placeholder_product_type = placeholder_data.get("product_type")
-        if placeholder_product_type:
-            parts.append(placeholder_product_type)
+        product_base_type = placeholder_data.get("product_base_type")
+        if not product_base_type:
+            product_base_type = placeholder_data.get("product_type")
+        if product_base_type:
+            parts.append(product_base_type)
 
         # add loader arguments if any
         loader_args = placeholder_data["loader_args"]

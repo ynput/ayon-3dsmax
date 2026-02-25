@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 """Creator plugin for model."""
-from ayon_max.api import plugin
+from ayon_max.api.plugin import MaxCreator
 
 
-class CreateModel(plugin.MaxCreator):
+class CreateModel(MaxCreator):
     """Creator plugin for Model."""
     identifier = "io.ayon.creators.max.model"
     label = "Model"
-    product_type = "model"
     product_base_type = "model"
+    product_type = product_base_type
     icon = "gear"
-
-    settings_category = "max"

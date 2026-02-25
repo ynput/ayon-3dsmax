@@ -17,7 +17,8 @@ from ayon_max.api.lib import maintained_selection
 class FbxModelLoader(load.LoaderPlugin):
     """Fbx Model Loader."""
 
-    product_types = {"model"}
+    product_base_types = {"model"}
+    product_types = product_base_types
     label = "Load Model (Fbx)"
     representations = {"fbx"}
     order = -9

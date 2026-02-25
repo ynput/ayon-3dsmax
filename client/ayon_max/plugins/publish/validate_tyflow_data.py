@@ -158,10 +158,11 @@ class ValidateTyFlowTySplineData(ValidateTyFlowData):
                 # check if the current export mode of the operator
                 # is valid for the tycache export.
                 if instance.data["exportMode"] == 2:
-                    family = instance.data["productType"]
+                    product_base_type = instance.data["productBaseType"]
                     self.log.debug(
-                        "Skipping checking spline path nodes "
-                        f"as this instance exports in {family} format")
+                        "Skipping checking spline path nodes as this"
+                        f" instance exports in {product_base_type} format"
+                    )
                     return invalid
             # check against the spline path node if
             # the export mode is tyspline

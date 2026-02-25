@@ -34,17 +34,11 @@ class ValidateLoadedPlugin(OptionalPyblishPluginMixin,
         """Plugin entry point."""
         family_plugins_mapping = cls.family_plugins_mapping
         if not family_plugins_mapping:
-            return
-
-        # Backward compatibility - settings did have 'product_types'
-        if "product_types" in family_plugins_mapping:
-            family_plugins_mapping["families"] = family_plugins_mapping.pop(
-                "product_types"
-            )
+            return []
 
         invalid = []
         # Find all plug-in requirements for current instance
-        instance_families = {instance.data["productType"]}
+        instance_families = {instance.data["productBaseType"]}
         instance_families.update(instance.data.get("families", []))
         cls.log.debug("Checking plug-in validation "
                       f"for instance families: {instance_families}")
@@ -52,9 +46,6 @@ class ValidateLoadedPlugin(OptionalPyblishPluginMixin,
 
         for mapping in family_plugins_mapping:
             # Check for matching families
-            if not mapping:
-                return
-
             match_families = {
                 fam.strip() for fam in mapping["families"]
             }
@@ -79,7 +70,7 @@ class ValidateLoadedPlugin(OptionalPyblishPluginMixin,
 
         if not all_required_plugins:
             # Instance has no plug-in requirements
-            return
+            return []
 
         # get all DLL loaded plugins in Max and their plugin index
         available_plugins = {

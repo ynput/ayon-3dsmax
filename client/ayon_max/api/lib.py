@@ -697,8 +697,11 @@ def update_modifier_node_names(event, node):
         }:
             continue
 
-        product_type = rt.getUserProp(obj, "productType")
-        if product_type in {"workfile", "tyflow"}:
+        product_base_type = rt.getUserProp(obj, "productBaseType")
+        if not product_base_type:
+            product_base_type = rt.getUserProp(obj, "productType")
+
+        if product_base_type in {"workfile", "tyflow"}:
             containers.append(obj)
 
     if not containers:

@@ -1,19 +1,17 @@
 # -*- coding: utf-8 -*-
 """Creator plugin for creating review in Max."""
-from ayon_max.api import plugin
+from ayon_max.api.plugin import MaxCreator
 from ayon_core.lib import BoolDef, EnumDef, NumberDef
 
 
-class CreateReview(plugin.MaxCreator):
+class CreateReview(MaxCreator):
     """Review in 3dsMax"""
 
     identifier = "io.ayon.creators.max.review"
     label = "Review"
-    product_type = "review"
     product_base_type = "review"
+    product_type = product_base_type
     icon = "video-camera"
-
-    settings_category = "max"
 
     review_width = 1920
     review_height = 1080

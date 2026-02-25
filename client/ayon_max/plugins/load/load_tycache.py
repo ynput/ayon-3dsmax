@@ -17,7 +17,8 @@ class TyCacheLoader(load.LoaderPlugin):
     """TyCache Loader."""
 
     label = "Load TyCache"
-    product_types = {"tycache"}
+    product_base_types = {"tycache"}
+    product_types = product_base_types
     representations = {"tyc"}
     order = -8
     icon = "code-fork"
@@ -75,7 +76,8 @@ class TySplineCacheLoader(TyCacheLoader):
     """TyCache(Spline) Loader."""
 
     label = "Load TySpline Cache"
-    product_types = {"tyspline"}
+    product_base_types = {"tyspline"}
+    product_types = product_base_types
     representations = {"tyc"}
     order = -8
     icon = "code-fork"

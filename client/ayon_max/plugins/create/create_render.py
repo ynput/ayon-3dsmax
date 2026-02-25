@@ -1,24 +1,25 @@
 # -*- coding: utf-8 -*-
 """Creator plugin for creating camera."""
 import os
-from ayon_max.api import plugin
+
 from ayon_core.lib import BoolDef, EnumDef
 from ayon_core.pipeline import CreatorError
+
+from ayon_max.api.plugin import MaxCreator
 from ayon_max.api.lib_rendersettings import RenderSettings
 
 from pymxs import runtime as rt
 
 
-class CreateRender(plugin.MaxCreator):
+class CreateRender(MaxCreator):
     """Creator plugin for Renders."""
     identifier = "io.ayon.creators.max.render"
     label = "Render"
-    product_type = "maxrender"
     product_base_type = "maxrender"
+    product_type = product_base_type
     icon = "gear"
 
     render_target = "farm"
-    settings_category = "max"
 
     def create(self, product_name, instance_data, pre_create_data):
         file = rt.maxFileName
@@ -30,9 +31,9 @@ class CreateRender(plugin.MaxCreator):
             rt.batchRenderMgr.DeleteView(num_of_renderlayer)
 
         container = rt.getNodeByName(product_name)
-        product_type = instance_data["productType"]
+        product_base_type = instance_data["productBaseType"]
         # check if there is existing render instance
-        if container and product_name.startswith(product_type):
+        if container and product_name.startswith(product_base_type):
             raise CreatorError("Render instance already exists")
 
         instance = super(CreateRender, self).create(
@@ -72,5 +73,5 @@ class CreateRender(plugin.MaxCreator):
         return attrs + [
             BoolDef("multi_cam",
                     label="Multiple Cameras Submission",
-                    default=False)
+                    default=False),
         ]

@@ -22,7 +22,8 @@ from ayon_core.pipeline import load
 class ModelUSDLoader(load.LoaderPlugin):
     """Loading model with the USD loader."""
 
-    product_types = {"model"}
+    product_base_types = {"model"}
+    product_types = product_base_types
     label = "Load Model (USD)"
     representations = {"usda"}
     order = -10
