@@ -34,6 +34,11 @@ class CollectTyFlowData(pyblish.api.InstancePlugin,
             in container.modifiers[0].AYONTyCacheData.tyc_exports
         ]
         attr_values = self.get_attr_values_from_data(instance.data)
+
+        i_product_type = instance.data["productType"]
+        if i_product_type == instance.data["productBaseType"]:
+            i_product_type = None
+
         for tyc_product_name in tyc_product_names:
             self.log.debug(f"Creating instance for operator:{tyc_product_name}")
             tyc_instance = context.create_instance(tyc_product_name)
@@ -43,11 +48,18 @@ class CollectTyFlowData(pyblish.api.InstancePlugin,
             prod_name = re.sub(r"\s+", "_", tyc_product_name)
             operator = next((node for node in get_tyflow_export_operators()
                              if node.name == tyc_product_name), None)   # noqa
+
             product_base_type = (
                 "tycache"
                 if operator.exportMode == 2
                 else "tyspline"
             )
+            # Keep custom product type only if is not the same
+            #   as product base type
+            product_type = i_product_type
+            if not product_type:
+                product_type = product_base_type
+
             tyc_instance.data.update({
                 "name": f"{container_name}_{prod_name}",
                 "label": f"{container_name}_{prod_name}",
@@ -58,7 +70,7 @@ class CollectTyFlowData(pyblish.api.InstancePlugin,
                 "operator": operator,
                 "exportMode": operator.exportMode,
                 "material_cache": attr_values.get("material"),
-                "productType": product_base_type,
+                "productType": product_type,
                 "productBaseType": product_base_type,
                 "creator_identifier": (
                     f"io.ayon.creators.max.{product_base_type}"),

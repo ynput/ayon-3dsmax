@@ -107,6 +107,13 @@ class CollectRender(pyblish.api.InstancePlugin):
         instance.data["attachTo"] = []
 
         product_base_type = "maxrender"
+
+        # Keep custom product type only if is not the same
+        #   as product base type
+        product_type = instance.data["productType"]
+        if product_type == instance.data["productBaseType"]:
+            product_type = product_base_type
+
         creator_attribute = instance.data.get("creator_attributes", {})
         farm_render: bool = (
             creator_attribute.get("render_target", "farm") == "farm"
@@ -123,7 +130,7 @@ class CollectRender(pyblish.api.InstancePlugin):
             "maxversion": str(get_max_version()),
             "imageFormat": img_format,
             "productBaseType": product_base_type,
-            "productType": product_base_type,
+            "productType": product_type,
             "family": product_base_type,
             "families": [product_base_type],
             "renderer": renderer,
