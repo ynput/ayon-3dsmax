@@ -19,7 +19,6 @@ class ExtractThumbnail(publish.Extractor):
             "render.local_no_render" in instance.data["families"]
         ):
             self.log.debug(
-                f"The instance {instance.name} is Render product type, "
                 f"The instance {instance.name} is rendering locally, "
                 "skipping thumbnail extraction.")
             return
