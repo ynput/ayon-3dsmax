@@ -202,8 +202,16 @@ def get_current_renderer():
 
 def get_default_render_folder(project_setting=None):
     folder = rt.maxFilePath
-    # hard-coded, should be customized in the setting
-    folder = folder.replace("\\", "/")
+    if not folder:
+        current_workfile = registered_host().get_current_workfile()
+        if current_workfile:
+            folder = os.path.dirname(current_workfile)
+
+    if not folder :
+        raise RuntimeError(
+            "Cannot determine absolute scene directory for render outputs."
+        )
+
     render_folder = (project_setting["max"]
                                     ["RenderSettings"]
                                     ["default_render_image_folder"])

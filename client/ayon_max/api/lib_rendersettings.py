@@ -69,17 +69,13 @@ class RenderSettings(object):
         raise RuntimeError("Active Camera not found")
 
     def render_output(self, container):
-        folder = rt.maxFilePath
         # hard-coded, should be customized in the setting
         file = rt.maxFileName
-        folder = folder.replace("\\", "/")
         # hard-coded, set the renderoutput path
         setting = self._project_settings
         render_folder = get_default_render_folder(setting)
-        filename, ext = os.path.splitext(file)
-        output_dir = os.path.join(folder,
-                                  render_folder,
-                                  filename)
+        filename, _ = os.path.splitext(file)
+        output_dir = os.path.join(render_folder, filename)
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         # hard-coded, should be customized in the setting
