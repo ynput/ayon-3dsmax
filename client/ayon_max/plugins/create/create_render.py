@@ -3,7 +3,7 @@
 import os
 
 from ayon_core.lib import BoolDef, EnumDef
-from ayon_core.pipeline import CreatorError
+from ayon_core.pipeline import CreatorError, registered_host
 
 from ayon_max.api.plugin import MaxCreator
 from ayon_max.api.lib_rendersettings import RenderSettings
@@ -23,6 +23,12 @@ class CreateRender(MaxCreator):
 
     def create(self, product_name, instance_data, pre_create_data):
         file = rt.maxFileName
+        host = registered_host()
+        current_file = host.get_current_workfile()
+        if not current_file or not file:
+            raise CreatorError(
+                "Please save the scene before creating render instance"
+            )
         filename, _ = os.path.splitext(file)
         instance_data["AssetName"] = filename
         instance_data["multiCamera"] = pre_create_data.get("multi_cam")
