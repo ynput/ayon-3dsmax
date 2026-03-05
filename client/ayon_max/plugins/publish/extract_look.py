@@ -23,7 +23,7 @@ class ExtractLook(publish.Extractor):
         filename = "{name}.mat".format(**instance.data)
         filepath = os.path.join(stagingdir, filename)
         matlib_filepath = instance.data["matlib_filepath"]
-        rt.sme.SaveMtlLibAs(matlib_filepath, filepath)
+        rt.sme.SaveMtlLibAs(matlib_filepath, newPath=filepath)
 
         if "representations" not in instance.data:
             instance.data["representations"] = []
