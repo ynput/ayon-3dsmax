@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Creator plugin for creating camera."""
 import os
-from pathlib import Path
 
 from ayon_core.pipeline import CreatorError
 from ayon_max.api.plugin import MaxCreator
@@ -16,6 +15,9 @@ class CreateLook(MaxCreator):
     product_base_type = "look"
     product_type = product_base_type
     icon = "gear"
+
+    # Settings
+    remove_matlib_when_remove_instance = True
 
     def create(self, product_name, instance_data, pre_create_data):
         """Create a new look instance which stores material library.
@@ -85,16 +87,16 @@ class CreateLook(MaxCreator):
         # TODO: support to customize matlib folder template in the settings
         folder_path = instance_data["folderPath"]
         task = instance_data["task"]
-        matlib_directory = Path(workdir) / "matlib" / folder_path / task
-        matlib_directory.mkdir(parents=True, exist_ok=True)
-        matlib_filepath = matlib_directory / f"{product_name}.mat"
+        matlib_directory = os.path.join(workdir, "matlib", folder_path, task)
+        os.makedirs(matlib_directory, exist_ok=True)
+        matlib_filepath = os.path.join(matlib_directory, f"{product_name}.mat")
         # If the file exists, uses the existing one,
         # otherwise creates a new one.
-        if not matlib_filepath.exists():
+        if not os.path.exists(matlib_filepath):
             with open(matlib_filepath, "w", encoding="utf-8"):
                 pass
 
-        return str(matlib_filepath)
+        return matlib_filepath
 
     def get_pre_create_attr_defs(self):
         return []
