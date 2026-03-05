@@ -94,7 +94,8 @@ class CreateLook(MaxCreator):
         # If the file exists, uses the existing one,
         # otherwise creates a new one.
         if not matlib_filepath.exists():
-            with open(matlib_filepath, "w", encoding="utf-8") as f: pass
+            with open(matlib_filepath, "w", encoding="utf-8"):
+                pass
 
         return str(matlib_filepath)
 

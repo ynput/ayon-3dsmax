@@ -13,6 +13,23 @@ class ProductTypeItemModel(BaseSettingsModel):
     )
 
 
+class CreateLookModel(BaseSettingsModel):
+    product_type_items: list[ProductTypeItemModel] = SettingsField(
+        default_factory=list,
+        title="Product type items",
+        description=(
+            "Optional list of product types that this plugin can create."
+        )
+    )
+    remove_matlib_when_remove_instance: bool = SettingsField(
+        True,
+        title="Remove material library when remove instance",
+        description=(
+            "Whether to remove the material library when the instance is removed."
+        )
+    )
+
+
 class CreatePluginModel(BaseSettingsModel):
     product_type_items: list[ProductTypeItemModel] = SettingsField(
         default_factory=list,
@@ -60,5 +77,7 @@ class CreateModel(BaseSettingsModel):
         default_factory=CreatePluginModel,
         title="TyFlow"
     )
-
-
+    CreateLook: CreateLookModel = SettingsField(
+        default_factory=CreateLookModel,
+        title="Look"
+    )
