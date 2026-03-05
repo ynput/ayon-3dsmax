@@ -17,9 +17,6 @@ class CreateLook(MaxCreator):
     product_type = product_base_type
     icon = "gear"
 
-    # Settings
-    remove_matlib_when_remove_instance = True
-
     def create(self, product_name, instance_data, pre_create_data):
         """Create a new look instance which stores material library.
 
