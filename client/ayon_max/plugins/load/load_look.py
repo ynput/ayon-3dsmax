@@ -1,7 +1,7 @@
 from ayon_core.pipeline import load
 from ayon_max.api.pipeline import containerise, remove_container_data
 
-from ayon_max.api.lib import imprint
+from ayon_max.api.lib import imprint, unique_namespace
 
 from pymxs import runtime as rt
 
@@ -20,6 +20,12 @@ class LookLoader(load.LoaderPlugin):
     def load(self, context, name, namespace, data):
         """Load the material library file into the scene and containerise it."""
         file_path = self.filepath_from_context(context)
+        folder_name = context["folder"]["name"]
+        namespace = unique_namespace(
+            name + "_",
+            prefix=f"{folder_name}_",
+            suffix="_",
+        )
         rt.sme.OpenMtlLib(file_path)
         return containerise(
             name,
