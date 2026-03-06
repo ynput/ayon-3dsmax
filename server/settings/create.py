@@ -13,7 +13,7 @@ class ProductTypeItemModel(BaseSettingsModel):
     )
 
 
-class CreateLookModel(BaseSettingsModel):
+class CreateMatlibModel(BaseSettingsModel):
     product_type_items: list[ProductTypeItemModel] = SettingsField(
         default_factory=list,
         title="Product type items",
@@ -77,7 +77,7 @@ class CreateModel(BaseSettingsModel):
         default_factory=CreatePluginModel,
         title="TyFlow"
     )
-    CreateLook: CreateLookModel = SettingsField(
-        default_factory=CreateLookModel,
-        title="Look"
+    CreateMatlib: CreateMatlibModel = SettingsField(
+        default_factory=CreateMatlibModel,
+        title="Material Library"
     )

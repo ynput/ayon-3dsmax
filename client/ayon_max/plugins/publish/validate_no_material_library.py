@@ -19,7 +19,7 @@ class ValidateNoMaterialLibrary(pyblish.api.InstancePlugin):
     """
 
     order = pyblish.api.ValidatorOrder
-    families = ["look"]
+    families = ["matlib"]
     hosts = ["max"]
     label = "No Material Library"
     actions = [RepairAction]

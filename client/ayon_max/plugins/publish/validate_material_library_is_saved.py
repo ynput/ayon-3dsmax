@@ -15,7 +15,7 @@ class ValidateMaterialLibraryIsSaved(pyblish.api.InstancePlugin):
     """
 
     order = pyblish.api.ValidatorOrder
-    families = ["look"]
+    families = ["matlib"]
     hosts = ["max"]
     label = "Material Library Is Saved"
     actions = [RepairAction]
@@ -31,7 +31,7 @@ class ValidateMaterialLibraryIsSaved(pyblish.api.InstancePlugin):
     @classmethod
     def get_invalid(cls, instance):
         """
-        Get invalid nodes if the instance is not camera
+        Get invalid nodes if the instance is not material library file saved.
         """
         invalid = []
         matlib_filepath = instance.data["matlib_filepath"]

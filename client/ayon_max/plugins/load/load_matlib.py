@@ -6,11 +6,11 @@ from ayon_max.api.lib import imprint, unique_namespace
 from pymxs import runtime as rt
 
 
-class LookLoader(load.LoaderPlugin):
+class LoadMatlib(load.LoaderPlugin):
     """Load material library files with Material Library"""
 
-    label = "Load Look"
-    product_base_types = {"look"}
+    label = "Load Material Library"
+    product_base_types = {"matlib"}
     product_types = product_base_types
     representations = {"mat"}
     order = -9

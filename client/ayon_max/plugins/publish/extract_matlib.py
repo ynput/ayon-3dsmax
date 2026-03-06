@@ -4,20 +4,20 @@ from ayon_core.pipeline import publish
 from pymxs import runtime as rt
 
 
-class ExtractLook(publish.Extractor):
+class ExtractMatlib(publish.Extractor):
     """
-    Extract Look with Material Library
+    Extract Material Library
     """
 
     order = pyblish.api.ExtractorOrder - 0.2
-    label = "Extract Look"
+    label = "Extract Material Library"
     hosts = ["max"]
-    families = ["look"]
+    families = ["matlib"]
 
     settings_category = "max"
 
     def process(self, instance):
-        self.log.debug("Extracting Look.")
+        self.log.debug("Extracting Material Library.")
 
         stagingdir = self.staging_dir(instance)
         filename = "{name}.mat".format(**instance.data)

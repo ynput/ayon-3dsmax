@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-"""Creator plugin for creating camera."""
+"""Creator plugin for creating material library."""
 import os
 
 from ayon_core.pipeline import CreatorError
@@ -8,11 +7,11 @@ from ayon_max.api.plugin import MaxCreator
 from pymxs import runtime as rt
 
 
-class CreateLook(MaxCreator):
+class CreateMatlib(MaxCreator):
     """Creator plugin for Material Library."""
-    identifier = "io.ayon.creators.max.look"
-    label = "Look"
-    product_base_type = "look"
+    identifier = "io.ayon.creators.max.matlib"
+    label = "Material Library"
+    product_base_type = "matlib"
     product_type = product_base_type
     icon = "gear"
 
@@ -20,7 +19,7 @@ class CreateLook(MaxCreator):
     remove_matlib_when_remove_instance = True
 
     def create(self, product_name, instance_data, pre_create_data):
-        """Create a new look instance which stores material library.
+        """Create a new material library instance.
 
         Args:
             product_name (str): Name of the product.
@@ -38,11 +37,11 @@ class CreateLook(MaxCreator):
         instance_data["matlib_filepath"] = matlib_filepath
         container = rt.getNodeByName(product_name)
         product_base_type = instance_data["productBaseType"]
-        # check if there is existing look instance
+        # check if there is existing material library instance
         if container and product_name.startswith(product_base_type):
-            raise CreatorError("Look instance already exists")
+            raise CreatorError("Material library instance already exists")
 
-        super(CreateLook, self).create(
+        super(CreateMatlib, self).create(
             product_name,
             instance_data,
             pre_create_data)

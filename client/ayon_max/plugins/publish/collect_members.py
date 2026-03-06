@@ -7,7 +7,7 @@ from ayon_max.api.lib import get_ayon_data
 
 FILTER_PRODUCT_BASE_TYPES = {
      "workfile", "tyflow", "tycache",
-     "tyspline", "renderpreset", "look"
+     "tyspline", "renderpreset", "matlib"
 }
 
 
