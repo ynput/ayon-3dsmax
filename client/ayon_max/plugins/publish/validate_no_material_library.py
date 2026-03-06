@@ -37,7 +37,6 @@ class ValidateNoMaterialLibrary(pyblish.api.InstancePlugin):
                 "is not present before publishing. "
             )
 
-
     @classmethod
     def repair(cls, instance):
         """Repair action to open the material library."""
