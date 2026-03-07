@@ -31,9 +31,7 @@ class CreateMatlib(MaxCreator):
         """
         # I need to create dummy mat instance and then open it
         # imprint matlib_filepath as part of the data
-        matlib_filepath = self.get_material_library_filepath(
-            instance_data, product_name
-        )
+        matlib_filepath = self.get_material_library_filepath(product_name)
         instance_data["matlib_filepath"] = matlib_filepath
         container = rt.getNodeByName(product_name)
         product_base_type = instance_data["productBaseType"]
@@ -64,29 +62,38 @@ class CreateMatlib(MaxCreator):
             material_library_filepath = instance.data.get("matlib_filepath")
             rt.sme.CloseMtlLib(material_library_filepath)
 
-            if self.remove_matlib_when_remove_instance:
+            if (
+                self.remove_matlib_when_remove_instance
+                and os.path.exists(material_library_filepath)
+            ):
+                self.log.warning(
+                    f"Removing material library file: {material_library_filepath}"
+                )
                 os.remove(material_library_filepath)
+                
+                # Remove the parent directory if it is empty
+                matlib_dir = os.path.dirname(material_library_filepath)
+                if os.path.exists(matlib_dir) and not os.listdir(matlib_dir):
+                    self.log.warning(
+                        f"Removing empty material library directory: {matlib_dir}"
+                    )
+                    os.rmdir(matlib_dir)
 
             if instance_node:
                 rt.Delete(instance_node)
 
             self._remove_instance_from_context(instance)
 
-    def get_material_library_filepath(self, instance_data, product_name):
+    def get_material_library_filepath(self, product_name):
         """Get the file path for the material library.
 
         Args:
-            instance_data (dict): Data related to the instance.
             product_name (str): Name of the product.
 
         Returns:
             str: File path for the material library.
         """
-        workdir = os.getenv("AYON_WORKDIR")
-        # TODO: support to customize matlib folder template in the settings
-        folder_path = instance_data["folderPath"]
-        task = instance_data["task"]
-        matlib_directory = os.path.join(workdir, "matlib", folder_path, task)
+        matlib_directory = os.path.join(os.getenv("AYON_WORKDIR"), "matlib")
         os.makedirs(matlib_directory, exist_ok=True)
         matlib_filepath = os.path.join(matlib_directory, f"{product_name}.mat")
         # If the file exists, uses the existing one,
