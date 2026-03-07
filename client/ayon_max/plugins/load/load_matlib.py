@@ -36,27 +36,10 @@ class LoadMatlib(load.LoaderPlugin):
             additional_data={"matlib_filepath": file_path}
         )
 
-    def update(self, container, context):
-        """Update the material library file path in the container."""
-        # Close the previous filepath
-        prev_filepath = container["matlib_filepath"]
-        rt.sme.CloseMtlLib(prev_filepath)
-        # Open the updated filepath
-        updated_filepath = self.filepath_from_context(context)
-        rt.sme.OpenMtlLib(updated_filepath)
-        repre_entity = context["representation"]
-        imprint(container["instance_node"], {
-            "representation": repre_entity["id"],
-            "project_name": context["project"]["name"],
-            "matlib_filepath": updated_filepath,
-        })
-
-    def switch(self, container, context):
-        self.update(container, context)
-
     def remove(self, container):
         """Remove the material library from the scene and clean up the container."""
         matlib_filepath = container["matlib_filepath"]
         if matlib_filepath:
             rt.sme.CloseMtlLib(matlib_filepath)
-        remove_container_data(container["instance_node"])
+        container_node = rt.getNodeByName(container["instance_node"])
+        remove_container_data(container_node)
