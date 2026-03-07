@@ -1,7 +1,7 @@
 from ayon_core.pipeline import load
 from ayon_max.api.pipeline import containerise, remove_container_data
 
-from ayon_max.api.lib import imprint, unique_namespace
+from ayon_max.api.lib import unique_namespace
 
 from pymxs import runtime as rt
 
