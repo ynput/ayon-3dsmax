@@ -296,7 +296,8 @@ def on_open():
 
 
 def containerise(name: str, nodes: list, context,
-                 namespace=None, loader=None, suffix="_CON"):
+                 namespace=None, loader=None, suffix="_CON",
+                 additional_data: dict=None):
     data = {
         "schema": "ayon:container-3.0",
         "id": AYON_CONTAINER_ID,
@@ -306,6 +307,8 @@ def containerise(name: str, nodes: list, context,
         "representation": context["representation"]["id"],
         "project_name": context["project"]["name"]
     }
+    if additional_data:
+        data.update(additional_data)
     container_name = f"{namespace}:{name}{suffix}"
     container = rt.container(name=container_name)
     import_custom_attribute_data(container, nodes)

@@ -5,6 +5,12 @@ from pymxs import runtime as rt
 from ayon_max.api.lib import get_ayon_data
 
 
+FILTER_PRODUCT_BASE_TYPES = {
+     "workfile", "tyflow", "tycache",
+     "tyspline", "renderpreset", "matlib"
+}
+
+
 class CollectMembers(pyblish.api.InstancePlugin):
     """Collect Set Members."""
 
@@ -13,11 +19,10 @@ class CollectMembers(pyblish.api.InstancePlugin):
     hosts = ['max']
 
     def process(self, instance):
-        if instance.data["productBaseType"] in {
-            "workfile", "tyflow", "tycache", "tyspline", "renderpreset"}:
+        if instance.data["productBaseType"] in FILTER_PRODUCT_BASE_TYPES:
                 self.log.debug(
-                    "Skipping Collecting Members for workfile "
-                    "and tyflow product type."
+                    "Skipping Collecting Members for "
+                    f"{instance.data['productBaseType']} product base type."
                 )
                 return
 
