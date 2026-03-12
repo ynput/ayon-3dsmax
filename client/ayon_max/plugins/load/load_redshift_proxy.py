@@ -82,7 +82,8 @@ class RedshiftVolumeLoader(RedshiftProxyLoader):
     label = "Load VDB"
     product_base_types = {"vdbcache"}
     product_types = product_base_types
-    representations = {"vdb"}
+    representations = {"*"}
+    extensions = {"vdb"}
     order = -9
     icon = "code-fork"
     color = "orange"

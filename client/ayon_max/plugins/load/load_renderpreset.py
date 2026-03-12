@@ -13,7 +13,8 @@ class RenderPresetLoader(load.LoaderPlugin):
     label = "Load Render Preset"
     product_base_types = {"renderpreset"}
     product_types = product_base_types
-    representations = {"rps"}
+    representations = {"*"}
+    extensions = {"rps"}
     order = -9
     icon = "code-fork"
     color = "white"
