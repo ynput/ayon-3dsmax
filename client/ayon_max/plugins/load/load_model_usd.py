@@ -26,7 +26,7 @@ class ModelUSDLoader(load.LoaderPlugin):
     product_types = product_base_types
     label = "Load Model (USD)"
     representations = {"*"}
-    extensions = {"usda"}
+    extensions = {"usd", "usda", "usdc"}
     order = -10
     icon = "code-fork"
     color = "orange"
