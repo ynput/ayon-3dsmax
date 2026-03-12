@@ -20,7 +20,8 @@ class PointCloudLoader(load.LoaderPlugin):
     product_base_types = {"*"}
     product_types = product_base_types
     label = "Load Point Cloud"
-    representations = {"prt"}
+    representations = {"*"}
+    extensions = {"prt"}
     order = -8
     icon = "code-fork"
     color = "green"

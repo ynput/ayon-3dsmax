@@ -78,7 +78,8 @@ class MaxSceneLoader(load.LoaderPlugin):
         "model",
     }
     product_types = product_base_types
-    representations = {"max"}
+    representations = {"*"}
+    extensions = {"max"}
     label = "Load Max Scene"
     order = -8
     icon = "code-fork"

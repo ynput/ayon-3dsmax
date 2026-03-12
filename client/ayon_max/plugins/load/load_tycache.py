@@ -19,7 +19,8 @@ class TyCacheLoader(load.LoaderPlugin):
     label = "Load TyCache"
     product_base_types = {"tycache"}
     product_types = product_base_types
-    representations = {"tyc"}
+    representations = {"*"}
+    extensions = {"tyc"}
     order = -8
     icon = "code-fork"
     color = "green"

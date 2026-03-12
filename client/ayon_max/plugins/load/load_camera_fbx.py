@@ -21,7 +21,8 @@ class FbxLoader(load.LoaderPlugin):
     product_base_types = {"camera"}
     product_types = product_base_types
     label = "Load Camera (Fbx)"
-    representations = {"fbx"}
+    representations = {"*"}
+    extensions = {"fbx"}
     order = -9
     icon = "code-fork"
     color = "white"
