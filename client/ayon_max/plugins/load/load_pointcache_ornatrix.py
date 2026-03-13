@@ -24,7 +24,8 @@ class OxAbcLoader(load.LoaderPlugin):
     product_base_types = {"camera", "animation", "pointcache"}
     product_types = product_base_types
     label = "Load Alembic with Ornatrix"
-    representations = {"abc"}
+    representations = {"*"}
+    extensions = {"abc"}
     order = -10
     icon = "code-fork"
     color = "orange"

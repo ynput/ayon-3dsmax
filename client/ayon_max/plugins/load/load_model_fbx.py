@@ -20,7 +20,8 @@ class FbxModelLoader(load.LoaderPlugin):
     product_base_types = {"model"}
     product_types = product_base_types
     label = "Load Model (Fbx)"
-    representations = {"fbx"}
+    representations = {"*"}
+    extensions = {"fbx"}
     order = -9
     icon = "code-fork"
     color = "white"

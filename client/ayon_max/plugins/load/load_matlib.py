@@ -12,7 +12,8 @@ class LoadMatlib(load.LoaderPlugin):
     label = "Load Material Library"
     product_base_types = {"matlib"}
     product_types = product_base_types
-    representations = {"mat"}
+    representations = {"*"}
+    extensions = {"mat"}
     order = -9
     icon = "code-fork"
     color = "white"

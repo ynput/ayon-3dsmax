@@ -22,7 +22,8 @@ class ObjLoader(load.LoaderPlugin):
     product_base_types = {"model"}
     product_types = product_base_types
     label = "Load Model (Obj)"
-    representations = {"obj"}
+    representations = {"*"}
+    extensions = {"obj"}
     order = -9
     icon = "code-fork"
     color = "white"

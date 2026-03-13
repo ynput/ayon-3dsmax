@@ -21,7 +21,8 @@ class AbcLoader(load.LoaderPlugin):
     product_base_types = {"camera", "animation", "pointcache"}
     product_types = product_base_types
     label = "Load Alembic"
-    representations = {"abc"}
+    representations = {"*"}
+    extensions = {"abc"}
     order = -10
     icon = "code-fork"
     color = "orange"

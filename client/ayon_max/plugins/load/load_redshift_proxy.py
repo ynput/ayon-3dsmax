@@ -23,7 +23,8 @@ class RedshiftProxyLoader(load.LoaderPlugin):
     label = "Load Redshift Proxy"
     product_base_types = {"redshiftproxy"}
     product_types = product_base_types
-    representations = {"rs"}
+    representations = {"*"}
+    extensions = {"rs"}
     order = -9
     icon = "code-fork"
     color = "white"
@@ -81,7 +82,8 @@ class RedshiftVolumeLoader(RedshiftProxyLoader):
     label = "Load VDB"
     product_base_types = {"vdbcache"}
     product_types = product_base_types
-    representations = {"vdb"}
+    representations = {"*"}
+    extensions = {"vdb"}
     order = -9
     icon = "code-fork"
     color = "orange"
