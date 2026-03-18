@@ -137,7 +137,6 @@ class RenderSettings(object):
         elif renderer == "Redshift_Renderer":
             rt.rendOutputFilename = output_filename
             rt.renderers.current.separateAovFiles = multipass_enabled
-            self.render_element_layer(output, width, height, img_fmt)
             if img_fmt == "exr" and multipass_enabled:
                 rt.renderers.current.OutputExrMultipart = multipass_enabled
 
