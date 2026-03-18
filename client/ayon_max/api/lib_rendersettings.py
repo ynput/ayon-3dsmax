@@ -137,6 +137,8 @@ class RenderSettings(object):
         elif renderer == "Redshift_Renderer":
             rt.rendOutputFilename = output_filename
             rt.renderers.current.separateAovFiles = multipass_enabled
+            if img_fmt == "exr" and multipass_enabled:
+                rt.renderers.current.OutputExrMultipart = multipass_enabled
 
         # prevent rendering extra files when using V-Ray
         rt.rendSaveFile = True if not renderer.startswith("V_Ray_") else False
@@ -189,8 +191,10 @@ class RenderSettings(object):
             return
 
         for i in range(render_elem_num):
-            renderlayer_name = render_elem.GetRenderElement(i)
-            target, renderpass = str(renderlayer_name).split(":")
+            renderlayer = render_elem.GetRenderElement(i)
+            if not renderlayer.enabled:
+                return
+            renderpass = renderlayer.elementname
             aov_name = f"{dir}_{renderpass}..{ext}"
             render_elem.SetRenderElementFileName(i, aov_name)
 
