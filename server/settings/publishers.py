@@ -87,7 +87,8 @@ class BasicValidateModel(BaseSettingsModel):
 class PublishersModel(BaseSettingsModel):
     CollectRender: CollectRenderModel = SettingsField(
         default_factory=CollectRenderModel,
-        title="Collect Render"
+        title="Collect Render",
+        section="Collectors"
     )
     ValidateInstanceInContext: BasicValidateModel = SettingsField(
         default_factory=BasicValidateModel,
