@@ -5,6 +5,12 @@ from ayon_server.settings import BaseSettingsModel, SettingsField
 from ayon_server.exceptions import BadRequestException
 
 
+class CollectRenderModel(BaseSettingsModel):
+    sync_workfile_version: bool = SettingsField(
+        title="Sync render version with workfile"
+    )
+
+
 class ValidateAttributesModel(BaseSettingsModel):
     enabled: bool = SettingsField(title="ValidateAttributes")
     attributes: str = SettingsField(
@@ -79,6 +85,10 @@ class BasicValidateModel(BaseSettingsModel):
 
 
 class PublishersModel(BaseSettingsModel):
+    CollectRender: CollectRenderModel = SettingsField(
+        default_factory=CollectRenderModel,
+        title="Collect Render"
+    )
     ValidateInstanceInContext: BasicValidateModel = SettingsField(
         default_factory=BasicValidateModel,
         title="Validate Instance In Context",
@@ -148,6 +158,9 @@ class PublishersModel(BaseSettingsModel):
 
 
 DEFAULT_PUBLISH_SETTINGS = {
+    "CollectRender": {
+        "sync_workfile_version": False
+    },
     "ValidateInstanceInContext": {
         "enabled": True,
         "optional": True,
