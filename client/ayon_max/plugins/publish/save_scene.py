@@ -1,6 +1,7 @@
 import pyblish.api
 from ayon_core.pipeline import registered_host
 from ayon_core.pipeline.publish import PublishError
+from pathlib import Path
 
 
 class SaveCurrentScene(pyblish.api.InstancePlugin):
@@ -13,10 +14,11 @@ class SaveCurrentScene(pyblish.api.InstancePlugin):
 
     def process(self, instance):
         host = registered_host()
+        context_file = instance.context.data["currentFile"]
         current_file = host.get_current_workfile()
-        if instance.context.data["currentFile"] != current_file:
+        if Path(context_file) != Path(current_file):
             self.log.error(
-                f"Current file in context: {instance.context.data['currentFile']} "
+                f"Current file in context: {context_file} "
                 f"does not match the actual current file: {current_file}"
             )
             raise PublishError(
