@@ -5,6 +5,7 @@ import contextlib
 import logging
 import json
 from functools import partial
+import re
 from typing import Any, Dict, Union
 
 from ayon_core.pipeline import (
@@ -923,3 +924,31 @@ def update_content_on_context_change():
 
     if has_changes:
         create_context.save_changes()
+
+
+def is_redshift_default_output_regex_matched(filename) -> bool:
+    """Check if the filename matches the Redshift default output pattern.
+
+    Args:
+        filename (str): The filename to check.
+
+    Returns:
+        bool: True if the filename matches the Redshift default
+            output pattern, False otherwise.
+    """
+    pattern = r"^[^.]+?\._[^.]+?\.[a-zA-Z0-9]+$"
+    return re.match(pattern, filename) is not None
+
+
+def is_general_default_output_regex_matched(filename) -> bool:
+    """Check if the filename matches the general default output pattern.
+
+    Args:
+        filename (str): The filename to check.
+
+    Returns:
+        bool: True if the filename matches the general default
+            output pattern, False otherwise.
+    """
+    pattern = r".*\.{2}[a-zA-Z0-9]+$"
+    return re.match(pattern, filename) is not None
