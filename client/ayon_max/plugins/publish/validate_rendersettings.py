@@ -366,7 +366,7 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
         Returns:
             `True` when the filename matches the expected regex.
         """
-        if renderer_name == "Redshift":
+        if renderer_name == "Redshift_Renderer":
             return (
                 is_redshift_default_output_regex_matched(r_fname)
             )
