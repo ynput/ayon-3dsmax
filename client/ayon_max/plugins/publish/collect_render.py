@@ -32,6 +32,10 @@ class CollectRender(pyblish.api.InstancePlugin):
     label = "Collect 3dsmax Render Layers"
     hosts = ["max"]
     families = ["maxrender"]
+    settings_category = "max"
+
+    # Settings
+    sync_workfile_version = False
 
     def process(self, instance):
         context = instance.context
@@ -142,6 +146,14 @@ class CollectRender(pyblish.api.InstancePlugin):
             "resolutionHeight": rt.renderHeight,
             "farm": farm_render
         }
+
+        # sync workfile version
+        if self.sync_workfile_version:
+            data["version"] = context.data["version"]
+            for _instance in context:
+                if _instance.data["productBaseType"] == "workfile":
+                    _instance.data["version"] = context.data["version"]
+
         instance.data.update(data)
         self.log.debug(instance.data)
         # TODO: this should be unified with maya and its "multipart" flag
