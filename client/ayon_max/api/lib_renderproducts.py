@@ -320,19 +320,19 @@ class RenderProducts(object):
         name, ext = os.path.splitext(filename)
         name = name.lstrip(".")
         aov_name = aov_name.strip()
-        use_aov_name = bool(aov_name) and (
-            renderer_name.startswith("V_Ray_")
-            or (
-                renderer_name.startswith("Redshift_Renderer")
-                and is_redshift_default_output_regex_matched(filename)
-            )
-        )
+        # use_aov_name = bool(aov_name) and (
+        #     renderer_name.startswith("V_Ray_")
+        #     or (
+        #         renderer_name.startswith("Redshift_Renderer")
+        #         and is_redshift_default_output_regex_matched(filename)
+        #     )
+        # )
         for frame in range(start_frame, end_frame + 1):
             aov_filename =  f"{name}.{frame:04d}{ext}"
             expected_aov = os.path.join(directory, aov_filename)
-            if use_aov_name:
+            if aov_name and renderer_name.startswith("V_Ray_"):
                 aov_filename = f"{name}.{aov_name}.{frame:04d}{ext}"
-                aov_filename = reformat_filename(aov_filename)
+            aov_filename = reformat_filename(aov_filename)
             expected_aov = os.path.join(directory, aov_filename)
             expected_aovs.append(expected_aov)
 
