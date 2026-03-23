@@ -955,17 +955,31 @@ def is_general_default_output_regex_matched(filename) -> bool:
 
 def reformat_filename(filename: str) -> str:
     """
-    Reformat filename from RenderMain._Cryptomatte.exr to RenderMain.Cryptomatte.exr
+    Reformat filename from RenderMain._Cryptomatte.1001.exr to
+    RenderMain.Cryptomatte.1001.exr
+    Reformat also filename with double dot from RenderMain_tmp..Cryptomatte.1001.exr
+    to RenderMain_tmp.Cryptomatte.1001.exr
     (pattern: name.frame.ext).
+    Args:
+        filename (str): The filename to reformat.
+
+    Returns:
+        str: The reformatted filename.
     """
     # Match: base name, underscore part, extension
     pattern = r"^(?P<name>.+)\._(?P<frame>[^.]+)\.(?P<ext>[a-zA-Z0-9]+)$"
     match = re.match(pattern, filename)
-
+    pattern_double_dot = r"^(?P<name>.+)\.\.(?P<frame>[^.]+)\.(?P<ext>[a-zA-Z0-9]+)$"
+    match_double_dot = re.match(pattern_double_dot, filename)
     if match:
         name = match.group("name")
         frame = match.group("frame")
         ext = match.group("ext")
+        return f"{name}.{frame}.{ext}"
+    elif match_double_dot:
+        name = match_double_dot.group("name")
+        frame = match_double_dot.group("frame")
+        ext = match_double_dot.group("ext")
         return f"{name}.{frame}.{ext}"
     else:
         # fallback if pattern doesn't match
