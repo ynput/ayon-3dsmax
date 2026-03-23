@@ -952,3 +952,21 @@ def is_general_default_output_regex_matched(filename) -> bool:
     """
     pattern = r".*\.{2}[a-zA-Z0-9]+$"
     return re.match(pattern, filename) is not None
+
+def reformat_filename(filename: str) -> str:
+    """
+    Reformat filename from RenderMain._Cryptomatte.exr to RenderMain.Cryptomatte.exr
+    (pattern: name.frame.ext).
+    """
+    # Match: base name, underscore part, extension
+    pattern = r"^(?P<name>.+)\._(?P<frame>[^.]+)\.(?P<ext>[a-zA-Z0-9]+)$"
+    match = re.match(pattern, filename)
+
+    if match:
+        name = match.group("name")
+        frame = match.group("frame")
+        ext = match.group("ext")
+        return f"{name}.{frame}.{ext}"
+    else:
+        # fallback if pattern doesn't match
+        return filename

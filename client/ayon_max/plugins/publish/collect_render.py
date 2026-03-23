@@ -87,6 +87,7 @@ class CollectRender(pyblish.api.InstancePlugin):
             instance.data["files"] = list()
             instance.data["expectedFiles"].append(files_by_aov)
             instance.data["files"].append(files_by_aov)
+        self.log.debug(f"Files by AOV: {files_by_aov}")
         img_format = RenderProducts().image_format()
         # OCIO config not support in
         # most of the 3dsmax renderers
@@ -155,7 +156,6 @@ class CollectRender(pyblish.api.InstancePlugin):
                     _instance.data["version"] = context.data["version"]
 
         instance.data.update(data)
-        self.log.debug(instance.data)
         # TODO: this should be unified with maya and its "multipart" flag
         #       on instance.
         if renderer == "Redshift_Renderer":

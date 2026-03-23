@@ -27,7 +27,7 @@ ARNOLD_DRIVERS = {
     "exr": rt.ArnoldEXRDriver,
     "png": rt.ArnoldPNGDriver,
     "jpg": rt.ArnoldJPEGDriver,
-    "tif": rt.ArnoldTIFDriver,
+    "tif": rt.ArnoldTIFFDriver,
 }
 
 class ValidateRenderSettings(OptionalPyblishPluginMixin,
@@ -119,7 +119,7 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
             )
 
         if renderer_name.startswith("V_Ray_"):
-            vr_settings = get_vray_settings()
+            vr_settings = get_vray_settings(renderer_name)
             invalid.extend(
                 cls.get_invalid_vray_settings(
                     instance, renderer_name, vr_settings, project_settings
@@ -369,7 +369,6 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
         if renderer_name == "Redshift":
             return (
                 is_redshift_default_output_regex_matched(r_fname)
-                or is_general_default_output_regex_matched(r_fname)
             )
         else:
             return is_general_default_output_regex_matched(r_fname)
@@ -385,7 +384,7 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
         if is_supported_renderer(renderer_name):
             cls.repair_general_render_settings(instance)
         if renderer_name.startswith("V_Ray_"):
-            vr_settings = get_vray_settings()
+            vr_settings = get_vray_settings(renderer_name)
             cls.repair_vray_settings(instance, renderer_name, vr_settings)
         if renderer_name == "Arnold":
             cls.repair_arnold_settings(instance, renderer)
@@ -404,8 +403,15 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
         """
         image_format = instance.data["imageFormat"]
         renderer = instance.data["renderer"]
-        output_dir = os.path.dirname(rt.rendOutputFilename)
-        filename = os.path.basename(rt.rendOutputFilename)
+        renderoutput = rt.rendOutputFilename
+        if not renderoutput:
+            project_settings = instance.context.data["project_settings"]
+            RenderSettings(project_settings).render_output(
+                instance.data.get("instance_node")
+            )
+            renderoutput = rt.rendOutputFilename
+        output_dir = os.path.dirname(renderoutput)
+        filename = os.path.basename(renderoutput)
         if not is_general_default_output_regex_matched(filename):
             rt.rendOutputFilename = cls._build_general_output_filename(
                 output_dir,

@@ -16,6 +16,7 @@ from ayon_max.api.lib import (
     get_current_renderer,
     get_multipass_setting,
     is_redshift_default_output_regex_matched,
+    reformat_filename,
 )
 from ayon_core.pipeline import get_current_project_name
 from ayon_core.settings import get_project_settings
@@ -97,6 +98,7 @@ class RenderProducts(object):
                 render output file paths for each camera.
         """
         renderer = get_current_renderer()
+        renderer_name = str(renderer).split(":")[0]
         aovs_frames: Dict[str, list[str]] = {}
         for output, camera in zip(outputs, cameras):
             camera = camera.replace(":", "_")
@@ -113,8 +115,8 @@ class RenderProducts(object):
                     aov_filepath,
                     start_frame,
                     end_frame,
-                    ext,
-                    renderer
+                    aov_name,
+                    renderer_name
                 )
                 aovs_frames.update({f"{camera}_{aov_name}": aov_expected_files})
 
@@ -131,6 +133,7 @@ class RenderProducts(object):
         start_frame = int(rt.rendStart)
         end_frame = int(rt.rendEnd) + 1
         renderer = get_current_renderer()
+        renderer_name = str(renderer).split(":")[0]
         render_dict: Dict[str, list[str]] = {}
         render_elements = self.get_render_element_and_filepath(extension)
         if not render_elements or self.is_arnold_renderer(renderer, extension):
@@ -140,8 +143,8 @@ class RenderProducts(object):
                 aov_filepath,
                 start_frame,
                 end_frame,
-                extension,
-                renderer
+                aov_name,
+                renderer_name
             )
             render_dict.update({aov_name: aov_expected_files})
 
@@ -174,7 +177,7 @@ class RenderProducts(object):
             start_frame,
             end_frame,
             "",
-            renderer
+            renderer_name
         )
 
 
@@ -243,10 +246,11 @@ class RenderProducts(object):
         )
         output_attr = (
             "output_rawfilename"
-            if is_render_element and image_format == "exr"
+            if not is_render_element and image_format == "exr"
             else "output_splitfilename"
         )
-        return getattr(vray_settings, output_attr)
+        render_output = getattr(vray_settings, output_attr)
+        return render_output if render_output else rt.rendOutputFilename
 
     def get_arnold_render_output(self, arnold_renderer: Any, extension: str) -> str:
         """Get the Arnold render output filename.
@@ -323,11 +327,12 @@ class RenderProducts(object):
             )
         )
         for frame in range(start_frame, end_frame + 1):
-            expected_aov = os.path.join(directory, f"{name}{frame:04d}{ext}")
+            aov_filename =  f"{name}{frame:04d}{ext}"
+            expected_aov = os.path.join(directory, aov_filename)
             if use_aov_name:
-                expected_aov = os.path.join(
-                    directory, f"{name}.{aov_name}.{frame:04d}{ext}")
-
+                aov_filename = f"{name}.{aov_name}.{frame:04d}{ext}"
+            aov_filename = reformat_filename(aov_filename)
+            expected_aov = os.path.join(directory,aov_filename)
             expected_aovs.append(expected_aov)
 
         return expected_aovs
@@ -345,18 +350,18 @@ class RenderProducts(object):
                 names and their corresponding file paths.
         """
         renderer = get_current_renderer()
+        renderer_name = str(renderer).split(":")[0]
         expected_elements: list[tuple[str, str]] = []
         render_elem = rt.maxOps.GetCurRenderElementMgr()
         render_elem_num = render_elem.NumRenderElements()
-        is_multipass = get_multipass_setting(renderer)
-
+        is_multipass = get_multipass_setting(renderer_name)
         if render_elem_num < 1:
             return expected_elements
         # get render elements from the renders
         for index in range(render_elem_num):
             renderlayer = render_elem.GetRenderElement(index)
-            if renderlayer.enabled:
-                renderpass = renderlayer.elementname
+            if self.get_render_element_by_multipass(renderlayer, is_multipass):
+                renderpass = str(renderlayer.elementname)
                 renderlayer_filepath = self.get_render_element_outputfilename(
                     renderer,
                     render_elem,
@@ -364,28 +369,49 @@ class RenderProducts(object):
                     image_format,
                     is_multipass
                 )
-                expected_elements.append((renderpass, renderlayer_filepath))
+                expected_elements.append((renderpass, str(renderlayer_filepath)))
 
-            if renderer.startswith("V_Ray_"):
-                additional_render_elements = self._add_vray_additional_outputs(renderer)
-                for render_element in additional_render_elements:
-                    filepath = self.get_vray_render_output(
-                        renderer, image_format, is_render_element=True
-                    )
-                    expected_elements.append((render_element, filepath))
+        if renderer_name.startswith("V_Ray_"):
+            additional_render_elements = self._add_vray_additional_outputs(renderer, is_multipass)
+            for render_element in additional_render_elements:
+                filepath = self.get_vray_render_output(
+                    renderer, image_format, is_render_element=True
+                )
+                expected_elements.append((render_element, str(filepath)))
 
         return expected_elements
 
-    def _add_vray_additional_outputs(self, renderer: Any) -> list[str]:
+    def get_render_element_by_multipass(self, renderlayer: Any, multipass: bool) -> bool:
+        """Get render element name based on multipass setting.
+
+        Args:
+            renderlayer (Any, rt.RenderTarget): The render layer instance.
+            multipass (bool): Whether multipass is enabled.
+
+        Returns:
+            bool: True if the render element should be included
+                based on the multipass setting, False otherwise.
+        """
+        if multipass or (
+            not multipass and "Cryptomatte" in renderlayer.elementname
+        ):
+            return renderlayer.enabled
+
+        return False
+
+    def _add_vray_additional_outputs(self, renderer: Any, is_multipass: bool) -> list[str]:
         """Get additional V-Ray outputs like Alpha and RGB_color.
 
         Args:
             renderer (Any, rt.Renderers.Current): V-Ray renderer instance
+            is_multipass (bool): Whether multipass is enabled
 
         Returns:
             list: Updated list with additional outputs
         """
         render_name = []
+        if is_multipass:
+            return render_name
         if hasattr(renderer, 'output_splitAlpha') and renderer.output_splitAlpha:
             render_name.append("Alpha")
         if hasattr(renderer, 'output_splitRGB') and renderer.output_splitRGB:
