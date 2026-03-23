@@ -214,8 +214,6 @@ class RenderProducts(object):
         elif is_supported_renderer(renderer_name):
             return render_elem.GetRenderElementFilename(index)
 
-        elif renderer_name.startswith("Arnold"):
-            return self.get_arnold_render_output(renderer, image_format)
         else:
             raise RuntimeError(
                 f"Renderer {renderer_name} is not supported for getting"
