@@ -410,7 +410,7 @@ class RenderProducts(object):
             list: Updated list with additional outputs
         """
         render_name = []
-        if is_multipass:
+        if not is_multipass:
             return render_name
         if hasattr(renderer, 'output_splitAlpha') and renderer.output_splitAlpha:
             render_name.append("Alpha")
