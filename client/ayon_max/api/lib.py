@@ -929,57 +929,72 @@ def update_content_on_context_change():
 def is_redshift_default_output_regex_matched(filename) -> bool:
     """Check if the filename matches the Redshift default output pattern.
 
+    The Redshift default output pattern expects an underscore-dot separator
+    before the render element name: `<name>._<element>.<extension>`
+    (e.g., `RenderMain._RsCryptomatte.exr`). This pattern is generated when
+    users manually create render elements and 3ds Max uses default naming.
+
     Args:
         filename (str): The filename to check.
 
     Returns:
-        bool: True if the filename matches the Redshift default
-            output pattern, False otherwise.
+        bool: True if the filename matches the Redshift
+            pattern (name._element.extension), False otherwise.
     """
     pattern = r"^[^.]+?\._[^.]+?\.[a-zA-Z0-9]+$"
     return re.match(pattern, filename) is not None
 
 
 def is_general_default_output_regex_matched(filename) -> bool:
-    """Check if the filename matches the general default output pattern.
+    """Check if the filename matches the general default render output pattern.
+
+    The general default output pattern expects a double-dot separator before
+    the file extension: `<name>..<extension>` (e.g., `John_Doe..exr`).
+    This is the standard naming convention for render outputs when configured
+    through the create render instance settings.
 
     Args:
         filename (str): The filename to check.
 
     Returns:
-        bool: True if the filename matches the general default
-            output pattern, False otherwise.
+        bool: True if the filename matches the pattern (name..extension),
+            False otherwise.
     """
     pattern = r".*\.{2}[a-zA-Z0-9]+$"
     return re.match(pattern, filename) is not None
 
 def reformat_filename(filename: str) -> str:
-    """
-    Reformat filename from RenderMain._Cryptomatte.1001.exr to
-    RenderMain.Cryptomatte.1001.exr
-    Reformat also filename with double dot from RenderMain_tmp..Cryptomatte.1001.exr
-    to RenderMain_tmp.Cryptomatte.1001.exr
-    (pattern: name.frame.ext).
+    """Reformat render output filename to standardized pattern.
+
+    Converts filenames from two non-standard render patterns(One from Redshift render elements,
+    another Vray render elements with the edge case of not using vray-style output.) to a unified
+    format: `<name>.<frame>.<extension>`. This handles both Redshift
+    render element naming and general render output naming conventions.
+
+    Conversion patterns:
+        - Redshift: `Main._Cryptomatte.1001.exr` → `Main.Cryptomatte.1001.exr`
+        - Vray (edge case): `Main_tmp..Cryptomatte.1001.exr` → `Main_tmp.Cryptomatte.1001.exr`
+
     Args:
         filename (str): The filename to reformat.
 
     Returns:
-        str: The reformatted filename.
+        str: The reformatted filename in name.frame.extension format.
     """
     # Match: base name, underscore part, extension
-    pattern = r"^(?P<name>.+)\._(?P<frame>[^.]+)\.(?P<ext>[a-zA-Z0-9]+)$"
-    match = re.match(pattern, filename)
-    pattern_double_dot = r"^(?P<name>.+)\.\.(?P<frame>[^.]+)\.(?P<ext>[a-zA-Z0-9]+)$"
-    match_double_dot = re.match(pattern_double_dot, filename)
+    redshift_pattern = r"^(?P<name>.+)\._(?P<frame>[^.]+)\.(?P<ext>[a-zA-Z0-9]+)$"
+    match = re.match(redshift_pattern, filename)
+    vray_pattern = r"^(?P<name>.+)\.\.(?P<frame>[^.]+)\.(?P<ext>[a-zA-Z0-9]+)$"
+    match_vray = re.match(vray_pattern, filename)
     if match:
         name = match.group("name")
         frame = match.group("frame")
         ext = match.group("ext")
         return f"{name}.{frame}.{ext}"
-    elif match_double_dot:
-        name = match_double_dot.group("name")
-        frame = match_double_dot.group("frame")
-        ext = match_double_dot.group("ext")
+    elif match_vray:
+        name = match_vray.group("name")
+        frame = match_vray.group("frame")
+        ext = match_vray.group("ext")
         return f"{name}.{frame}.{ext}"
     else:
         # fallback if pattern doesn't match
