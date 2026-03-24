@@ -982,15 +982,18 @@ def reformat_filename(filename: str) -> str:
         str: The reformatted filename in name.frame.extension format.
     """
     # Match: base name, underscore part, extension
-    redshift_pattern = r"^(?P<name>.+)\._(?P<frame>[^.]+)\.(?P<ext>[a-zA-Z0-9]+)$"
+    redshift_pattern = (
+        r"^(?P<name>.+)\._(?P<element>[^.]+)\.(?P<frame>[^.]+)\.(?P<ext>[a-zA-Z0-9]+)$"
+    )
     match = re.match(redshift_pattern, filename)
     vray_pattern = r"^(?P<name>.+)\.\.(?P<frame>[^.]+)\.(?P<ext>[a-zA-Z0-9]+)$"
     match_vray = re.match(vray_pattern, filename)
     if match:
         name = match.group("name")
+        element = match.group("element")
         frame = match.group("frame")
         ext = match.group("ext")
-        return f"{name}.{frame}.{ext}"
+        return f"{name}.{element}.{frame}.{ext}"
     elif match_vray:
         name = match_vray.group("name")
         frame = match_vray.group("frame")

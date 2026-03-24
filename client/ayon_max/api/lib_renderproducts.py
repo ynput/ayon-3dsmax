@@ -75,17 +75,8 @@ class RenderProducts(object):
                     renderer_name
                 )
                 render_dict[aov_name] = aov_expected_files
-        
+
         return render_dict
-
-    def get_beauty(self) -> Dict[str, list[str]]:
-        """Get beauty render output file path.
-
-        Returns:
-            Dict[str, list[str]]: A dictionary containing the beauty
-                render output file paths.
-        """
-        return self.get_render_products(include_aovs=False)
 
     def get_multiple_render_products(
             self, outputs: list[str], cameras: list[str]

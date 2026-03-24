@@ -50,8 +50,8 @@ class CollectRender(pyblish.api.InstancePlugin):
         renderer_class = get_current_renderer()
         renderer = str(renderer_class).split(":")[0]
         render_dir = os.path.dirname(rt.rendOutputFilename)
-
-        files_by_aov: Dict[str, list[str]] = RenderProducts().get_render_products()
+        renderproducts = RenderProducts(context.data["project_settings"])
+        files_by_aov: Dict[str, list[str]] = renderproducts.get_render_products()
 
 
         camera = rt.viewport.GetCamera()
@@ -76,7 +76,7 @@ class CollectRender(pyblish.api.InstancePlugin):
 
             instance.data["cameras"] = sel_cam
 
-            files_by_aov = RenderProducts().get_multiple_render_products(
+            files_by_aov = renderproducts.get_multiple_render_products(
                 outputs, sel_cam
             )
 
