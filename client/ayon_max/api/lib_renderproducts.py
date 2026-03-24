@@ -207,8 +207,6 @@ class RenderProducts(object):
                 image_format,
                 is_render_element=is_multipass
             )
-        elif is_supported_renderer(renderer_name):
-            return render_elem.GetRenderElementFilename(index)
 
         elif renderer_name.startswith("Arnold"):
             return self.get_arnold_render_output(renderer, image_format)
@@ -270,25 +268,12 @@ class RenderProducts(object):
         Returns:
             str: The Arnold render output filename.
         """
-        aov_manager = getattr(arnold_renderer, "AOVManager", None)
-        if aov_manager is None:
-            raise RuntimeError(
-                "Arnold renderer does not have AOVManager attribute."
-            )
-
-        drivers = getattr(aov_manager, "drivers", None)
-        if drivers is None:
-            raise RuntimeError(
-                "Arnold AOVManager does not have drivers attribute."
-            )
+        aov_manager = arnold_renderer.AOVManager
+        drivers = aov_manager.drivers
         if not drivers:
             raise RuntimeError("Arnold AOVManager does not have any drivers.")
 
-        output_dir = getattr(aov_manager, "outputPath", None)
-        if output_dir is None:
-            raise RuntimeError(
-                "Arnold AOVManager does not have outputPath attribute."
-            )
+        output_dir = aov_manager.outputPath
         # Getting the first driver
         driver = drivers[0]
         return f"{output_dir}/{driver.filenameSuffix}.{extension}"
