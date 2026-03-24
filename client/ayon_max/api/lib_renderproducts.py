@@ -208,8 +208,6 @@ class RenderProducts(object):
                 image_format,
                 is_render_element=is_multipass
             )
-        elif is_supported_renderer(renderer_name):
-            return render_elem.GetRenderElementFilename(index)
 
         elif renderer_name.startswith("Arnold"):
             return self.get_arnold_render_output(renderer, image_format)
