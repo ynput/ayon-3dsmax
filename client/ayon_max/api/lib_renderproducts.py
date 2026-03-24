@@ -15,7 +15,6 @@ except ImportError:
 from ayon_max.api.lib import (
     get_current_renderer,
     get_multipass_setting,
-    is_redshift_default_output_regex_matched,
     reformat_filename,
 )
 from ayon_core.pipeline import get_current_project_name
@@ -108,7 +107,7 @@ class RenderProducts(object):
             start_frame = int(rt.rendStart)
             end_frame = int(rt.rendEnd) + 1
             render_elements = self.get_render_element_and_filepath(ext)
-            if not render_elements or self.is_arnold_renderer(renderer, ext):
+            if not render_elements or self.is_arnold_exr(renderer, ext):
                 return aovs_frames
             for aov_name, aov_filepath in render_elements:
                 aov_expected_files = self.get_expected_files(
@@ -136,7 +135,7 @@ class RenderProducts(object):
         renderer_name = str(renderer).split(":")[0]
         render_dict: Dict[str, list[str]] = {}
         render_elements = self.get_render_element_and_filepath(extension)
-        if not render_elements or self.is_arnold_renderer(renderer, extension):
+        if not render_elements or self.is_arnold_exr(renderer, extension):
             return render_dict
         for aov_name, aov_filepath in render_elements:
             aov_expected_files = self.get_expected_files(
@@ -375,7 +374,7 @@ class RenderProducts(object):
                 expected_elements.append((renderpass, str(renderlayer_filepath)))
 
         if renderer_name.startswith("V_Ray_"):
-            additional_render_elements = self._add_vray_additional_outputs(renderer, is_multipass)
+            additional_render_elements = self._get_vray_additional_outputs(renderer, is_multipass)
             for render_element in additional_render_elements:
                 filepath = self.get_vray_render_output(
                     renderer, image_format, is_render_element=True
@@ -407,7 +406,7 @@ class RenderProducts(object):
 
         return False
 
-    def _add_vray_additional_outputs(self, renderer: Any, is_multipass: bool) -> list[str]:
+    def _get_vray_additional_outputs(self, renderer: Any, is_multipass: bool) -> list[str]:
         """Get additional V-Ray outputs like Alpha and RGB_color.
 
         Args:
@@ -427,7 +426,7 @@ class RenderProducts(object):
 
         return render_name
 
-    def is_arnold_renderer(self, renderer: Any, image_format: str) -> bool:
+    def is_arnold_exr(self, renderer: Any, image_format: str) -> bool:
         """Check if the current renderer is Arnold and the image format is EXR.
 
         Args:
