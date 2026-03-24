@@ -32,7 +32,45 @@ ARNOLD_DRIVERS = {
 
 class ValidateRenderSettings(OptionalPyblishPluginMixin,
                              pyblish.api.InstancePlugin):
-    """Validate render settings before render submission."""
+    """Validate render settings before render submission.
+
+    This validator ensures that render output filepaths and filenames
+    are correctly configured for the current 3ds Max scene before submission
+    to the render farm or local render. It validates the rendering settings
+    across multiple supported renderers (V-Ray, Arnold, Redshift, and generic
+    renderers) and provides automated repair capabilities.
+
+    The plugin performs the following validation checks:
+
+        1. Render Output Directory Structure
+           Validates that the render output folder path matches the expected
+           project hierarchy based on the current Max scene filename.
+           e.g:
+             Current Max scene: John_Doe.max
+             Expected output directory: 
+               {root[work]}/{project[name]}/{hierarchy}/{asset}/
+               work/{task[name]}/render/3dsmax/John_Doe/
+
+        2. Image File Extension Compliance
+           Ensures that all render output files use the correct image format
+           extension as defined in the AYON project settings.
+           e.g:
+             Configured format in AYON: png
+             Expected render outputs: John_Doe.png (and all render elements)
+             Invalid outputs: John_Doe.jpg or John_Doe.exr (if format is png)
+
+        3. Render Element Filename Validation
+           Checks that each render element output filename follows the naming
+           convention and ends with the render element's identifier from the
+           3ds Max Render Element Manager.
+           e.g.
+             Render element name: RsCryptomatte
+             Expected filename format: {InstanceName}_RsCryptomatte.png
+
+    The plugin includes repair actions that can fix common naming
+    and configuration issues, making it easier for artists to comply with
+    project naming conventions without manual intervention.
+    """
 
     order = ValidateContentsOrder
     families = ["maxrender", "renderpreset"]
@@ -84,24 +122,6 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
         instance: pyblish.api.Instance,
     ) -> List[Tuple[str, str]]:
         """Collect invalid render settings for the current instance.
-
-        1. Check Render Output Folder matches the name of
-           the current Max Scene, e.g.
-             The name of the current Max scene:
-               John_Doe.max
-             The expected render output directory:
-               {root[work]}/{project[name]}/{hierarchy}/{asset}/
-               work/{task[name]}/render/3dsmax/John_Doe/
-
-        2. Check image extension(s) of the render output(s)
-           matches the image format in OP/AYON setting, e.g.
-               The current image format in settings: png
-               The expected render outputs: John_Doe.png
-
-        3. Check filename of render element ends with the name of
-           render element from the 3dsMax Render Element Manager.
-           e.g. The name of render element: RsCryptomatte
-            The expected filename: {InstanceName}_RsCryptomatte.png
 
         Args:
             instance: Instance being validated.
@@ -357,18 +377,19 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
         renderer_name: str,
         r_fname: str,
     ) -> bool:
-        """Check whether a render element filename matches the regex.
+        """Check if render element filename matches the renderer's output regex.
 
         Args:
-            renderer_name: Name of the renderer.
+            renderer_name: Renderer name.
             r_fname: Render element filename.
 
         Returns:
-            `True` when the filename matches the expected regex.
+            True if filename matches the expected regex.
         """
         if renderer_name == "Redshift_Renderer":
             return (
                 is_redshift_default_output_regex_matched(r_fname)
+                or is_general_default_output_regex_matched(r_fname)
             )
         else:
             return is_general_default_output_regex_matched(r_fname)
