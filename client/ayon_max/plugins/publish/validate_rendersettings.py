@@ -355,13 +355,13 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
         aov_drivers = renderer.AOVManager.drivers
         driver = aov_drivers[0]
         image_format = instance.data["imageFormat"]
-        if driver != ARNOLD_DRIVERS.get(image_format):
+        if rt.ClassOf(driver) != ARNOLD_DRIVERS.get(image_format):
             msg = (
                 f"Invalid Arnold driver for image format {image_format}.\n"
-                f"Should be: {ARNOLD_DRIVERS.get(image_format).__name__}"
+                f"Should be: {ARNOLD_DRIVERS.get(image_format)}"
             )
             cls.log.error(msg)
-            invalid.append((msg, driver.__class__.__name__))
+            invalid.append((msg, driver))
         if not driver.filenameSuffix.endswith("."):
             invalid.append((
                 "Invalid Arnold AOV driver filename",
@@ -592,21 +592,23 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
         image_format = instance.data["imageFormat"]
         aov_drivers = renderer.AOVManager.drivers
         driver = aov_drivers[0]
-        if driver != ARNOLD_DRIVERS.get(image_format):
+        if rt.ClassOf(driver) != ARNOLD_DRIVERS.get(image_format):
             driver_type = ARNOLD_DRIVERS.get(image_format)
             if driver_type:
                 new_driver = driver_type()
                 renderer.AOVManager.drivers[0] = new_driver
                 driver = new_driver
+                driver.filenameSuffix = f"{instance.name}."
                 cls.log.info(
                     "Arnold AOV driver has been repaired to "
-                    f"{new_driver.__class__.__name__} for image format {image_format}."
+                    f"{new_driver} for image format {image_format}."
                 )
             else:
                 cls.log.warning(
                     f"No compatible Arnold driver found for image format {image_format}. "
                     "Please set the correct driver manually in render settings."
                 )
+
         if not driver.filenameSuffix.endswith("."):
             driver.filenameSuffix = f"{driver.filenameSuffix}."
             cls.log.info(
