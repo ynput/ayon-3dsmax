@@ -3,6 +3,7 @@
 import os
 import pyblish.api
 import ayon_api
+from typing import Dict
 
 from pymxs import runtime as rt
 from ayon_core.pipeline.publish import KnownPublishError
@@ -50,9 +51,8 @@ class CollectRender(pyblish.api.InstancePlugin):
         renderer = str(renderer_class).split(":")[0]
         render_dir = os.path.dirname(rt.rendOutputFilename)
 
-        files_by_aov = RenderProducts().get_beauty()
-        aovs = RenderProducts().get_aovs()
-        files_by_aov.update(aovs)
+        files_by_aov: Dict[str, list[str]] = RenderProducts().get_render_products()
+
 
         camera = rt.viewport.GetCamera()
         camera_list = get_cameras_from_node(instance.data.get("members"))
@@ -76,11 +76,9 @@ class CollectRender(pyblish.api.InstancePlugin):
 
             instance.data["cameras"] = sel_cam
 
-            files_by_aov = RenderProducts().get_multiple_beauty(
-                outputs, sel_cam)
-            aovs = RenderProducts().get_multiple_aovs(
-                outputs, sel_cam)
-            files_by_aov.update(aovs)
+            files_by_aov = RenderProducts().get_multiple_render_products(
+                outputs, sel_cam
+            )
 
         if "expectedFiles" not in instance.data:
             instance.data["expectedFiles"] = list()

@@ -37,12 +37,16 @@ class RenderProducts(object):
                 get_current_project_name()
             )
 
-    def get_beauty(self) -> Dict[str, list[str]]:
-        """Get beauty render output file path.
+    def get_render_products(self) -> Dict[str, list[str]]:
+        """Get render output file paths for the current scene.
+
+        Handles both beauty and AOV extraction with shared setup logic.
+        Always includes the beauty pass; optionally includes render elements/AOVs.
 
         Returns:
-            Dict[str, list[str]]: A dictionary containing the beauty
-                render output file paths.
+            Dict[str, list[str]]: A dictionary containing render output file paths.
+                Beauty key is "beauty"; AOV keys are named after the render element
+                (e.g., "Cryptomatte", "Alpha").
         """
         extension = self.image_format()
         start_frame = int(rt.rendStart)
@@ -52,9 +56,84 @@ class RenderProducts(object):
         # instead of using start and end frame
         # but if the custom frame disabled, we can still use start and end frame
         # to get expected frames list
-        return {
-            "beauty": self.get_expected_beauty(start_frame, end_frame, extension)
-        }
+        render_dict: Dict[str, list[str]] = {}
+
+        # Always add beauty pass
+        render_dict["beauty"] = self.get_expected_beauty(start_frame, end_frame, extension)
+
+        # Optionally add AOVs
+        renderer = get_current_renderer()
+        renderer_name = str(renderer).split(":")[0]
+        render_elements = self.get_render_element_and_filepath(extension)
+        if render_elements and not self.is_arnold_exr(renderer, extension):
+            for aov_name, aov_filepath in render_elements:
+                aov_expected_files = self.get_expected_files(
+                    aov_filepath,
+                    start_frame,
+                    end_frame,
+                    aov_name,
+                    renderer_name
+                )
+                render_dict[aov_name] = aov_expected_files
+        
+        return render_dict
+
+    def get_beauty(self) -> Dict[str, list[str]]:
+        """Get beauty render output file path.
+
+        Returns:
+            Dict[str, list[str]]: A dictionary containing the beauty
+                render output file paths.
+        """
+        return self.get_render_products(include_aovs=False)
+
+    def get_multiple_render_products(
+            self, outputs: list[str], cameras: list[str]
+    ) -> Dict[str, list[str]]:
+        """Get render output file paths for multiple cameras.
+
+        Combines beauty and AOV extraction into a single method to eliminate
+        duplicate setup code. Always includes beauty passes; optionally includes
+        render elements/AOVs.
+
+        Args:
+            outputs (list[str]): A list of output file paths.
+            cameras (list[str]): A list of camera names.
+
+        Returns:
+            Dict[str, list[str]]: A dictionary containing render output file
+                paths for each camera (e.g., "camera01_beauty", "camera01_Cryptomatte").
+        """
+        renderer = get_current_renderer()
+        renderer_name = str(renderer).split(":")[0]
+        render_output_frames: Dict[str, list[str]] = {}
+        
+        for output, camera in zip(outputs, cameras):
+            camera = camera.replace(":", "_")
+            filename, ext = os.path.splitext(output)
+            filename = filename.replace(".", "")
+            ext = ext.replace(".", "")
+            start_frame = int(rt.rendStart)
+            end_frame = int(rt.rendEnd) + 1
+            
+            # Always add beauty pass
+            beauty_files = self.get_expected_beauty(start_frame, end_frame, ext)
+            render_output_frames[f"{camera}_beauty"] = beauty_files
+
+            # Add AOVs
+            render_elements = self.get_render_element_and_filepath(ext)
+            if render_elements and not self.is_arnold_exr(renderer, ext):
+                for aov_name, aov_filepath in render_elements:
+                    aov_expected_files = self.get_expected_files(
+                        aov_filepath,
+                        start_frame,
+                        end_frame,
+                        aov_name,
+                        renderer_name
+                    )
+                    render_output_frames[f"{camera}_{aov_name}"] = aov_expected_files
+        
+        return render_output_frames
 
     def get_multiple_beauty(
             self, outputs: list[str], cameras: list[str]
@@ -69,57 +148,7 @@ class RenderProducts(object):
             Dict[str, list[str]]: A dictionary containing the beauty
                 render output file paths for each camera.
         """
-        beauty_output_frames: Dict[str, list[str]] = {}
-        for output, camera in zip(outputs, cameras):
-            camera = camera.replace(":", "_")
-            filename, ext = os.path.splitext(output)
-            filename = filename.replace(".", "")
-            ext = ext.replace(".", "")
-            start_frame = int(rt.rendStart)
-            end_frame = int(rt.rendEnd) + 1
-            beauty_output = ({
-                f"{camera}_beauty": self.get_expected_beauty(start_frame, end_frame, ext)
-            })
-            beauty_output_frames.update(beauty_output)
-        return beauty_output_frames
-
-    def get_multiple_aovs(
-            self, outputs: list[str], cameras: list[str]
-    ) -> Dict[str, list[str]]:
-        """Get multiple AOV render output file paths.
-
-        Args:
-            outputs (list[str]): A list of output file paths.
-            cameras (list[str]): A list of camera names.
-
-        Returns:
-            Dict[str, list[str]]: A dictionary containing the AOV
-                render output file paths for each camera.
-        """
-        renderer = get_current_renderer()
-        renderer_name = str(renderer).split(":")[0]
-        aovs_frames: Dict[str, list[str]] = {}
-        for output, camera in zip(outputs, cameras):
-            camera = camera.replace(":", "_")
-            filename, ext = os.path.splitext(output)
-            filename = filename.replace(".", "")
-            ext = ext.replace(".", "")
-            start_frame = int(rt.rendStart)
-            end_frame = int(rt.rendEnd) + 1
-            render_elements = self.get_render_element_and_filepath(ext)
-            if not render_elements or self.is_arnold_exr(renderer, ext):
-                return aovs_frames
-            for aov_name, aov_filepath in render_elements:
-                aov_expected_files = self.get_expected_files(
-                    aov_filepath,
-                    start_frame,
-                    end_frame,
-                    aov_name,
-                    renderer_name
-                )
-                aovs_frames.update({f"{camera}_{aov_name}": aov_expected_files})
-
-        return aovs_frames
+        return self.get_multiple_render_products(outputs, cameras, include_aovs=False)
 
     def get_aovs(self) -> Dict[str, list[str]]:
         """Get AOV render output file paths.
@@ -128,26 +157,7 @@ class RenderProducts(object):
             Dict[str, list[str]]: A dictionary containing the AOV
                 render output file paths.
         """
-        extension = self.image_format()
-        start_frame = int(rt.rendStart)
-        end_frame = int(rt.rendEnd) + 1
-        renderer = get_current_renderer()
-        renderer_name = str(renderer).split(":")[0]
-        render_dict: Dict[str, list[str]] = {}
-        render_elements = self.get_render_element_and_filepath(extension)
-        if not render_elements or self.is_arnold_exr(renderer, extension):
-            return render_dict
-        for aov_name, aov_filepath in render_elements:
-            aov_expected_files = self.get_expected_files(
-                aov_filepath,
-                start_frame,
-                end_frame,
-                aov_name,
-                renderer_name
-            )
-            render_dict.update({aov_name: aov_expected_files})
-
-        return render_dict
+        return self.get_render_products(include_aovs=True)
 
     def get_expected_beauty(
             self, start_frame: int, end_frame: int, extension: str
