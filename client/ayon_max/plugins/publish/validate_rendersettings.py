@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 from typing import Any
 
 import pyblish.api
@@ -29,6 +28,33 @@ ARNOLD_DRIVERS = {
     "jpg": rt.ArnoldJPEGDriver,
     "tif": rt.ArnoldTIFFDriver,
 }
+
+
+def set_correct_workfile_name_for_render_output(
+        instance: pyblish.api.Instance, filepath: str) -> str:
+    """Set the correct workfile name in render output path.
+
+    This function ensures that the render output path contains the correct
+    workfile name based on the current Max scene. It replaces the original
+    workfile name pattern used during instance creation with the actual
+    workfile name from the current scene.
+
+    Args:
+        instance: The Pyblish instance being processed.
+        filepath: The original render output filepath.
+
+    Returns:
+        The updated render output filepath with the correct workfile name.
+    """
+    old_workfile_filename = instance.data["original_workfile_pattern"]
+    current_file = os.path.basename(instance.context.data["currentFile"])
+    current_workfile_filename = os.path.splitext(current_file)[0].strip(".")
+    if old_workfile_filename != current_workfile_filename:
+       return filepath.replace(
+            old_workfile_filename,
+            current_workfile_filename
+        )
+    return filepath
 
 
 class ValidateRenderSettings(OptionalPyblishPluginMixin,
@@ -133,17 +159,23 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
         invalid = []
         renderer, renderer_name = cls._get_renderer_data(instance)
         project_settings = instance.context.data["project_settings"]
+        current_file = instance.context.data["currentFile"]
+        workfile_pattern = os.path.splitext(
+            os.path.basename(current_file)
+        )[0].strip(".")
 
         if is_supported_renderer(renderer_name):
             invalid.extend(
-                cls.get_invalid_render_settings(instance, renderer_name)
+                cls.get_invalid_render_settings(
+                    instance, renderer_name, workfile_pattern
+                )
             )
 
         if renderer_name.startswith("V_Ray_"):
             vr_settings = get_vray_settings(renderer_name)
             invalid.extend(
                 cls.get_invalid_vray_settings(
-                    instance, renderer_name, vr_settings, project_settings
+                    instance, renderer_name, workfile_pattern, vr_settings, project_settings
                 )
             )
         elif renderer_name == "Arnold":
@@ -152,7 +184,7 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
                 "the first AOV driver. Multiple drivers not supported yet."
             )
             invalid.extend(
-                cls.get_invalid_arnold_settings(instance, renderer)
+                cls.get_invalid_arnold_settings(instance, renderer, workfile_pattern)
             )
         elif not is_supported_renderer(renderer_name):
             cls.log.debug(
@@ -162,23 +194,35 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
         return invalid
 
     @classmethod
-    def get_invalid_vray_filenames(
+    def get_invalid_vray_filepaths(
         cls,
-        render_filename: str,
+        render_filepath: str,
         extension: str,
+        workfile_pattern: str,
     ) -> list[tuple[str, str]]:
-        """Validate V-Ray output filenames.
+        """Validate V-Ray output filepaths.
 
         Args:
-            render_filename: Render filename to validate.
+            render_filepath: Render filepath to validate.
             extension: Image format extension, for example `png` or
                 `exr`.
+            instance: Instance being validated.
+            workfile_pattern: Workfile name pattern to check in the filepath.
 
         Returns:
             Validation errors with their details.
         """
         invalid = []
+        render_dir = os.path.dirname(render_filepath)
+        render_filename = os.path.basename(render_filepath)
         # ensure no double dot in the filename, e.g. John_Doe..exr
+        if workfile_pattern not in render_dir:
+            msg = (
+                f"Invalid render output filename {render_filename} for V-Ray. "
+                f"Filename should contain the workfile name pattern: {workfile_pattern}."
+            )
+            cls.log.error(msg)
+            invalid.append((msg, render_dir))
         if ".." in render_filename:
             msg = (
                 f"Invalid render output filename {render_filename} for V-Ray "
@@ -199,33 +243,40 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
     @classmethod
     def _get_invalid_vray_output(
         cls,
-        filename: str,
+        filepath: str,
         extension: str,
+        workfile_pattern: str,
     ) -> list[tuple[str, str]]:
-        """Validate a V-Ray output filename and handle empty values.
+        """Validate a V-Ray output filepath and handle empty values.
 
         Args:
-            filename: Output filename from the renderer.
+            filepath: Output filepath from the renderer.
             extension: Expected file extension.
+            workfile_pattern: Workfile name pattern to check in the filepath.
 
         Returns:
             Validation errors with details.
         """
-        if not filename:
+        if not filepath:
             message = (
-                "V-Ray output filename is empty. "
+                "V-Ray output filepath is empty. "
                 "Please set it in render settings."
             )
             cls.log.error(message)
-            return [(message, filename)]
+            return [(message, filepath)]
 
-        return cls.get_invalid_vray_filenames(Path(filename).name, extension)
+        return cls.get_invalid_vray_filepaths(
+            filepath,
+            extension,
+            workfile_pattern
+        )
 
     @classmethod
     def get_invalid_vray_settings(
         cls,
         instance: pyblish.api.Instance,
         renderer_name: str,
+        workfile_pattern: str,
         vr_settings: Any,
         project_settings: dict,
     ) -> list[tuple[str, str]]:
@@ -234,6 +285,7 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
         Args:
             instance: Instance being validated.
             renderer_name: Name of the renderer.
+            workfile_pattern: Workfile pattern.
             vr_settings: V-Ray render settings object.
             project_settings: Project settings data.
 
@@ -253,17 +305,23 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
 
         if image_format == "exr":
             invalid_vray_outputs = cls._get_invalid_vray_output(
-                vr_settings.output_rawfilename, image_format
+                vr_settings.output_rawfilename,
+                image_format,
+                workfile_pattern
             )
             invalid.extend(invalid_vray_outputs)
 
         if multipass_enabled:
             invalid_vray_outputs = cls._get_invalid_vray_output(
-                vr_settings.output_splitfilename, image_format
+                vr_settings.output_splitfilename,
+                image_format,
+                workfile_pattern
             )
             invalid.extend(invalid_vray_outputs)
         else:
-            invalid_outputs = cls.get_invalid_renderoutput(image_format)
+            invalid_outputs = cls.get_invalid_renderoutput(
+                image_format, workfile_pattern
+            )
             invalid.extend(invalid_outputs)
 
         return invalid
@@ -272,6 +330,7 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
     def get_invalid_renderoutput(
         cls,
         image_format: str,
+        workfile_pattern: str,
         multicam: bool = False,
         cameras: list[str] = None,
     ) -> list[tuple[str, str]]:
@@ -279,12 +338,21 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
 
         Args:
             image_format: Expected image format for the render output.
+            workfile_pattern: Workfile name pattern to check in the filepath.
             multicam: Whether the render is using multiple cameras.
             cameras: List of camera names if multicam is enabled.
         Returns:
             Validation errors with their details.
         """
         invalid = []
+        beauty_dir = os.path.dirname(rt.rendOutputFilename)
+        if workfile_pattern not in beauty_dir:
+            msg = (
+                f"Invalid render output filename {rt.rendOutputFilename}. "
+                f"Filename should contain the workfile name pattern: {workfile_pattern}."
+            )
+            cls.log.error(msg)
+            invalid.append((msg, beauty_dir))
         beauty_fname = os.path.basename(rt.rendOutputFilename)
         if multicam and cameras:
             for camera in cameras:
@@ -309,25 +377,38 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
         return invalid
 
     @classmethod
-    def get_invalid_render_element_directory_for_multicam(
+    def get_invalid_render_element_directory(
         cls,
         directory: str,
-        cameras: list[str],
+        workfile_pattern: str,
+        multi_camera: bool = False,
+        cameras: list[str] = None,
     ) -> list[tuple[str, str]]:
         """Validate render element output directory structure for multi-camera setups.
 
         Args:
             directory: Render element output directory path.
+            workfile_pattern: Workfile name pattern to check in the directory path.
             cameras: List of camera names used in the render.
+            multi_camera: Whether the render is using multiple cameras.
         """
         invalid = []
-        for camera in cameras:
-            if camera not in directory:
-                invalid.append((
-                    "Invalid render element output directory",
-                    f"Render element output directory should contain camera name "
-                    f"{camera} when multiCamera is enabled. Found: {directory}"
-                ))
+        if workfile_pattern not in directory:
+            msg = (
+                f"Invalid render element output directory {directory}. "
+                f"Directory should contain the workfile name pattern: {workfile_pattern}."
+            )
+            cls.log.error(msg)
+            invalid.append((msg, directory))
+        if multi_camera:
+            for camera in cameras:
+                if camera not in directory:
+                    invalid.append((
+                        "Invalid render element output directory",
+                        f"Render element output directory should contain camera name "
+                        f"{camera} when multiCamera is enabled. Found: {directory}"
+                    ))
+
         return invalid
 
     @classmethod
@@ -335,12 +416,14 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
         cls,
         instance: pyblish.api.Instance,
         renderer_name: str,
+        workfile_pattern: str,
     ) -> list[tuple[str, str]]:
         """Validate render output and render element filenames.
 
         Args:
             instance: Instance being validated.
             renderer_name: Name of the renderer.
+            workfile_pattern: Workfile name pattern to check in the filepath.
 
         Returns:
             Validation errors with their details.
@@ -350,7 +433,7 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
         multicam = instance.data.get("multiCamera", False)
         cameras = instance.data.get("cameras", [])
         invalid_beauty = cls.get_invalid_renderoutput(
-            image_format, multicam, cameras
+            image_format, multicam, workfile_pattern, cameras
         )
         invalid.extend(invalid_beauty)
         render_elem = rt.maxOps.GetCurRenderElementMgr()
@@ -370,9 +453,11 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
                 # directory should contain camera name
                 r_directory = os.path.dirname(render_element_filename)
                 invalid.extend(
-                    cls.get_invalid_render_element_directory_for_multicam(
+                    cls.get_invalid_render_element_directory(
                         r_directory,
-                        cameras,
+                        workfile_pattern,
+                        multi_camera=multicam,
+                        cameras=cameras,
                     )
                 )
                 r_fname = os.path.basename(render_element_filename)
@@ -395,18 +480,29 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
         cls,
         instance: pyblish.api.Instance,
         renderer: rt.Renderers.current,
+        workfile_pattern: str,
     ) -> list[tuple[str, str]]:
         """Validate Arnold-specific render settings.
 
         Args:
             instance: Instance being validated.
             renderer: Arnold renderer.
-
+            workfile_pattern: Workfile name pattern to check in the output path.
         Returns:
             Validation errors with their details.
         """
         invalid = []
-        aov_drivers = renderer.AOVManager.drivers
+        aov_manager = renderer.AOVManager
+        output_path = aov_manager.outputPath
+        if workfile_pattern not in output_path:
+            msg = (
+                f"Invalid Arnold AOV output path {output_path}. "
+                f"Output path should contain the workfile name pattern: {workfile_pattern}."
+            )
+            cls.log.error(msg)
+            invalid.append((msg, output_path))
+
+        aov_drivers = aov_manager.drivers
         driver = aov_drivers[0]
         image_format = instance.data["imageFormat"]
         if rt.ClassOf(driver) != ARNOLD_DRIVERS.get(image_format):
@@ -456,9 +552,10 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
         """
         renderer, renderer_name = cls._get_renderer_data(instance)
         if is_supported_renderer(renderer_name):
-            if not instance.data.get("multiCamera"):
+            if instance.data.get("multiCamera"):
                 instance_node = instance.data.get("instance_node")
-                RenderSettings().render_output(instance_node)
+                project_settings = instance.context.data["project_settings"]
+                RenderSettings(project_settings).render_output(instance_node)
             else:
                 cls.repair_general_render_settings(instance)
 
@@ -489,7 +586,11 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
                 instance.data.get("instance_node")
             )
             renderoutput = rt.rendOutputFilename
-        output_dir = os.path.dirname(renderoutput)
+
+        output_dir = set_correct_workfile_name_for_render_output(
+            instance,
+            os.path.dirname(renderoutput),
+        )
         filename = os.path.basename(renderoutput)
         if not is_general_default_output_regex_matched(filename):
             rt.rendOutputFilename = cls._build_general_output_filename(
@@ -529,73 +630,6 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
                         "Render element output filename has been repaired to %s",
                         render_elem.GetRenderElementFilename(index),
                     )
-
-    @classmethod
-    def repair_vray_settings(
-        cls,
-        instance: pyblish.api.Instance,
-        renderer_name: str,
-        vr_settings: Any,
-    ) -> None:
-        """Repair invalid V-Ray render output filepaths.
-
-        Args:
-            instance: Instance being repaired.
-            renderer_name: Name of the renderer.
-            vr_settings: V-Ray render settings object.
-        """
-        instance_node = instance.data.get("instance_node")
-        image_format = instance.data["imageFormat"]
-        project_settings = instance.context.data["project_settings"]
-        multipass_enabled = get_multipass_setting(renderer_name, project_settings)
-        vr_settings.output_splitgbuffer = multipass_enabled
-
-        if image_format == "exr":
-            vr_settings.output_rawfilename = cls._repair_vray_output_filename(
-                vr_settings.output_rawfilename,
-                image_format,
-                instance_node,
-                project_settings
-            )
-        else:
-            vr_settings.output_splitfilename = cls._repair_vray_output_filename(
-                vr_settings.output_splitfilename,
-                image_format,
-                instance_node,
-                project_settings
-            )
-
-    @classmethod
-    def _repair_vray_output_filename(
-        cls,
-        filename: str,
-        image_format: str,
-        instance_node: rt.Object,
-        project_settings: dict,
-    ) -> str:
-        """Ensure a V-Ray output filename exists with the expected extension.
-
-        Args:
-            filename: Current output filename.
-            image_format: Expected image format.
-            instance_node: Instance node used by render settings.
-            project_settings: Project settings data.
-
-        Returns:
-            Repaired V-Ray output filename.
-        """
-        if not filename:
-            RenderSettings(project_settings).render_output(instance_node)
-            filename = rt.rendOutputFilename
-
-        output_dir = os.path.dirname(filename)
-        output_filename = os.path.basename(filename)
-        return cls._build_vray_output_filename(
-            output_dir,
-            output_filename,
-            image_format,
-        )
-
     @classmethod
     def _build_general_output_filename(
         cls,
@@ -616,6 +650,81 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
         name = os.path.splitext(filename)[0].rstrip(".").lstrip(".")
         output_filename = f"{name}..{image_format}"
         return os.path.join(output_dir, output_filename)
+
+    # Vray specific repair functions
+    @classmethod
+    def repair_vray_settings(
+        cls,
+        instance: pyblish.api.Instance,
+        renderer_name: str,
+        vr_settings: Any,
+    ) -> None:
+        """Repair invalid V-Ray render output filepaths.
+
+        Args:
+            instance: Instance being repaired.
+            renderer_name: Name of the renderer.
+            vr_settings: V-Ray render settings object.
+        """
+        image_format = instance.data["imageFormat"]
+        project_settings = instance.context.data["project_settings"]
+        multipass_enabled = get_multipass_setting(renderer_name, project_settings)
+        vr_settings.output_splitgbuffer = multipass_enabled
+
+        if image_format == "exr":
+            vr_settings.output_rawfilename = cls._repair_vray_output_filename(
+                vr_settings.output_rawfilename,
+                image_format,
+                instance
+            )
+        else:
+            vr_settings.output_splitfilename = cls._repair_vray_output_filename(
+                vr_settings.output_splitfilename,
+                image_format,
+                instance,
+            )
+
+    @classmethod
+    def _repair_vray_output_filename(
+        cls,
+        filename: str,
+        image_format: str,
+        instance: pyblish.api.Instance,
+    ) -> str:
+        """Ensure a V-Ray output filename exists with the expected extension.
+
+        Args:
+            filename: Current output filename.
+            image_format: Expected image format.
+            old_workfile_filename: Original workfile name pattern
+            used for instance creation.
+            instance: Instance being repaired.
+
+        Returns:
+            Repaired V-Ray output filename.
+        """
+        instance_node = instance.data.get("instance_node")
+        project_settings = instance.context.data["project_settings"]
+        if not filename:
+            RenderSettings(project_settings).render_output(instance_node)
+
+        # need to set up the correct workfile name
+        # in the native render output for
+        # collecting correct render data
+        _ = set_correct_workfile_name_for_render_output(
+            instance,
+            os.path.dirname(rt.rendOOutputFilename)
+        )
+        output_dir = set_correct_workfile_name_for_render_output(
+            instance,
+            os.path.dirname(filename)
+        )
+        output_filename = os.path.basename(filename)
+        return cls._build_vray_output_filename(
+            output_dir,
+            output_filename,
+            image_format,
+        )
 
     @classmethod
     def _build_vray_output_filename(
@@ -638,6 +747,7 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
         output_filename = f"{name}.{image_format}"
         return os.path.join(output_dir, output_filename)
 
+    # Arnold specific repair functions
     @classmethod
     def repair_arnold_settings(
         cls,
@@ -651,13 +761,18 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
             renderer: Arnold renderer.
         """
         image_format = instance.data["imageFormat"]
-        aov_drivers = renderer.AOVManager.drivers
+        aov_manager = renderer.AOVManager
+        aov_manager.outputPath = set_correct_workfile_name_for_render_output(
+            instance,
+            aov_manager.outputPath,
+        )
+        aov_drivers = aov_manager.drivers
         driver = aov_drivers[0]
         if rt.ClassOf(driver) != ARNOLD_DRIVERS.get(image_format):
             driver_type = ARNOLD_DRIVERS.get(image_format)
             if driver_type:
                 new_driver = driver_type()
-                renderer.AOVManager.drivers[0] = new_driver
+                aov_manager.drivers[0] = new_driver
                 driver = new_driver
                 driver.filenameSuffix = f"{instance.name}."
                 cls.log.info(
