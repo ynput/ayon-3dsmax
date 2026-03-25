@@ -1,26 +1,26 @@
 import os
-from typing import List, Tuple, Any
 from pathlib import Path
-import pyblish.api
+from typing import Any
 
+import pyblish.api
 from pymxs import runtime as rt
 
 from ayon_core.pipeline.publish import (
+    OptionalPyblishPluginMixin,
+    PublishValidationError,
     RepairAction,
     ValidateContentsOrder,
-    PublishValidationError,
-    OptionalPyblishPluginMixin
 )
 from ayon_max.api.lib_rendersettings import (
-    is_supported_renderer,
     RenderSettings,
+    is_supported_renderer,
 )
 from ayon_max.api.lib import (
     get_current_renderer,
     get_multipass_setting,
-    get_vray_settings,
-    is_redshift_default_output_regex_matched,
     is_general_default_output_regex_matched,
+    is_redshift_default_output_regex_matched,
+    get_vray_settings,
 )
 
 ARNOLD_DRIVERS = {
@@ -29,6 +29,7 @@ ARNOLD_DRIVERS = {
     "jpg": rt.ArnoldJPEGDriver,
     "tif": rt.ArnoldTIFFDriver,
 }
+
 
 class ValidateRenderSettings(OptionalPyblishPluginMixin,
                              pyblish.api.InstancePlugin):
@@ -101,7 +102,7 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
     def _get_renderer_data(
         cls,
         instance: pyblish.api.Instance,
-    ) -> Tuple[rt.Renderers.current, str]:
+    ) -> tuple[rt.Renderers.current, str]:
         """Return the active renderer object and its normalized name.
 
         Args:
@@ -120,7 +121,7 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
     def get_invalid(
         cls,
         instance: pyblish.api.Instance,
-    ) -> List[Tuple[str, str]]:
+    ) -> list[tuple[str, str]]:
         """Collect invalid render settings for the current instance.
 
         Args:
@@ -211,7 +212,10 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
             Validation errors with details.
         """
         if not filename:
-            message = "V-Ray output filename is empty. Please set it in render settings."
+            message = (
+                "V-Ray output filename is empty. "
+                "Please set it in render settings."
+            )
             cls.log.error(message)
             return [(message, filename)]
 
@@ -268,17 +272,28 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
     def get_invalid_renderoutput(
         cls,
         image_format: str,
+        multicam: bool = False,
+        cameras: list[str] = None,
     ) -> list[tuple[str, str]]:
         """Validate the beauty render output filename.
 
         Args:
             image_format: Expected image format for the render output.
-
+            multicam: Whether the render is using multiple cameras.
+            cameras: List of camera names if multicam is enabled.
         Returns:
             Validation errors with their details.
         """
         invalid = []
         beauty_fname = os.path.basename(rt.rendOutputFilename)
+        if multicam and cameras:
+            for camera in cameras:
+                if camera not in beauty_fname:
+                    invalid.append((
+                        "Invalid render output filename",
+                        f"Render output filename should contain camera name "
+                        f"{camera} when multiCamera is enabled. Found: {beauty_fname}"
+                    ))
         if not is_general_default_output_regex_matched(beauty_fname):
             invalid.append((
                 "Invalid render output filename",
@@ -291,6 +306,28 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
                 f"render output filename should end with .{image_format}, "
                 f"Found: {beauty_fname}"
             ))
+        return invalid
+
+    @classmethod
+    def get_invalid_render_element_directory_for_multicam(
+        cls,
+        directory: str,
+        cameras: list[str],
+    ) -> list[tuple[str, str]]:
+        """Validate render element output directory structure for multi-camera setups.
+
+        Args:
+            directory: Render element output directory path.
+            cameras: List of camera names used in the render.
+        """
+        invalid = []
+        for camera in cameras:
+            if camera not in directory:
+                invalid.append((
+                    "Invalid render element output directory",
+                    f"Render element output directory should contain camera name "
+                    f"{camera} when multiCamera is enabled. Found: {directory}"
+                ))
         return invalid
 
     @classmethod
@@ -310,7 +347,12 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
         """
         invalid = []
         image_format = instance.data["imageFormat"]
-        invalid.extend(cls.get_invalid_renderoutput(image_format))
+        multicam = instance.data.get("multiCamera", False)
+        cameras = instance.data.get("cameras", [])
+        invalid_beauty = cls.get_invalid_renderoutput(
+            image_format, multicam, cameras
+        )
+        invalid.extend(invalid_beauty)
         render_elem = rt.maxOps.GetCurRenderElementMgr()
         render_elem_num = render_elem.NumRenderElements()
         # If not render element has been added,
@@ -321,7 +363,19 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
         for index in range(render_elem_num):
             renderlayer = render_elem.GetRenderElement(index)
             if renderlayer.enabled:
-                r_fname = os.path.basename(render_elem.GetRenderElementFilename(index))
+                render_element_filename = render_elem.GetRenderElementFilename(
+                    index
+                )
+                # multicam workflow: render element output
+                # directory should contain camera name
+                r_directory = os.path.dirname(render_element_filename)
+                invalid.extend(
+                    cls.get_invalid_render_element_directory_for_multicam(
+                        r_directory,
+                        cameras,
+                    )
+                )
+                r_fname = os.path.basename(render_element_filename)
                 if not cls._is_render_element_regex_matched(renderer_name, r_fname):
                     invalid.append((
                         "Invalid render element output filename",
@@ -391,8 +445,7 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
                 is_redshift_default_output_regex_matched(r_fname)
                 or is_general_default_output_regex_matched(r_fname)
             )
-        else:
-            return is_general_default_output_regex_matched(r_fname)
+        return is_general_default_output_regex_matched(r_fname)
 
     @classmethod
     def repair(cls, instance: pyblish.api.Instance) -> None:
@@ -403,13 +456,18 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
         """
         renderer, renderer_name = cls._get_renderer_data(instance)
         if is_supported_renderer(renderer_name):
-            cls.repair_general_render_settings(instance)
+            if not instance.data.get("multiCamera"):
+                instance_node = instance.data.get("instance_node")
+                RenderSettings().render_output(instance_node)
+            else:
+                cls.repair_general_render_settings(instance)
+
         if renderer_name.startswith("V_Ray_"):
             vr_settings = get_vray_settings(renderer_name)
             cls.repair_vray_settings(instance, renderer_name, vr_settings)
+
         if renderer_name == "Arnold":
             cls.repair_arnold_settings(instance, renderer)
-
 
     # Repair functions for specific renderers
     @classmethod
@@ -455,10 +513,13 @@ class ValidateRenderSettings(OptionalPyblishPluginMixin,
         for index in range(render_elem_num):
             renderlayer = render_elem.GetRenderElement(index)
             if renderlayer.enabled:
-                r_fname = os.path.basename(render_elem.GetRenderElementFilename(index))
+                render_element_filename = render_elem.GetRenderElementFilename(
+                    index
+                )
+                r_fname = os.path.basename(render_element_filename)
                 if not cls._is_render_element_regex_matched(renderer, r_fname):
                     output_filename = os.path.join(
-                        os.path.dirname(render_elem.GetRenderElementFilename(index)),
+                        os.path.dirname(render_element_filename),
                         cls._build_general_output_filename(
                             "", r_fname, image_format
                         )
