@@ -181,7 +181,6 @@ class RenderProducts(object):
             renderer_name
         )
 
-
     def get_render_element_outputfilename(
         self,
         renderer: Any,
