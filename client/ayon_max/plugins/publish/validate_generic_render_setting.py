@@ -82,9 +82,6 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin):
         Raises:
             PublishValidationError: If any invalid render settings are found.
         """
-        if not self.is_active(instance.data):
-            return
-
         renderer, renderer_name = self._get_renderer_data(instance)
         if not self._matches_renderer_name(renderer_name):
             return
