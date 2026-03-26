@@ -963,6 +963,7 @@ def is_general_default_output_regex_matched(filename) -> bool:
     pattern = r".*\.{2}[a-zA-Z0-9]+$"
     return re.match(pattern, filename) is not None
 
+
 def reformat_filename(filename: str) -> str:
     """Reformat render output filename to standardized pattern.
 
