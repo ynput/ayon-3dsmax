@@ -143,10 +143,10 @@ class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
             invalid.append((msg, driver))
 
         multipass_enabled = get_multipass_setting(renderer_name, project_settings)
-        if aov_manager.multipart != multipass_enabled:
+        if driver.multipart != multipass_enabled:
             invalid.append((
                 "Invalid Arnold multipass setting",
-                f"Expected: {multipass_enabled}, Found: {aov_manager.multipart}",
+                f"Expected: {multipass_enabled}, Found: {driver.multipart}",
             ))
         if not driver.filenameSuffix.endswith("."):
             invalid.append((
@@ -186,12 +186,17 @@ class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
         image_format = instance.data["imageFormat"]
         project_settings = instance.context.data["project_settings"]
         aov_manager = renderer.AOVManager
-        aov_manager.outputPath = set_correct_workfile_name_for_render_output(
+        _ = set_correct_workfile_name_for_render_output(
+            instance,
+            rt.rendOutputFilename,
+        )
+        path = set_correct_workfile_name_for_render_output(
             instance,
             aov_manager.outputPath,
         )
+        aov_manager.outputPath = path
         driver = aov_manager.drivers[0]
-        aov_manager.multipart = get_multipass_setting(
+        driver.multipart = get_multipass_setting(
             renderer_name,
             project_settings,
         )
