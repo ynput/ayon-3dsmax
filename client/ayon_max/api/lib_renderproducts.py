@@ -385,9 +385,7 @@ class RenderProducts(object):
         if renderer_name == "Default_Scanline_Renderer":
             return renderlayer.enabled
 
-        if multipass or (
-            not multipass and "Cryptomatte" in renderlayer.elementname
-        ):
+        if multipass or "Cryptomatte" in renderlayer.elementname:
             return renderlayer.enabled
 
         return False
