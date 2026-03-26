@@ -99,7 +99,7 @@ class RenderProducts(object):
         renderer = get_current_renderer()
         renderer_name = str(renderer).split(":")[0]
         render_output_frames: Dict[str, list[str]] = {}
-        
+
         for output, camera in zip(outputs, cameras):
             camera = camera.replace(":", "_")
             filename, ext = os.path.splitext(output)
@@ -107,7 +107,7 @@ class RenderProducts(object):
             ext = ext.replace(".", "")
             start_frame = int(rt.rendStart)
             end_frame = int(rt.rendEnd) + 1
-            
+
             # Always add beauty pass
             beauty_files = self.get_expected_beauty(start_frame, end_frame, ext)
             render_output_frames[f"{camera}_beauty"] = beauty_files
@@ -124,32 +124,8 @@ class RenderProducts(object):
                         renderer_name
                     )
                     render_output_frames[f"{camera}_{aov_name}"] = aov_expected_files
-        
+
         return render_output_frames
-
-    def get_multiple_beauty(
-            self, outputs: list[str], cameras: list[str]
-    ) -> Dict[str, list[str]]:
-        """Get multiple beauty render output file paths.
-
-        Args:
-            outputs (list[str]): A list of output file paths.
-            cameras (list[str]): A list of camera names.
-
-        Returns:
-            Dict[str, list[str]]: A dictionary containing the beauty
-                render output file paths for each camera.
-        """
-        return self.get_multiple_render_products(outputs, cameras, include_aovs=False)
-
-    def get_aovs(self) -> Dict[str, list[str]]:
-        """Get AOV render output file paths.
-
-        Returns:
-            Dict[str, list[str]]: A dictionary containing the AOV
-                render output file paths.
-        """
-        return self.get_render_products(include_aovs=True)
 
     def get_expected_beauty(
             self, start_frame: int, end_frame: int, extension: str
@@ -305,13 +281,6 @@ class RenderProducts(object):
         name, ext = os.path.splitext(filename)
         name = name.lstrip(".")
         aov_name = aov_name.strip()
-        # use_aov_name = bool(aov_name) and (
-        #     renderer_name.startswith("V_Ray_")
-        #     or (
-        #         renderer_name.startswith("Redshift_Renderer")
-        #         and is_redshift_default_output_regex_matched(filename)
-        #     )
-        # )
         for frame in range(start_frame, end_frame + 1):
             aov_filename =  f"{name}.{frame:04d}{ext}"
             expected_aov = os.path.join(directory, aov_filename)
@@ -340,7 +309,9 @@ class RenderProducts(object):
         expected_elements: list[tuple[str, str]] = []
         render_elem = rt.maxOps.GetCurRenderElementMgr()
         render_elem_num = render_elem.NumRenderElements()
-        is_multipass = get_multipass_setting(renderer_name)
+        is_multipass = get_multipass_setting(
+            renderer_name, self._project_settings
+        )
         if render_elem_num < 1:
             return expected_elements
         # get render elements from the renders
