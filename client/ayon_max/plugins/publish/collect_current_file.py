@@ -1,3 +1,5 @@
+import platform
+
 import pyblish.api
 from ayon_core.pipeline import registered_host
 
@@ -15,6 +17,9 @@ class CollectCurrentFile(pyblish.api.ContextPlugin):
         current_file = host.get_current_workfile()
         if not current_file:
             self.log.error("Scene is not saved.")
+
+        if platform.system().lower() == "windows":
+            current_file = current_file.reaplace("\\", "/")
 
         context.data["currentFile"] = current_file
         self.log.debug("Scene path: {}".format(current_file))
