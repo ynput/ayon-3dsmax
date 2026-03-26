@@ -83,7 +83,7 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
             list[tuple[str, str]]: A list of tuples containing error
               messages and invalid values.
         """
-        _, _, project_settings, workfile_pattern = cls._get_validation_context(
+        project_settings, workfile_pattern = cls._get_validation_context(
             instance
         )
         vr_settings = get_vray_settings(renderer_name, renderer)

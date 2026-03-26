@@ -82,7 +82,7 @@ class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
             list[tuple[str, str]]: invalid render settings as a list of tuples
                 containing the error type and the invalid filepath.
         """
-        _, _, project_settings, workfile_pattern = cls._get_validation_context(
+        project_settings, workfile_pattern = cls._get_validation_context(
             instance
         )
         cls.log.warning(

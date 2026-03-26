@@ -85,7 +85,7 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin):
         if not self.is_active(instance.data):
             return
 
-        renderer, renderer_name, _, _ = self._get_validation_context(instance)
+        renderer, renderer_name = self._get_renderer_data(instance)
         if not self._matches_renderer_name(renderer_name):
             return
 
@@ -127,24 +127,21 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin):
     def _get_validation_context(
         cls,
         instance: pyblish.api.Instance,
-    ) -> tuple[rt.Renderers.current, str, dict, str]:
-        """Get the validation context for the given instance.
+    ) -> tuple[dict, str]:
+        """Get project settings and workfile pattern for validation.
 
         Args:
             instance (pyblish.api.Instance): The instance to get validation context for.
 
         Returns:
-            tuple[rt.Renderers.current, str, dict, str]: The current renderer, its name,
-            project settings, and workfile pattern.
+            tuple[dict, str]: The project settings and workfile pattern.
         """
-
-        renderer, renderer_name = cls._get_renderer_data(instance)
         project_settings = instance.context.data["project_settings"]
         current_file = instance.context.data["currentFile"]
         workfile_pattern = os.path.splitext(
             os.path.basename(current_file)
         )[0].strip(".")
-        return renderer, renderer_name, project_settings, workfile_pattern
+        return project_settings, workfile_pattern
 
     @classmethod
     def _matches_renderer_name(cls, renderer_name: str) -> bool:
@@ -177,7 +174,7 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin):
             list[tuple[str, str]]: invalid render settings as a list of tuples
                 containing the error type and the invalid filepath.
         """
-        _, _, project_settings, workfile_pattern = cls._get_validation_context(
+        project_settings, workfile_pattern = cls._get_validation_context(
             instance
         )
         return cls.get_invalid_render_settings(
