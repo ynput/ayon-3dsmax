@@ -19,7 +19,7 @@ class CollectCurrentFile(pyblish.api.ContextPlugin):
             self.log.error("Scene is not saved.")
 
         if platform.system().lower() == "windows":
-            current_file = current_file.reaplace("\\", "/")
+            current_file = current_file.replace("\\", "/")
 
         context.data["currentFile"] = current_file
         self.log.debug("Scene path: {}".format(current_file))
