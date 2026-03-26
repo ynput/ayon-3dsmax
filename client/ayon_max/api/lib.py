@@ -5,6 +5,7 @@ import contextlib
 import logging
 import json
 from functools import partial
+import pyblish.api
 import re
 from typing import Any, Dict, Union
 
@@ -216,13 +217,19 @@ def get_expected_render_folder(setting, filename):
     return os.path.join(render_folder, filename)
 
 
-def get_vray_settings(renderer):
-    """Get V-Ray specific settings from the renderer."""
-    renderer_class = get_current_renderer()
-    if "GPU" in renderer:
-        return renderer_class.V_Ray_settings
-    else:
-        return renderer_class
+def get_vray_settings(renderer_name: str, renderer: Any) -> Any:
+    """Get V-Ray specific settings from the renderer.
+
+    Args:
+        renderer_name (str): The name of the renderer.
+        renderer (Any): The renderer object.
+
+    Returns:
+        Any: The V-Ray settings object.
+    """
+    if "GPU" in renderer_name:
+        return renderer.V_Ray_settings
+    return renderer
 
 
 def set_render_frame_range(start_frame, end_frame):
@@ -1003,3 +1010,48 @@ def reformat_filename(filename: str) -> str:
     else:
         # fallback if pattern doesn't match
         return filename
+
+
+def set_correct_workfile_name_for_render_output(
+    instance: pyblish.api.Instance,
+    filepath: str,
+) -> str:
+    """Replace the original workfile token with the current scene name.
+
+    Args:
+        instance (pyblish.api.Instance): The Pyblish instance.
+        filepath (str): The file path to update.
+
+    Returns:
+        str: The updated file path with the current workfile name.
+
+    """
+    old_workfile_filename = instance.data["original_workfile_pattern"]
+    current_file = os.path.basename(instance.context.data["currentFile"])
+    current_workfile_filename = os.path.splitext(current_file)[0].strip(".")
+    if old_workfile_filename != current_workfile_filename:
+        return filepath.replace(
+            old_workfile_filename,
+            current_workfile_filename,
+        )
+    return filepath
+
+
+def build_general_output_filename(
+    output_dir: str,
+    filename: str,
+    image_format: str,
+) -> str:
+    """Build a general output filename with the given directory, filename, and image format.
+
+    Args:
+        output_dir (str): The directory where the output file will be saved.
+        filename (str): The base filename.
+        image_format (str): The image format/extension.
+
+    Returns:
+        str: The full path to the output file with the general naming convention.
+    """
+    name = os.path.splitext(filename)[0].rstrip(".").lstrip(".")
+    output_filename = f"{name}..{image_format}"
+    return os.path.join(output_dir, output_filename)
