@@ -2,6 +2,7 @@
 # https://help.autodesk.com/view/MAXDEV/2022/ENU/?guid=GUID-E8F75D47-B998-4800-A3A5-610E22913CFC
 # arnold
 # https://help.autodesk.com/view/ARNOL/ENU/?guid=arnold_for_3ds_max_ax_maxscript_commands_ax_renderview_commands_html
+from __future__ import annotations
 import os
 from typing import Dict, Any
 
