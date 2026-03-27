@@ -14,7 +14,8 @@ from ayon_max.api.lib import (
     is_general_default_output_regex_matched,
     is_redshift_default_output_regex_matched,
     set_correct_workfile_name_for_render_output,
-    build_general_output_filename
+    build_general_output_filename,
+    get_vray_settings
 
 )
 from ayon_max.api.validate_plugins import ValidateRenderSettingsBase
