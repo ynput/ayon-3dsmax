@@ -186,10 +186,6 @@ class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
         image_format = instance.data["imageFormat"]
         project_settings = instance.context.data["project_settings"]
         aov_manager = renderer.AOVManager
-        _ = set_correct_workfile_name_for_render_output(
-            instance,
-            rt.rendOutputFilename,
-        )
         path = set_correct_workfile_name_for_render_output(
             instance,
             aov_manager.outputPath,

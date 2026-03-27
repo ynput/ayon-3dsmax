@@ -1026,15 +1026,34 @@ def set_correct_workfile_name_for_render_output(
         str: The updated file path with the current workfile name.
 
     """
-    old_workfile_filename = instance.data["original_workfile_pattern"]
+    project_settings = instance.context.data["project_settings"]
+    render_root = os.path.normpath(
+        get_default_render_folder(project_settings)
+    )
+    normalized_path = os.path.normpath(filepath)
+
     current_file = os.path.basename(instance.context.data["currentFile"])
     current_workfile_filename = os.path.splitext(current_file)[0].strip(".")
-    if old_workfile_filename != current_workfile_filename:
-        return filepath.replace(
-            old_workfile_filename,
-            current_workfile_filename,
-        )
-    return filepath
+
+    pattern = (
+        rf"^{re.escape(render_root)}"
+        rf"[\\/](?P<workfile>[^\\/]+)"
+        rf"(?P<rest>(?:[\\/].*)?)$"
+    )
+    match = re.match(pattern, normalized_path)
+    if not match:
+        return filepath
+
+    render_workfile_name = match.group("workfile")
+    if render_workfile_name == current_workfile_filename:
+        return filepath
+
+    rest = match.group("rest") or ""
+    return os.path.join(
+        render_root,
+        current_workfile_filename,
+        rest.lstrip("\\/"),
+    )
 
 
 def build_general_output_filename(
