@@ -39,13 +39,8 @@ class CollectRender(pyblish.api.InstancePlugin):
 
     def process(self, instance):
         context = instance.context
-        folder = rt.maxFilePath
-        file = rt.maxFileName
-        current_file = os.path.join(folder, file)
-        filename = os.path.splitext(file)[0]
-        self.log.debug(f"Current: {filename}")
-        filepath = current_file.replace("\\", "/")
-        context.data['currentFile'] = current_file
+        filepath = context.data["currentFile"]
+        filename = os.path.basename(filepath)
         renderer_class = get_current_renderer()
         renderer = str(renderer_class).split(":")[0]
         render_dir = os.path.dirname(rt.rendOutputFilename)
