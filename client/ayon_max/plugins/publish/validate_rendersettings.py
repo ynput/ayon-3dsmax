@@ -147,6 +147,40 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
         return invalid
 
     @classmethod
+    def _get_invalid_settings(
+        cls,
+        instance: pyblish.api.Instance,
+        renderer: rt.Renderers.current,
+        renderer_name: str,
+    ) -> list[tuple[str, str]]:
+        """Get the invalid render settings for the given instance.
+
+        Args:
+            instance (pyblish.api.Instance): The instance to validate.
+            renderer (rt.Renderers.current): The current renderer.
+            renderer_name (str): The name of the renderer.
+
+
+        Returns:
+            list[tuple[str, str]]: invalid render settings as a list of tuples
+                containing the error type and the invalid filepath.
+        """
+        project_settings, workfile_pattern = cls._get_validation_context(
+            instance
+        )
+        cls.log.warning(
+            "Current validation for Arnold renderer only checks for "
+            "the first AOV driver. Multiple drivers not supported yet."
+        )
+        return cls.get_invalid_render_settings(
+                instance,
+                renderer_name,
+                workfile_pattern,
+                renderer,
+                project_settings,
+        )
+
+    @classmethod
     def get_invalid_render_settings(
         cls,
         instance: pyblish.api.Instance,
