@@ -1,19 +1,33 @@
 # -*- coding: utf-8 -*-
 """Collect Render"""
+from __future__ import annotations
 import os
 import pyblish.api
 import ayon_api
+from typing import Dict, Any
 
 from pymxs import runtime as rt
 from ayon_core.pipeline.publish import KnownPublishError
 from ayon_max.api import colorspace
-from ayon_max.api.lib import get_max_version, get_current_renderer
+from ayon_max.api.lib import (
+    get_max_version,
+    get_current_renderer,
+    get_vray_settings,
+    get_multipass_setting,
+)
 from ayon_max.api.lib_rendersettings import RenderSettings
 from ayon_max.api.lib_renderproducts import RenderProducts
 
 
-def get_cameras_from_node(members):
-    """Get camera from instance members."""
+def get_cameras_from_node(members) -> list:
+    """Get camera from instance members.
+
+    Args:
+        members (list): The list of instance members.
+
+    Returns:
+        list: A list of camera objects.
+    """
     cameras = []
     for member in members:
         if rt.classOf(member) in rt.Camera.classes:
@@ -41,13 +55,19 @@ class CollectRender(pyblish.api.InstancePlugin):
         context = instance.context
         filepath = context.data["currentFile"]
         filename = os.path.basename(filepath)
-        renderer_class = get_current_renderer()
-        renderer = str(renderer_class).split(":")[0]
-        render_dir = os.path.dirname(rt.rendOutputFilename)
+        renderer = get_current_renderer()
+        renderer_name = str(renderer).split(":")[0]
+        renderproducts = RenderProducts(context.data["project_settings"])
+        img_format = renderproducts.image_format()
+        render_output = self.get_render_output(
+            renderer,
+            renderer_name,
+            img_format,
+            context.data["project_settings"]
+        )
+        render_dir = os.path.dirname(render_output)
+        files_by_aov: Dict[str, list[str]] = renderproducts.get_render_products()
 
-        files_by_aov = RenderProducts().get_beauty(instance.name, renderer, filename)
-        aovs = RenderProducts().get_aovs(instance.name, filename)
-        files_by_aov.update(aovs)
 
         camera = rt.viewport.GetCamera()
         camera_list = get_cameras_from_node(instance.data.get("members"))
@@ -71,18 +91,16 @@ class CollectRender(pyblish.api.InstancePlugin):
 
             instance.data["cameras"] = sel_cam
 
-            files_by_aov = RenderProducts().get_multiple_beauty(
-                outputs, sel_cam)
-            aovs = RenderProducts().get_multiple_aovs(
-                outputs, sel_cam)
-            files_by_aov.update(aovs)
+            files_by_aov = renderproducts.get_multiple_render_products(
+                outputs, sel_cam
+            )
 
         if "expectedFiles" not in instance.data:
             instance.data["expectedFiles"] = list()
             instance.data["files"] = list()
             instance.data["expectedFiles"].append(files_by_aov)
             instance.data["files"].append(files_by_aov)
-        img_format = RenderProducts().image_format()
+        self.log.debug(f"Files by AOV: {files_by_aov}")
         # OCIO config not support in
         # most of the 3dsmax renderers
         # so this is currently hard coded
@@ -132,7 +150,7 @@ class CollectRender(pyblish.api.InstancePlugin):
             "productType": product_type,
             "family": product_base_type,
             "families": [product_base_type],
-            "renderer": renderer,
+            "renderer": renderer_name,
             "source": filepath,
             "plugin": "3dsmax",
             "frameStart": instance.data["frameStartHandle"],
@@ -150,17 +168,48 @@ class CollectRender(pyblish.api.InstancePlugin):
                     _instance.data["version"] = context.data["version"]
 
         instance.data.update(data)
-        self.log.debug(instance.data)
         # TODO: this should be unified with maya and its "multipart" flag
         #       on instance.
-        if renderer == "Redshift_Renderer":
+        if renderer_name == "Redshift_Renderer":
             instance.data.update(
                 {"separateAovFiles": rt.Execute(
                     "renderers.current.separateAovFiles")})
 
         self.log.info("data: {0}".format(data))
 
-    def _precollect_required_data(self, instance):
+    def get_render_output(
+            self,
+            renderer: Any,
+            renderer_name: str,
+            img_format: str,
+            project_settings: Dict
+        ) -> str:
+        """Get render output path for the given renderer and instance.
+
+        Args:
+            renderer (Any, rt.Renderers.current): The renderer to get the
+                output path from.
+            renderer_name (str): The name of the renderer.
+            img_format (str): The image format.
+            project_settings (Dict): The project settings.
+
+        Returns:
+            str: The render output path.
+        """
+        if renderer_name == "Redshift_Renderer":
+            return rt.rendOutputFilename
+        elif renderer_name == "Arnold_Renderer":
+            return renderer.AOVManager.outputPath
+        elif renderer_name.startswith("V-Ray"):
+            vr_settings = get_vray_settings(renderer_name, renderer)
+            multipass = get_multipass_setting(renderer, project_settings)
+            if multipass and img_format == "exr":
+                return vr_settings.output_rawfilename
+            else:
+                return vr_settings.output_splitfilename
+        return rt.rendOutputFilename
+
+    def _precollect_required_data(self, instance: pyblish.api.Instance) -> None:
         """Ensure required data is present.
 
         Some data may not exist yet in the instance at this point, so we need
@@ -168,7 +217,10 @@ class CollectRender(pyblish.api.InstancePlugin):
         `create_instances_for_aov` requiring `taskEntity` in instance data
         if setting `use_legacy_product_names_for_renders` is disabled which is
         usually collected at a later order by `CollectAnatomyInstanceData`.
-        """""
+
+        Args:
+            instance (pyblish.api.Instance): The instance to ensure data for.
+        """
 
         project_name: str = instance.context.data["projectName"]
 
