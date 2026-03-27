@@ -168,10 +168,7 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
         project_settings, workfile_pattern = cls._get_validation_context(
             instance
         )
-        cls.log.warning(
-            "Current validation for Arnold renderer only checks for "
-            "the first AOV driver. Multiple drivers not supported yet."
-        )
+
         return cls.get_invalid_render_settings(
                 instance,
                 renderer_name,
