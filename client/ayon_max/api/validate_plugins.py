@@ -91,10 +91,41 @@ class ValidateRenderSettingsBase(object):
             list[tuple[str, str]]: invalid render settings as a list of tuples
                 containing the error type and the invalid filepath.
         """
-        raise NotImplementedError(
-            "Subclasses must implement this method to "
-            "validate specific render settings."
+        project_settings, workfile_pattern = cls._get_validation_context(
+            instance
         )
+
+        return cls.get_invalid_render_settings(
+                instance,
+                renderer_name,
+                workfile_pattern,
+                renderer,
+                project_settings,
+        )
+
+    @classmethod
+    def get_invalid_render_settings(
+        cls,
+        instance: pyblish.api.Instance,
+        renderer_name: str,
+        workfile_pattern: str,
+        renderer: rt.Renderers.current,
+        project_settings: dict,
+    ) -> list[tuple[str, str]]:
+        """Get the invalid render settings.
+
+        Args:
+            instance (pyblish.api.Instance): The instance to validate.
+            renderer_name (str): The name of the renderer.
+            workfile_pattern (str): The workfile name pattern to validate.
+            renderer (rt.Renderers.current): The current renderer.
+            project_settings (dict): The project settings.
+
+        Returns:
+            list[tuple[str, str]]: A list of tuples containing the error
+                type and the invalid setting.
+        """
+        raise NotImplementedError("Subclasses must implement this method.")
 
     @classmethod
     def get_invalid_renderoutput(

@@ -445,9 +445,9 @@ c
         )
         return cls.get_invalid_arnold_settings(
                 instance,
-                renderer,
                 renderer_name,
                 workfile_pattern,
+                renderer,
                 project_settings,
         )
 
@@ -455,9 +455,9 @@ c
     def get_invalid_arnold_settings(
         cls,
         instance: pyblish.api.Instance,
-        renderer: rt.Renderers.current,
         renderer_name: str,
         workfile_pattern: str,
+        renderer: rt.Renderers.current,
         project_settings: dict,
     ) -> list[tuple[str, str]]:
         """Get invalid Arnold settings for the given instance.
@@ -740,7 +740,7 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
         instance: pyblish.api.Instance,
         renderer_name: str,
         workfile_pattern: str,
-        vr_settings: Any,
+        renderer: rt.Renderers.current,
         project_settings: dict,
     ) -> list[tuple[str, str]]:
         """Get invalid V-Ray settings for the given instance.
@@ -749,7 +749,7 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
             instance (pyblish.api.Instance): The instance to validate.
             renderer_name (str): The name of the renderer.
             workfile_pattern (str): The workfile name pattern.
-            vr_settings (Any): The V-Ray settings object.
+            renderer (rt.Renderers.current): The current renderer.
             project_settings (dict): The project settings dictionary.
 
         Returns:
@@ -757,6 +757,7 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
                 and invalid values.
         """
         invalid = []
+        vr_settings = get_vray_settings(renderer_name, renderer)
         image_format = instance.data["imageFormat"]
         multipass_enabled = get_multipass_setting(renderer_name, project_settings)
         if multipass_enabled != vr_settings.output_splitgbuffer:
@@ -831,13 +832,12 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
                 image_format,
                 instance,
             )
-            return
-
-        vr_settings.output_splitfilename = cls._repair_vray_output_filename(
-            vr_settings.output_splitfilename,
-            image_format,
-            instance,
-        )
+        if multipass_enabled:
+            vr_settings.output_splitfilename = cls._repair_vray_output_filename(
+                vr_settings.output_splitfilename,
+                image_format,
+                instance,
+            )
 
     @classmethod
     def _repair_vray_output_filename(
