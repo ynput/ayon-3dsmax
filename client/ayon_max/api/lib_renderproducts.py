@@ -318,7 +318,7 @@ class RenderProducts(object):
         for index in range(render_elem_num):
             renderlayer = render_elem.GetRenderElement(index)
             if self.get_render_element_by_multipass(
-                renderer_name, renderlayer, is_multipass
+                renderer_name, renderlayer, is_multipass, image_format
             ):
                 renderpass = str(renderlayer.elementname)
                 renderlayer_filepath = self.get_render_element_outputfilename(
@@ -341,13 +341,18 @@ class RenderProducts(object):
         return expected_elements
 
     def get_render_element_by_multipass(
-            self, renderer_name: str, renderlayer: Any, multipass: bool) -> bool:
+            self,
+            renderer_name: str,
+            renderlayer: Any,
+            multipass: bool,
+            image_format: str) -> bool:
         """Get render element name based on multipass setting.
 
         Args:
             renderer_name (str): The name of the renderer.
             renderlayer (Any, rt.RenderTarget): The render layer instance.
             multipass (bool): Whether multipass is enabled.
+            image_format (str): The image format of the render output.
 
         Returns:
             bool: True if the render element should be included
@@ -356,7 +361,11 @@ class RenderProducts(object):
         if renderer_name == "Default_Scanline_Renderer":
             return renderlayer.enabled
 
-        if multipass or "Cryptomatte" in renderlayer.elementname:
+        if multipass:
+            if renderer_name == "Redshift_Renderer" and image_format == "exr":
+                if "Cryptomatte" in renderlayer.elementname:
+                    return renderlayer.enabled
+                return False
             return renderlayer.enabled
 
         return False
