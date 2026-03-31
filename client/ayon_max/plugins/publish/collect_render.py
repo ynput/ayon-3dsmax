@@ -55,17 +55,11 @@ class CollectRender(pyblish.api.InstancePlugin):
         context = instance.context
         filepath = context.data["currentFile"]
         filename = os.path.basename(filepath)
+        filename_pattern = os.path.splitext(filename)[0].strip(".")
         renderer = get_current_renderer()
         renderer_name = str(renderer).split(":")[0]
         renderproducts = RenderProducts(context.data["project_settings"])
         img_format = renderproducts.image_format()
-        render_output = self.get_render_output(
-            renderer,
-            renderer_name,
-            img_format,
-            context.data["project_settings"]
-        )
-        render_dir = os.path.dirname(render_output)
         files_by_aov: Dict[str, list[str]] = renderproducts.get_render_products()
 
 
@@ -84,6 +78,14 @@ class CollectRender(pyblish.api.InstancePlugin):
 
             sel_cam = [camera.name for camera in get_cameras_from_node(cameras)]
 
+            render_output = self.get_render_output(
+                renderer,
+                renderer_name,
+                img_format,
+                context.data["project_settings"]
+            )
+            render_dir = os.path.dirname(render_output)
+
             container_name = instance.data.get("instance_node")
             outputs = RenderSettings().batch_render_layers_by_multi_camera(
                 container_name, render_dir, sel_cam
@@ -100,7 +102,6 @@ class CollectRender(pyblish.api.InstancePlugin):
             instance.data["files"] = list()
             instance.data["expectedFiles"].append(files_by_aov)
             instance.data["files"].append(files_by_aov)
-        self.log.debug(f"Files by AOV: {files_by_aov}")
         # OCIO config not support in
         # most of the 3dsmax renderers
         # so this is currently hard coded
@@ -143,7 +144,7 @@ class CollectRender(pyblish.api.InstancePlugin):
             "workfile_name": filename,
             "productName": str(instance.name),
             "publish": True,
-            "original_workfile_pattern": render_dir.rsplit("\\")[-1],
+            "original_workfile_pattern": filename_pattern,
             "maxversion": str(get_max_version()),
             "imageFormat": img_format,
             "productBaseType": product_base_type,
