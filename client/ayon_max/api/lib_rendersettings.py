@@ -147,9 +147,9 @@ class RenderSettings(object):
         # TODO: supports multipass for different renderers
         elif renderer_name == "Redshift_Renderer":
             rt.rendOutputFilename = output_filename
-            rt.renderers.current.separateAovFiles = multipass_enabled
+            rt.renderers.production.separateAovFiles = multipass_enabled
             if img_fmt == "exr" and multipass_enabled:
-                rt.renderers.current.OutputExrMultipart = multipass_enabled
+                rt.renderers.production.OutputExrMultipart = multipass_enabled
 
         # prevent rendering extra files when using V-Ray
         rt.rendSaveFile = True if not renderer_name.startswith("V_Ray_") else False

@@ -307,18 +307,15 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
                 )
 
         filename = os.path.basename(renderoutput)
-        if is_general_default_output_regex_matched(filename):
-            rt.rendOutputFilename = build_general_output_filename(
-                output_dir,
-                filename,
-                image_format,
-            )
-            cls.log.info(
-                "Render output filename has been repaired to %s",
-                rt.rendOutputFilename,
-            )
-        else:
-            cls.log.info("Render output filename is correct. No need to repair.")
+        rt.rendOutputFilename = build_general_output_filename(
+            output_dir,
+            filename,
+            image_format,
+        )
+        cls.log.info(
+            "Render output filename has been repaired to %s",
+            rt.rendOutputFilename,
+        )
 
         render_elem = rt.maxOps.GetCurRenderElementMgr()
         render_elem_num = render_elem.NumRenderElements()
@@ -336,15 +333,14 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
                 instance,
                 os.path.dirname(render_element_filename),
             )
-            if cls._is_render_element_regex_matched(renderer_name, r_fname):
-                output_filename = build_general_output_filename(
-                    output_dir, r_fname, image_format
-                )
-                render_elem.SetRenderElementFilename(index, output_filename)
-                cls.log.info(
-                    "Render element output filename has been repaired to %s",
-                    render_elem.GetRenderElementFilename(index),
-                )
+            output_filename = build_general_output_filename(
+                output_dir, r_fname, image_format
+            )
+            render_elem.SetRenderElementFilename(index, output_filename)
+            cls.log.info(
+                "Render element output filename has been repaired to %s",
+                render_elem.GetRenderElementFilename(index),
+            )
 
 
 class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
@@ -506,12 +502,11 @@ class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
             os.path.dirname(render_output),
         )
         filename = os.path.basename(render_output)
-        if is_general_default_output_regex_matched(filename):
-            rt.rendOutputFilename = build_general_output_filename(
-                render_dir,
-                filename,
-                image_format,
-            )
+        rt.rendOutputFilename = build_general_output_filename(
+            render_dir,
+            filename,
+            image_format,
+        )
         driver = aov_manager.drivers[0]
         driver.multipart = get_multipass_setting(
             renderer_name,
