@@ -180,6 +180,11 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
                     "Invalid Redshift multipass setting",
                     f"Expected: {multipass_enabled}, Found: {renderer.separateAovFiles}",
                 ))
+            if image_format == "exr" and not renderer.OutputExrMultipart:
+                invalid.append((
+                    "Invalid Redshift render setting",
+                    "EXR image format should have OutputExrMultipart enabled for AOVs.",
+                ))
 
         multicam = instance.data.get("multiCamera", False)
         cameras = instance.data.get("cameras", [])
@@ -295,9 +300,14 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
                 renderer_name,
                 project_settings,
             )
+            if image_format == "exr":
+                renderer.OutputExrMultipart = get_multipass_setting(
+                    renderer_name,
+                    project_settings,
+                )
 
         filename = os.path.basename(renderoutput)
-        if not is_general_default_output_regex_matched(filename):
+        if is_general_default_output_regex_matched(filename):
             rt.rendOutputFilename = build_general_output_filename(
                 output_dir,
                 filename,
@@ -322,10 +332,13 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
 
             render_element_filename = render_elem.GetRenderElementFilename(index)
             r_fname = os.path.basename(render_element_filename)
-            if not cls._is_render_element_regex_matched(renderer_name, r_fname):
-                output_filename = os.path.join(
-                    os.path.dirname(render_element_filename),
-                    build_general_output_filename("", r_fname, image_format),
+            output_dir = set_correct_workfile_name_for_render_output(
+                instance,
+                os.path.dirname(render_element_filename),
+            )
+            if cls._is_render_element_regex_matched(renderer_name, r_fname):
+                output_filename = build_general_output_filename(
+                    output_dir, r_fname, image_format
                 )
                 render_elem.SetRenderElementFilename(index, output_filename)
                 cls.log.info(
@@ -345,7 +358,7 @@ class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
      configuration required by the publish pipeline.
 
      The plugin performs the following Arnold-specific validation checks:
-c
+
           1. Arnold AOV Output Path Validation
               Validates that the Arnold AOV output path points to the expected
               workfile-based render directory for the current scene.
@@ -411,6 +424,12 @@ c
         invalid = []
         aov_manager = renderer.AOVManager
         output_path = aov_manager.outputPath
+        image_format = instance.data["imageFormat"]
+        invalid.extend(
+            cls.get_invalid_renderoutput(
+            image_format,
+            workfile_pattern
+        ))
         if workfile_pattern not in output_path:
             msg = (
                 f"Invalid Arnold AOV output path {output_path}. "
@@ -421,7 +440,6 @@ c
 
         aov_drivers = aov_manager.drivers
         driver = aov_drivers[0]
-        image_format = instance.data["imageFormat"]
         arnold_driver = get_arnold_driver_for_image_format(image_format)
         if rt.ClassOf(driver) != arnold_driver:
             msg = (
@@ -480,6 +498,20 @@ c
             aov_manager.outputPath,
         )
         aov_manager.outputPath = path
+        # check if the beauty output path is correct if using the
+        # default native 3dsmax render
+        render_output = rt.rendOutputFilename
+        render_dir = set_correct_workfile_name_for_render_output(
+            instance,
+            os.path.dirname(render_output),
+        )
+        filename = os.path.basename(render_output)
+        if is_general_default_output_regex_matched(filename):
+            rt.rendOutputFilename = build_general_output_filename(
+                render_dir,
+                filename,
+                image_format,
+            )
         driver = aov_manager.drivers[0]
         driver.multipart = get_multipass_setting(
             renderer_name,

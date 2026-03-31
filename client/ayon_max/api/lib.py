@@ -1071,6 +1071,6 @@ def build_general_output_filename(
     Returns:
         str: The full path to the output file with the general naming convention.
     """
-    name = os.path.splitext(filename)[0].rstrip(".").lstrip(".")
-    output_filename = f"{name}..{image_format}"
+    name = os.path.splitext(filename)[0]
+    output_filename = f"{name}.{image_format}"
     return os.path.join(output_dir, output_filename)

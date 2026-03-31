@@ -156,7 +156,6 @@ class ValidateRenderSettingsBase(object):
                 f"Invalid render output filename {rt.rendOutputFilename}. "
                 f"Filename should contain the workfile name pattern: {workfile_pattern}."
             )
-            cls.log.error(msg)
             invalid.append((msg, beauty_dir))
 
         beauty_fname = os.path.basename(rt.rendOutputFilename)
