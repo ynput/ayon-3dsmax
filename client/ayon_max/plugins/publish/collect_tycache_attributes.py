@@ -11,7 +11,7 @@ class CollectTyFlowData(pyblish.api.InstancePlugin,
                         AYONPyblishPluginMixin):
     """Collect Channel Attributes for TyCache Export"""
 
-    order = pyblish.api.CollectorOrder + 0.005
+    order = pyblish.api.CollectorOrder - 0.49
     label = "Collect tyCache attribute Data"
     hosts = ['max']
     families = ["tyflow"]
