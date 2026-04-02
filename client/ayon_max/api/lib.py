@@ -5,6 +5,8 @@ import contextlib
 import logging
 import json
 from functools import partial
+import pyblish.api
+import re
 from typing import Any, Dict, Union
 
 from ayon_core.pipeline import (
@@ -215,13 +217,19 @@ def get_expected_render_folder(setting, filename):
     return os.path.join(render_folder, filename)
 
 
-def get_vray_settings(renderer):
-    """Get V-Ray specific settings from the renderer."""
-    renderer_class = get_current_renderer()
-    if "GPU" in renderer:
-        return renderer_class.V_Ray_settings
-    else:
-        return renderer_class
+def get_vray_settings(renderer_name: str, renderer: Any) -> Any:
+    """Get V-Ray specific settings from the renderer.
+
+    Args:
+        renderer_name (str): The name of the renderer.
+        renderer (Any): The renderer object.
+
+    Returns:
+        Any: The V-Ray settings object.
+    """
+    if "GPU" in renderer_name:
+        return renderer.V_Ray_settings
+    return renderer
 
 
 def set_render_frame_range(start_frame, end_frame):
@@ -923,3 +931,146 @@ def update_content_on_context_change():
 
     if has_changes:
         create_context.save_changes()
+
+
+def is_redshift_default_output_regex_matched(filename) -> bool:
+    """Check if the filename matches the Redshift default output pattern.
+
+    The Redshift default output pattern expects an underscore-dot separator
+    before the render element name: `<name>._<element>.<extension>`
+    (e.g., `RenderMain._RsCryptomatte.exr`). This pattern is generated when
+    users manually create render elements and 3ds Max uses default naming.
+
+    Args:
+        filename (str): The filename to check.
+
+    Returns:
+        bool: True if the filename matches the Redshift
+            pattern (name._element.extension), False otherwise.
+    """
+    pattern = r"^[^.]+?\._[^.]+?\.[a-zA-Z0-9]+$"
+    return re.match(pattern, filename) is not None
+
+
+def is_general_default_output_regex_matched(filename) -> bool:
+    """Check if the filename matches the general default render output pattern.
+
+    The general default output pattern expects a double-dot separator before
+    the file extension: `<name>..<extension>` (e.g., `John_Doe..exr`).
+    This is the standard naming convention for render outputs when configured
+    through the create render instance settings.
+
+    Args:
+        filename (str): The filename to check.
+
+    Returns:
+        bool: True if the filename matches the pattern (name..extension),
+            False otherwise.
+    """
+    pattern = r".*\.{2}[a-zA-Z0-9]+$"
+    return re.match(pattern, filename) is not None
+
+
+def reformat_filename(filename: str) -> str:
+    """Reformat render output filename to standardized pattern.
+
+    Converts filenames from two non-standard render patterns(One from Redshift render elements,
+    another Vray render elements with the edge case of not using vray-style output.) to a unified
+    format: `<name>.<frame>.<extension>`. This handles both Redshift
+    render element naming and general render output naming conventions.
+
+    Conversion patterns:
+        - Redshift: `Main._Cryptomatte.1001.exr` → `Main.Cryptomatte.1001.exr`
+        - Vray (edge case): `Main_tmp..Cryptomatte.1001.exr` → `Main_tmp.Cryptomatte.1001.exr`
+
+    Args:
+        filename (str): The filename to reformat.
+
+    Returns:
+        str: The reformatted filename in name.frame.extension format.
+    """
+    # Match: base name, underscore part, extension
+    redshift_pattern = (
+        r"^(?P<name>.+)\._(?P<element>[^.]+)\.(?P<frame>[^.]+)\.(?P<ext>[a-zA-Z0-9]+)$"
+    )
+    match = re.match(redshift_pattern, filename)
+    vray_pattern = r"^(?P<name>.+)\.\.(?P<frame>[^.]+)\.(?P<ext>[a-zA-Z0-9]+)$"
+    match_vray = re.match(vray_pattern, filename)
+    if match:
+        name = match.group("name")
+        element = match.group("element")
+        frame = match.group("frame")
+        ext = match.group("ext")
+        return f"{name}.{element}.{frame}.{ext}"
+    elif match_vray:
+        name = match_vray.group("name")
+        frame = match_vray.group("frame")
+        ext = match_vray.group("ext")
+        return f"{name}.{frame}.{ext}"
+    else:
+        # fallback if pattern doesn't match
+        return filename
+
+
+def set_correct_workfile_name_for_render_output(
+    instance: pyblish.api.Instance,
+    filepath: str,
+) -> str:
+    """Replace the original workfile token with the current scene name.
+
+    Args:
+        instance (pyblish.api.Instance): The Pyblish instance.
+        filepath (str): The file path to update.
+
+    Returns:
+        str: The updated file path with the current workfile name.
+
+    """
+    project_settings = instance.context.data["project_settings"]
+    render_root = os.path.normpath(
+        get_default_render_folder(project_settings)
+    )
+    normalized_path = os.path.normpath(filepath)
+
+    current_file = os.path.basename(instance.context.data["currentFile"])
+    current_workfile_filename = os.path.splitext(current_file)[0].strip(".")
+
+    pattern = (
+        rf"^{re.escape(render_root)}"
+        rf"[\\/](?P<workfile>[^\\/]+)"
+        rf"(?P<rest>(?:[\\/].*)?)$"
+    )
+    match = re.match(pattern, normalized_path)
+    if not match:
+        return filepath
+
+    render_workfile_name = match.group("workfile")
+    if render_workfile_name == current_workfile_filename:
+        return filepath
+
+    rest = match.group("rest") or ""
+    return os.path.join(
+        render_root,
+        current_workfile_filename,
+        rest.lstrip("\\/"),
+    )
+
+
+def build_general_output_filename(
+    output_dir: str,
+    filename: str,
+    image_format: str,
+) -> str:
+    """Build a general output filename with the given directory, filename, and image format.
+
+    Args:
+        output_dir (str): The directory where the output file will be saved.
+        filename (str): The base filename.
+        image_format (str): The image format/extension.
+
+    Returns:
+        str: The full path to the output file with the general naming convention.
+    """
+    name = os.path.splitext(filename)[0]
+    output_filename = f"{name}.{image_format}"
+    return os.path.join(output_dir, output_filename)
