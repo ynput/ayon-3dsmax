@@ -38,6 +38,17 @@ def is_supported_renderer(renderer_name: str) -> bool:
     return False
 
 
+def get_arnold_driver_for_image_format(image_format: str):
+    """Get the corresponding Arnold driver class for a given image format."""
+    ARNOLD_DRIVERS = {
+        "exr": rt.ArnoldEXRDriver,
+        "png": rt.ArnoldPNGDriver,
+        "jpg": rt.ArnoldJPEGDriver,
+        "tif": rt.ArnoldTIFFDriver,
+    }
+    return ARNOLD_DRIVERS.get(image_format)
+
+
 class RenderSettings(object):
 
     log = Logger.get_logger("RenderSettings")
@@ -89,8 +100,8 @@ class RenderSettings(object):
         frame_end = folder_attributes.get("frame_end")
         set_render_frame_range(frame_start, frame_end)
         # get the production render
-        renderer_class = get_current_renderer()
-        renderer = str(renderer_class).split(":")[0]
+        renderer = get_current_renderer()
+        renderer_name = str(renderer).split(":")[0]
 
         img_fmt = self._project_settings["max"]["RenderSettings"]["image_format"]   # noqa
         output = os.path.join(output_dir, container)
@@ -105,22 +116,22 @@ class RenderSettings(object):
         output_filename = f"{output}..{img_fmt}"
         output_filename = output_filename.replace("{aov_separator}",
                                                   aov_separator)
-        multipass_enabled = get_multipass_setting(renderer, setting)
-        if renderer == "VUE_File_Renderer":
+        multipass_enabled = get_multipass_setting(renderer_name, setting)
+        if renderer_name == "VUE_File_Renderer":
             rt.rendOutputFilename = output_filename
             return
         # TODO: Finish the arnold render setup
-        elif renderer == "Arnold":
+        elif renderer_name == "Arnold":
             # We should remove this
             rt.rendOutputFilename = output_filename
             self.arnold_setup(output_dir, container, multipass_enabled)
 
-        elif is_supported_renderer(renderer):
+        elif is_supported_renderer(renderer_name):
             rt.rendOutputFilename = output_filename
             self.render_element_layer(output, width, height, img_fmt)
 
-        elif renderer.startswith("V_Ray_"):
-            vr_settings = get_vray_settings(renderer)
+        elif renderer_name.startswith("V_Ray_"):
+            vr_settings = get_vray_settings(renderer_name, renderer)
             vr_settings.output_force32bit_3dsmax_vfb = True
             vr_settings.output_splitgbuffer = multipass_enabled
             if img_fmt == "exr":
@@ -134,14 +145,14 @@ class RenderSettings(object):
                 rt.rendOutputFilename = f"{output}_tmp..{img_fmt}"
             self.render_element_layer(output, width, height, img_fmt)
         # TODO: supports multipass for different renderers
-        elif renderer == "Redshift_Renderer":
+        elif renderer_name == "Redshift_Renderer":
             rt.rendOutputFilename = output_filename
-            rt.renderers.current.separateAovFiles = multipass_enabled
+            rt.renderers.production.separateAovFiles = multipass_enabled
             if img_fmt == "exr" and multipass_enabled:
-                rt.renderers.current.OutputExrMultipart = multipass_enabled
+                rt.renderers.production.OutputExrMultipart = multipass_enabled
 
         # prevent rendering extra files when using V-Ray
-        rt.rendSaveFile = True if not renderer.startswith("V_Ray_") else False
+        rt.rendSaveFile = True if not renderer_name.startswith("V_Ray_") else False
 
         rt.renderSceneDialog.update()
 
