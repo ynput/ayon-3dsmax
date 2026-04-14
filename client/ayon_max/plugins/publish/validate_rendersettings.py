@@ -427,7 +427,7 @@ class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
                 "Invalid Arnold multipass setting",
                 f"Expected: {multipass_enabled}, Found: {driver.multipart}",
             ))
-        if driver.filenameSuffix and not driver.filenameSuffix.endswith("."):
+        if not driver.filenameSuffix.endswith("."):
             invalid.append((
                 "Invalid Arnold AOV driver filename",
                 "Arnold AOV driver filename suffix should end with '.', "
@@ -508,7 +508,7 @@ class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
                     image_format,
                 )
 
-        if driver.filenameSuffix and not driver.filenameSuffix.endswith("."):
+        if not driver.filenameSuffix.endswith("."):
             driver.filenameSuffix = f"{driver.filenameSuffix}."
             cls.log.info(
                 "Arnold AOV driver filename suffix has been repaired to %s.",
