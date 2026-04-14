@@ -12,7 +12,6 @@ from ayon_core.pipeline.publish import (
 from ayon_max.api.lib import (
     get_multipass_setting,
     is_general_default_output_regex_matched,
-    is_redshift_default_output_regex_matched,
     set_correct_workfile_name_for_render_output,
     build_general_output_filename,
     get_vray_settings
@@ -217,7 +216,7 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
                 )
             )
             r_fname = os.path.basename(render_element_filename)
-            if not cls._is_render_element_regex_matched(renderer_name, r_fname):
+            if not is_general_default_output_regex_matched(renderer_name, r_fname):
                 invalid.append((
                     "Invalid render element output filename",
                     "render element output filename does not match the "
@@ -230,29 +229,6 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
                     f".{image_format}, Found: {r_fname}",
                 ))
         return invalid
-
-    @classmethod
-    def _is_render_element_regex_matched(
-        cls,
-        renderer_name: str,
-        render_element_filename: str,
-    ) -> bool:
-        """Check if the render element filename matches the default output regex.
-
-        Args:
-            renderer_name (str): The name of the renderer.
-            render_element_filename (str): The render element filename to check.
-
-        Returns:
-            bool: True if the filename matches the default output regex, False otherwise.
-        """
-
-        if renderer_name == "Redshift_Renderer":
-            return (
-                is_redshift_default_output_regex_matched(render_element_filename)
-                or is_general_default_output_regex_matched(render_element_filename)
-            )
-        return is_general_default_output_regex_matched(render_element_filename)
 
     @classmethod
     def repair(cls, instance: pyblish.api.Instance) -> None:

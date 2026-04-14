@@ -933,25 +933,6 @@ def update_content_on_context_change():
         create_context.save_changes()
 
 
-def is_redshift_default_output_regex_matched(filename) -> bool:
-    """Check if the filename matches the Redshift default output pattern.
-
-    The Redshift default output pattern expects an underscore-dot separator
-    before the render element name: `<name>._<element>.<extension>`
-    (e.g., `RenderMain._RsCryptomatte.exr`). This pattern is generated when
-    users manually create render elements and 3ds Max uses default naming.
-
-    Args:
-        filename (str): The filename to check.
-
-    Returns:
-        bool: True if the filename matches the Redshift
-            pattern (name._element.extension), False otherwise.
-    """
-    pattern = r"^[^.]+?\._[^.]+?\.[a-zA-Z0-9]+$"
-    return re.match(pattern, filename) is not None
-
-
 def is_general_default_output_regex_matched(filename) -> bool:
     """Check if the filename matches the general default render output pattern.
 
