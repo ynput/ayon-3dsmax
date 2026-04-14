@@ -216,7 +216,7 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
                 )
             )
             r_fname = os.path.basename(render_element_filename)
-            if not is_general_default_output_regex_matched(renderer_name, r_fname):
+            if not is_general_default_output_regex_matched(r_fname):
                 invalid.append((
                     "Invalid render element output filename",
                     "render element output filename does not match the "
