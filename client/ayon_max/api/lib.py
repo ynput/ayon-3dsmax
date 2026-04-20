@@ -1050,5 +1050,13 @@ def build_general_output_filename(
     Returns:
         str: The full path to the output file with the general naming convention.
     """
-    filename = reformat_filename(filename)
+    generic_pattern = (
+        r"^(?P<name>.+)\._(?P<element>[^.]+)\.(?P<ext>[a-zA-Z0-9]+)$"
+    )
+    match = re.match(generic_pattern, filename)
+    if match:
+        name = match.group("name")
+        element = match.group("element")
+        ext = match.group("ext")
+        filename = f"{name}_{element}..{ext}"
     return os.path.join(output_dir, filename)

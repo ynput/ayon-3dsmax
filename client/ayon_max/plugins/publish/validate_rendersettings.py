@@ -314,6 +314,7 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
                 "Render element output filename has been repaired to %s",
                 render_elem.GetRenderElementFilename(index),
             )
+        rt.renderSceneDialog.update()
 
 
 class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
