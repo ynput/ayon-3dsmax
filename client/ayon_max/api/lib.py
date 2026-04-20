@@ -1040,18 +1040,15 @@ def set_correct_workfile_name_for_render_output(
 def build_general_output_filename(
     output_dir: str,
     filename: str,
-    image_format: str,
 ) -> str:
     """Build a general output filename with the given directory, filename, and image format.
 
     Args:
         output_dir (str): The directory where the output file will be saved.
         filename (str): The base filename.
-        image_format (str): The image format/extension.
 
     Returns:
         str: The full path to the output file with the general naming convention.
     """
-    name = os.path.splitext(filename)[0]
-    output_filename = f"{name}.{image_format}"
-    return os.path.join(output_dir, output_filename)
+    filename = reformat_filename(filename)
+    return os.path.join(output_dir, filename)

@@ -286,7 +286,6 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
         rt.rendOutputFilename = build_general_output_filename(
             output_dir,
             filename,
-            image_format,
         )
         cls.log.info(
             "Render output filename has been repaired to %s",
@@ -309,9 +308,7 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
                 instance,
                 os.path.dirname(render_element_filename),
             )
-            output_filename = build_general_output_filename(
-                output_dir, r_fname, image_format
-            )
+            output_filename = build_general_output_filename(output_dir, r_fname)
             render_elem.SetRenderElementFilename(index, output_filename)
             cls.log.info(
                 "Render element output filename has been repaired to %s",
@@ -481,7 +478,6 @@ class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
         rt.rendOutputFilename = build_general_output_filename(
             render_dir,
             filename,
-            image_format,
         )
         driver = aov_manager.drivers[0]
         driver.multipart = get_multipass_setting(
