@@ -1040,18 +1040,23 @@ def set_correct_workfile_name_for_render_output(
 def build_general_output_filename(
     output_dir: str,
     filename: str,
-    image_format: str,
 ) -> str:
     """Build a general output filename with the given directory, filename, and image format.
 
     Args:
         output_dir (str): The directory where the output file will be saved.
         filename (str): The base filename.
-        image_format (str): The image format/extension.
 
     Returns:
         str: The full path to the output file with the general naming convention.
     """
-    name = os.path.splitext(filename)[0]
-    output_filename = f"{name}.{image_format}"
-    return os.path.join(output_dir, output_filename)
+    generic_pattern = (
+        r"^(?P<name>.+)\._(?P<element>[^.]+)\.(?P<ext>[a-zA-Z0-9]+)$"
+    )
+    match = re.match(generic_pattern, filename)
+    if match:
+        name = match.group("name")
+        element = match.group("element")
+        ext = match.group("ext")
+        filename = f"{name}_{element}..{ext}"
+    return os.path.join(output_dir, filename)
