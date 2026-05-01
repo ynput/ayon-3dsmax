@@ -51,7 +51,7 @@ class RenderProducts(object):
         """
         extension = self.image_format()
         start_frame = int(rt.rendStart)
-        end_frame = int(rt.rendEnd) + 1
+        end_frame = int(rt.rendEnd)
         # todo: Support Custom Frames sequences 0,5-10,100-120
         # we can add filtering frames list to get expected frames list
         # instead of using start and end frame
@@ -106,7 +106,7 @@ class RenderProducts(object):
             filename = filename.replace(".", "")
             ext = ext.replace(".", "")
             start_frame = int(rt.rendStart)
-            end_frame = int(rt.rendEnd) + 1
+            end_frame = int(rt.rendEnd)
 
             # Always add beauty pass
             beauty_files = self.get_expected_beauty(start_frame, end_frame, ext)
