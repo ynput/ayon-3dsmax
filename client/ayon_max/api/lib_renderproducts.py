@@ -51,7 +51,7 @@ class RenderProducts(object):
         """
         extension = self.image_format()
         start_frame = int(rt.rendStart)
-        end_frame = int(rt.rendEnd) + 1
+        end_frame = int(rt.rendEnd)
         # todo: Support Custom Frames sequences 0,5-10,100-120
         # we can add filtering frames list to get expected frames list
         # instead of using start and end frame
@@ -106,7 +106,7 @@ class RenderProducts(object):
             filename = filename.replace(".", "")
             ext = ext.replace(".", "")
             start_frame = int(rt.rendStart)
-            end_frame = int(rt.rendEnd) + 1
+            end_frame = int(rt.rendEnd)
 
             # Always add beauty pass
             beauty_files = self.get_expected_beauty(start_frame, end_frame, ext)
@@ -281,7 +281,7 @@ class RenderProducts(object):
         name, ext = os.path.splitext(filename)
         name = name.lstrip(".")
         aov_name = aov_name.strip()
-        for frame in range(start_frame, end_frame + 1):
+        for frame in range(start_frame, end_frame):
             aov_filename =  f"{name}.{frame:04d}{ext}"
             expected_aov = os.path.join(directory, aov_filename)
             if aov_name and renderer_name.startswith("V_Ray_"):
