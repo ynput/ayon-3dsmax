@@ -281,7 +281,7 @@ class RenderProducts(object):
         name, ext = os.path.splitext(filename)
         name = name.lstrip(".")
         aov_name = aov_name.strip()
-        for frame in range(start_frame, end_frame):
+        for frame in range(start_frame, end_frame + 1):
             aov_filename =  f"{name}.{frame:04d}{ext}"
             expected_aov = os.path.join(directory, aov_filename)
             if aov_name and renderer_name.startswith("V_Ray_"):
