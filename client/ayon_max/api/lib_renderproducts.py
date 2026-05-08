@@ -128,9 +128,8 @@ class RenderProducts(object):
         """Get expected beauty render output file paths for each frame.
 
         Args:
-            frame_range (list[int]): The range of frames.
-
-            end_frame (int): The ending frame number.
+            frame_range (list[int]): The frame range to generate expected
+                output file paths for.
             extension (str): The file extension for the output files.
 
         Returns:
