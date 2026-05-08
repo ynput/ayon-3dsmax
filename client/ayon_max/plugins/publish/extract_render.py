@@ -34,16 +34,16 @@ class ExtractLocalRender(publish.Extractor):
                 if camera else rt.viewport.GetCamera()
             )
 
-            wasCancelled = rt.Name('wasCancelled')
-            wasCancelled.value = False
+            was_cancelled = rt.Name('wasCancelled')
+            was_cancelled.value = False
             for frame in instance.data.get("expectedFrameRange", []):
                 rt.render(
                     frame=frame,
                     vfb=False,
                     camera=camera_node,
-                    cancelled=wasCancelled
+                    cancelled=was_cancelled
                 )
-                if wasCancelled.value:
+                if was_cancelled.value:
                     self.log.warning(f"Render cancelled at frame {frame}.")
                     break
 
