@@ -1060,3 +1060,36 @@ def build_general_output_filename(
         ext = match.group("ext")
         filename = f"{name}_{element}..{ext}"
     return os.path.join(output_dir, filename)
+
+
+def get_expected_frames(instance: pyblish.api.Instance) -> list[int]:
+    """Get expected frames from the instance.
+
+    Args:
+        instance (pyblish.api.Instance): The Pyblish instance.
+
+    Returns:
+        list[int]: A list containing the expected frames.
+    """
+    def parse_frame_range(frame_str: str) -> list[int]:
+        """Parse a frame range string into a list of frames.
+
+        Args:
+            frame_str (str): The frame range string.
+
+        Returns:
+            list[int]: A list of frames.
+        """
+        frames = []
+        for part in frame_str.split(","):
+            if "-" in part:
+                start, end = map(int, part.split("-"))
+                frames.extend(range(start, end + 1))
+            else:
+                frames.append(int(part))
+        return frames
+
+    frames = instance.data["custom_frames"]
+    if instance.data["custom_frames"]:
+        return parse_frame_range(frames)
+    return list(range(instance.data["frameStart"], instance.data["frameEnd"] + 1))
