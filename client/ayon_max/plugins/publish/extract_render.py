@@ -36,7 +36,7 @@ class ExtractLocalRender(publish.Extractor):
 
             was_cancelled = rt.Name('wasCancelled')
             was_cancelled.value = False
-            for frame in instance.data.get("expectedFrameRange", []):
+            for frame in instance.data["expectedFrameRange"]:
                 rt.render(
                     frame=frame,
                     vfb=False,
@@ -47,7 +47,7 @@ class ExtractLocalRender(publish.Extractor):
                     self.log.warning(f"Render cancelled at frame {frame}.")
                     break
 
-                self.log.debug("Local render extraction completed.")
+            self.log.debug("Local render extraction completed.")
         else:
             self.log.debug(
                 "Local render extraction for multi-camera is already "

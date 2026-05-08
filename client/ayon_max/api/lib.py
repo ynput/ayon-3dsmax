@@ -1109,7 +1109,9 @@ def get_expected_frames(instance: pyblish.api.Instance) -> list[int]:
             )
         return frames
 
-    frames = instance.data["custom_frames"]
-    if instance.data["custom_frames"]:
+    frames = instance.data.get("custom_frames", "")
+    if frames:
         return parse_frame_range(frames)
-    return list(range(rt.rendStart, rt.rendEnd + 1))
+    frame_start = int(rt.rendStart)
+    frame_end = int(rt.rendEnd)
+    return list(range(frame_start, frame_end + 1))
