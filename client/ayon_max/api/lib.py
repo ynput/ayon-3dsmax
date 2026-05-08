@@ -1082,11 +1082,31 @@ def get_expected_frames(instance: pyblish.api.Instance) -> list[int]:
         """
         frames = []
         for part in frame_str.split(","):
+            part = part.strip()
+            if not part:
+                continue
+
             if "-" in part:
-                start, end = map(int, part.split("-"))
+                start_end = part.split("-", 1)
+                if len(start_end) != 2 or not start_end[0] or not start_end[1]:
+                    raise ValueError(
+                        f"Invalid frame range segment: '{part}'"
+                    )
+
+                start, end = map(int, start_end)
+                if start > end:
+                    raise ValueError(
+                        f"Frame range start must be less than or equal "
+                        f"to end: '{part}'"
+                    )
                 frames.extend(range(start, end + 1))
             else:
                 frames.append(int(part))
+
+        if not frames:
+            raise ValueError(
+                f"No valid frames could be parsed from '{frame_str}'"
+            )
         return frames
 
     frames = instance.data["custom_frames"]
