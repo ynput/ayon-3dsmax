@@ -3,7 +3,9 @@ from ayon_core.pipeline import publish
 
 
 try:
+    import pymxs
     from pymxs import runtime as rt
+
 except ImportError:
     rt = None
 
@@ -35,7 +37,16 @@ class ExtractLocalRender(publish.Extractor):
             )
 
             for frame in range(int(rt.rendStart), int(rt.rendEnd) + 1):
-                rt.render(frame=frame, vfb=False, camera=camera_node)
+                _, cancelled = rt.render(
+                    frame=frame,
+                    vfb=False,
+                    camera=camera_node,
+                    cancelled=pymxs.byref(None)
+                )
+                if cancelled:
+                    self.log.warning(f"Render cancelled at frame {frame}.")
+                    break
+
                 self.log.debug("Local render extraction completed.")
         else:
             self.log.debug(
