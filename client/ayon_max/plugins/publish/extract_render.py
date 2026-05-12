@@ -1,5 +1,6 @@
 from __future__ import annotations
 from ayon_core.pipeline import publish
+from ayon_core.pipeline.publish import KnownPublishError
 
 
 try:
@@ -44,8 +45,7 @@ class ExtractLocalRender(publish.Extractor):
                     cancelled=pymxs.byref(None)
                 )
                 if cancelled:
-                    self.log.warning(f"Render cancelled at frame {frame}.")
-                    break
+                    raise KnownPublishError(f"Render cancelled at frame {frame}.")
 
                 self.log.debug("Local render extraction completed.")
         else:
