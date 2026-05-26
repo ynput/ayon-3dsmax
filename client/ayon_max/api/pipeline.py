@@ -79,6 +79,8 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         )
 
     def install(self):
+        log.info("Installing AYON 3dsmax host integration...")
+        log.info("Registering AYON plug-ins...")
         pyblish.api.register_host("max")
 
         pyblish.api.register_plugin_path(PUBLISH_PATH)
@@ -86,9 +88,15 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         register_creator_plugin_path(CREATE_PATH)
         register_workfile_build_plugin_path(WORKFILE_BUILD_PATH)
 
+        if lib.is_headless():
+            return
+
+        log.info("AYON Set Project...")
         _set_project()
+        log.info("AYON Set Autobackup Dir...")
         _set_autobackup_dir()
 
+        log.info("AYON Registering event callbacks...")
         register_event_callback("init", on_init)
         register_event_callback("new", on_new)
         register_event_callback("workfile.open.before", on_before_open)
@@ -96,6 +104,7 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         register_event_callback("before.save", before_save)
         register_event_callback("taskChanged", self.on_task_changed)
         self._has_been_setup = True
+        log.info("AYON Registering 3dsmax callbacks...")
         self._register_callbacks()
 
     def workfile_has_unsaved_changes(self):
@@ -142,7 +151,7 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
             _on_scene_open,
             id=rt.name("AyonCallbacks")
         )
-        if lib.get_max_version() < 2026:
+        if not lib.is_headless() and lib.get_max_version() < 2026:
             rt.callbacks.addScript(
                 rt.Name('postWorkspaceChange'),
                 self._deferred_menu_creation,
@@ -152,7 +161,7 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
             nameChanged=lib.update_modifier_node_names)
 
     def on_init(self):
-        if not self.menu:
+        if not lib.is_headless() and not self.menu:
             self._deferred_menu_creation()
         _on_scene_init()
 
@@ -376,7 +385,8 @@ def _set_project():
                 os.makedirs(proj_dir, exist_ok=True)
 
     # avoid glitching viewport
-    rt.viewport.ResetAllViews()
+    if not lib.is_headless():
+        rt.viewport.ResetAllViews()
 
 
 def _set_autobackup_dir():
@@ -409,7 +419,7 @@ def before_save(event):
         return
 
     if max_filename_before != max_filename_after:
-        print(f"Detected scene name change from {max_filename_before} to "
+        log.info(f"Detected scene name change from {max_filename_before} to "
               f"{max_filename_after}")
     max_filename_before = os.path.splitext(max_filename_before)[0]
     max_filename_after = os.path.splitext(max_filename_after)[0]
