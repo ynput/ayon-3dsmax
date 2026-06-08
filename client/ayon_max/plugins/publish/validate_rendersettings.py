@@ -743,6 +743,17 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
                 image_format,
                 instance,
             )
+        else:
+            render_output = rt.rendOutputFilename
+            render_dir = set_correct_workfile_name_for_render_output(
+                instance,
+                os.path.dirname(render_output),
+            )
+            filename = os.path.basename(render_output)
+            rt.rendOutputFilename = build_general_output_filename(
+                render_dir,
+                filename,
+            )
 
     @classmethod
     def _repair_vray_output_filename(
