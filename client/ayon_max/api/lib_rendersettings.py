@@ -152,8 +152,11 @@ class RenderSettings(object):
                 rt.renderers.production.OutputExrMultipart = multipass_enabled
 
         # prevent rendering extra files when using V-Ray
-        rt.rendSaveFile = True if not renderer_name.startswith("V_Ray_") else False
-
+        rt.rendSaveFile = not (
+            renderer_name.startswith("V_Ray_")
+            and hasattr(vr_settings, "output_saverawfile")
+            and vr_settings.output_saverawfile
+        )
         rt.renderSceneDialog.update()
 
     def arnold_setup(self, output_dir, container, multipass_enabled):

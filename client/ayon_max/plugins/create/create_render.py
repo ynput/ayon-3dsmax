@@ -29,8 +29,6 @@ class CreateRender(MaxCreator):
             raise CreatorError(
                 "Please save the scene before creating render instance"
             )
-        filename, _ = os.path.splitext(file)
-        instance_data["AssetName"] = filename
         instance_data["multiCamera"] = pre_create_data.get("multi_cam")
         num_of_renderlayer = rt.batchRenderMgr.numViews
         if num_of_renderlayer > 0:

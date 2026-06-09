@@ -314,6 +314,8 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
                 "Render element output filename has been repaired to %s",
                 render_elem.GetRenderElementFilename(index),
             )
+
+        rt.rendSaveFile = True
         rt.renderSceneDialog.update()
 
 
@@ -511,6 +513,7 @@ class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
                 "Arnold AOV driver filename suffix has been repaired to %s.",
                 driver.filenameSuffix,
             )
+        rt.rendSaveFile = True
 
 
 class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
@@ -731,7 +734,12 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
         multipass_enabled = get_multipass_setting(renderer_name, project_settings)
         vr_settings.output_splitgbuffer = multipass_enabled
 
-        if image_format == "exr":
+        if (
+            image_format == "exr"
+            # safe check
+            and hasattr(vr_settings, "output_saverawfile")
+            and vr_settings.output_saverawfile
+        ):
             vr_settings.output_rawfilename = cls._repair_vray_output_filename(
                 vr_settings.output_rawfilename,
                 image_format,
@@ -754,6 +762,15 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
                 render_dir,
                 filename,
             )
+
+        # save the file when it is not with saw raw exr file
+        rt.rendSaveFile = not (
+            image_format == "exr"
+            # safe check
+            and hasattr(vr_settings, "output_saverawfile")
+            and vr_settings.output_saverawfile
+        )
+        rt.renderSceneDialog.update()
 
     @classmethod
     def _repair_vray_output_filename(
