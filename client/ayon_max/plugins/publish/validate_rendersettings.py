@@ -763,7 +763,7 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
                 filename,
             )
 
-        # save the file when it is not with saw raw exr file
+        # save the file when it is not with save raw exr file
         rt.rendSaveFile = not (
             image_format == "exr"
             # safe check
