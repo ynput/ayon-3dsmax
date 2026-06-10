@@ -15,7 +15,7 @@ from ayon_max.api.lib import (
     set_correct_workfile_name_for_render_output,
     build_general_output_filename,
     get_vray_settings,
-    is_vray_exr_sawrawfile,
+    is_vray_exr_saverawfile,
 
 )
 from ayon_max.api.validate_plugins import ValidateRenderSettingsBase
@@ -735,12 +735,7 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
         multipass_enabled = get_multipass_setting(renderer_name, project_settings)
         vr_settings.output_splitgbuffer = multipass_enabled
 
-        if (
-            image_format == "exr"
-            # safe check
-            and hasattr(vr_settings, "output_saverawfile")
-            and vr_settings.output_saverawfile
-        ):
+        if is_vray_exr_saverawfile(image_format, vr_settings):
             vr_settings.output_rawfilename = cls._repair_vray_output_filename(
                 vr_settings.output_rawfilename,
                 image_format,
@@ -765,7 +760,7 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
             )
 
         # save the file when it is not with saw raw exr file
-        rt.rendSaveFile = not is_vray_exr_sawrawfile(image_format, vr_settings)
+        rt.rendSaveFile = not is_vray_exr_saverawfile(image_format, vr_settings)
         rt.renderSceneDialog.update()
 
     @classmethod

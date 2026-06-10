@@ -19,7 +19,7 @@ from ayon_max.api.lib import (
     get_default_render_folder,
     get_multipass_setting,
     get_vray_settings,
-    is_vray_exr_sawrawfile,
+    is_vray_exr_saverawfile,
 )
 
 
@@ -155,7 +155,7 @@ class RenderSettings(object):
         # prevent rendering extra files when using V-Ray
         rt.rendSaveFile = not (
             renderer_name.startswith("V_Ray_")
-            and is_vray_exr_sawrawfile(img_fmt, vr_settings)
+            and is_vray_exr_saverawfile(img_fmt, vr_settings)
         )
         rt.renderSceneDialog.update()
 
