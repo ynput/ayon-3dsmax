@@ -38,8 +38,7 @@ class ValidateMeshHasUVs(pyblish.api.InstancePlugin,
                   if rt.isProperty(member, "mesh")]
         invalid = [
             member for member in meshes
-            if rt.isProperty(member.mesh, "numTVerts")
-            and member.mesh.numTVerts == 0
+            if not rt.isProperty(member.mesh, "numTVerts")
         ]
         return invalid
 
