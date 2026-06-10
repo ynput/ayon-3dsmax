@@ -1060,3 +1060,22 @@ def build_general_output_filename(
         ext = match.group("ext")
         filename = f"{name}_{element}..{ext}"
     return os.path.join(output_dir, filename)
+
+
+def is_vray_exr_sawrawfile(image_format: str, vr_settings: Any) -> bool:
+    """Check if V-Ray renderer is set to output raw files in EXR format.
+
+    Args:
+        image_format (str): The image format being used for rendering.
+        vr_settings (Any): The V-Ray settings object
+
+    Returns:
+        bool: True if the image format is EXR and V-Ray is set to save
+            raw files, False otherwise.
+    """
+    return (
+        image_format == "exr"
+        # safe check
+        and hasattr(vr_settings, "output_saverawfile")
+        and vr_settings.output_saverawfile
+    )
