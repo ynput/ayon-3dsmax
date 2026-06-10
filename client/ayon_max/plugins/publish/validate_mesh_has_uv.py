@@ -14,12 +14,8 @@ class ValidateMeshHasUVs(pyblish.api.InstancePlugin,
 
     """Validate the current mesh has UVs.
 
-    This validator only checks if the mesh has UVs but not
-    whether all the individual faces of the mesh have UVs.
-
-    It validates whether the current mesh has texture vertices.
-    If the mesh does not have texture vertices, it does not
-    have UVs in Max.
+    This validator only checks if the mesh has UVW modifier to ensure
+    that UVs are present.
 
     """
 
@@ -31,15 +27,22 @@ class ValidateMeshHasUVs(pyblish.api.InstancePlugin,
     optional = True
 
     settings_category = "max"
+    allowed_uv_classes = {
+        rt.Uvwmap,
+        rt.UVW_Xform,
+        rt.UVW_Mapping_Add,
+        rt.UVW_Mapping_Clear,
+        rt.UVW_Mapping_Paste,
+        rt.Unwrap_UVW
+    }
 
     @classmethod
     def get_invalid(cls, instance):
-        meshes = [member for member in instance.data["members"]
-                  if rt.isProperty(member, "mesh")]
-        invalid = [
-            member for member in meshes
-            if rt.meshop.getNumMaps(member.mesh) == 0
-        ]
+        invalid = []
+        for member in instance.data["members"]:
+            for modifier in member.modifiers:
+                if rt.superClassOf(modifier) not in cls.allowed_uv_classes:
+                    invalid.append(member)
         return invalid
 
     def process(self, instance):
@@ -60,5 +63,6 @@ class ValidateMeshHasUVs(pyblish.api.InstancePlugin,
                 report,
                 description=(
                 "Model meshes are required to have UVs.\n\n"
-                "Meshes detected with no texture vertice or missing UVs"),
+                "Meshes detected with no texture vertice or missing UVs"
+                "Make sure your mesh has UVs and that the UVW modifier is applied to the mesh."),
                 title="Non-mesh objects found or mesh has missing UVs")
