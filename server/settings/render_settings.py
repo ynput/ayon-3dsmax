@@ -33,6 +33,9 @@ class RedshiftSettingsModel(BaseSettingsModel):
     separate_aov_files: bool = SettingsField(
         title="Separate AOV Files"
     )
+    cryptomatte_enabled: bool = SettingsField(
+        title="Cryptomatte AOVs enabled"
+    )
 
 
 class RenderSettingsModel(BaseSettingsModel):
@@ -64,6 +67,7 @@ DEFAULT_RENDER_SETTINGS = {
         "separate_render_channels": True
     },
     "redshift_render_settings": {
-        "separate_aov_files": True
+        "separate_aov_files": True,
+        "cryptomatte_enabled": False,
     }
 }
