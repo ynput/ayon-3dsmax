@@ -361,15 +361,13 @@ class RenderProducts(object):
         if renderer_name == "Default_Scanline_Renderer":
             return renderlayer.enabled
 
-        if multipass:
-            return renderlayer.enabled
+        cryptomatte_enabled = self.has_cryptomatte_enabled(renderer_name, image_format)
+        is_cryptomatte_layer = "Cryptomatte" in renderlayer.elementname
 
-        if self.has_cryptomatte_enabled(renderer_name, image_format):
-            if "Cryptomatte" in renderlayer.elementname:
-                return renderlayer.enabled
-            return False
+        if cryptomatte_enabled:
+            return renderlayer.enabled if is_cryptomatte_layer else False
 
-        return False
+        return renderlayer.enabled if multipass else False
 
     def _get_vray_additional_outputs(self, renderer: Any, is_multipass: bool) -> list[str]:
         """Get additional V-Ray outputs like Alpha and RGB_color.
