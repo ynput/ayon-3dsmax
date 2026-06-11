@@ -367,6 +367,7 @@ class RenderProducts(object):
         if self.has_cryptomatte_enabled(renderer_name, image_format):
             if "Cryptomatte" in renderlayer.elementname:
                 return renderlayer.enabled
+            return False
 
         return False
 
