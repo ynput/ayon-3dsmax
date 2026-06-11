@@ -317,9 +317,7 @@ class RenderProducts(object):
         # get render elements from the renders
         for index in range(render_elem_num):
             renderlayer = render_elem.GetRenderElement(index)
-            if self.get_render_element_by_multipass(
-                renderer_name, renderlayer, is_multipass, image_format
-            ):
+            if renderlayer.enabled:
                 renderpass = str(renderlayer.elementname)
                 renderlayer_filepath = self.get_render_element_outputfilename(
                     renderer,
@@ -339,35 +337,6 @@ class RenderProducts(object):
                 expected_elements.append((render_element, str(filepath)))
 
         return expected_elements
-
-    def get_render_element_by_multipass(
-            self,
-            renderer_name: str,
-            renderlayer: Any,
-            multipass: bool,
-            image_format: str) -> bool:
-        """Get render element name based on multipass setting.
-
-        Args:
-            renderer_name (str): The name of the renderer.
-            renderlayer (Any, rt.RenderTarget): The render layer instance.
-            multipass (bool): Whether multipass is enabled.
-            image_format (str): The image format of the render output.
-
-        Returns:
-            bool: True if the render element should be included
-                based on the multipass setting, False otherwise.
-        """
-        if renderer_name == "Default_Scanline_Renderer":
-            return renderlayer.enabled
-
-        cryptomatte_enabled = self.has_cryptomatte_enabled(renderer_name, image_format)
-        is_cryptomatte_layer = "Cryptomatte" in renderlayer.elementname
-
-        if cryptomatte_enabled:
-            return renderlayer.enabled if is_cryptomatte_layer else False
-
-        return renderlayer.enabled if multipass else False
 
     def _get_vray_additional_outputs(self, renderer: Any, is_multipass: bool) -> list[str]:
         """Get additional V-Ray outputs like Alpha and RGB_color.
@@ -410,26 +379,3 @@ class RenderProducts(object):
             str: The image format of the render output.
         """
         return self._project_settings["max"]["RenderSettings"]["image_format"]  # noqa
-
-    def has_cryptomatte_enabled(self, renderer_name: str, image_format: str) -> bool:
-        """Check if Cryptomatte is enabled for the given renderer and image format.
-
-        Args:
-            renderer_name (str): renderer name (e.g., "Redshift_Renderer")
-            image_format (str): image format of the render output (e.g., "exr")
-
-        Returns:
-            bool: True if Cryptomatte is enabled for the given renderer and
-                image format, False otherwise.
-        """
-        cryptomatte_enabled = (
-            self._project_settings["max"]
-                                  ["RenderSettings"]
-                                  ["redshift_render_settings"]
-                                  ["cryptomatte_enabled"]
-        )
-        return (
-            renderer_name == "Redshift_Renderer"
-            and image_format == "exr"
-            and cryptomatte_enabled
-        )
