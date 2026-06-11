@@ -34,7 +34,7 @@ class RedshiftSettingsModel(BaseSettingsModel):
         title="Separate AOV Files"
     )
     cryptomatte_enabled: bool = SettingsField(
-        title="Cryptomatte AOVs enabled"
+        title="Enable Cryptomatte for AYON Publish"
     )
 
 
