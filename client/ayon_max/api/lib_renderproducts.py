@@ -317,7 +317,11 @@ class RenderProducts(object):
         # get render elements from the renders
         for index in range(render_elem_num):
             renderlayer = render_elem.GetRenderElement(index)
-            if renderlayer.enabled:
+            if self.get_render_element_by_multipass(
+                renderer_name,
+                renderlayer,
+                is_multipass,
+            ):
                 renderpass = str(renderlayer.elementname)
                 renderlayer_filepath = self.get_render_element_outputfilename(
                     renderer,
@@ -337,6 +341,28 @@ class RenderProducts(object):
                 expected_elements.append((render_element, str(filepath)))
 
         return expected_elements
+
+    def get_render_element_by_multipass(
+            self,
+            renderer_name: str,
+            renderlayer: Any,
+            multipass: bool
+    ) -> bool:
+        """Get render element name based on multipass setting.
+
+        Args:
+            renderer_name (str): The name of the renderer.
+            renderlayer (Any, rt.RenderTarget): The render layer instance.
+            multipass (bool): Whether multipass is enabled.
+
+        Returns:
+            bool: True if the render element should be included
+                based on the multipass setting, False otherwise.
+        """
+        if renderer_name == "Default_Scanline_Renderer":
+            return renderlayer.enabled
+
+        return multipass and renderlayer.enabled
 
     def _get_vray_additional_outputs(self, renderer: Any, is_multipass: bool) -> list[str]:
         """Get additional V-Ray outputs like Alpha and RGB_color.
