@@ -362,11 +362,11 @@ class RenderProducts(object):
             return renderlayer.enabled
 
         if multipass:
-            if renderer_name == "Redshift_Renderer" and image_format == "exr":
-                if "Cryptomatte" in renderlayer.elementname:
-                    return renderlayer.enabled
-                return False
             return renderlayer.enabled
+
+        if self.has_cryptomatte_enabled(renderer_name, image_format):
+            if "Cryptomatte" in renderlayer.elementname:
+                return renderlayer.enabled
 
         return False
 
@@ -411,3 +411,26 @@ class RenderProducts(object):
             str: The image format of the render output.
         """
         return self._project_settings["max"]["RenderSettings"]["image_format"]  # noqa
+
+    def has_cryptomatte_enabled(self, renderer_name: str, image_format: str) -> bool:
+        """Check if Cryptomatte is enabled for the given renderer and image format.
+
+        Args:
+            renderer_name (str): renderer name (e.g., "Redshift_Renderer")
+            image_format (str): image format of the render output (e.g., "exr")
+
+        Returns:
+            bool: True if Cryptomatte is enabled for the given renderer and
+                image format, False otherwise.
+        """
+        cryptomatte_enabled = (
+            self._project_settings["max"]
+                                  ["RenderSettings"]
+                                  ["redshift_render_settings"]
+                                  ["cryptomatte_enabled"]
+        )
+        return (
+            renderer_name == "Redshift_Renderer"
+            and image_format == "exr"
+            and cryptomatte_enabled
+        )
