@@ -11,7 +11,7 @@ class CollectRenderModel(BaseSettingsModel):
     )
     sync_current_workfile_name: bool = SettingsField(
         title="Sync current workfile name to instance data"
-    )s
+    )
 
 
 class ValidateAttributesModel(BaseSettingsModel):
