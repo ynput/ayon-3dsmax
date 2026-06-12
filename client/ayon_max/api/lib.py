@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Library of functions useful for 3dsmax pipeline."""
 import os
+import copy
 import contextlib
 import logging
 import json
@@ -10,19 +11,23 @@ import re
 from typing import Any, Dict, Union
 
 from ayon_core.pipeline import (
+    Anatomy,
     get_current_project_name,
     get_current_folder_path,
     get_current_task_name,
+    get_current_host_name,
     colorspace,
     registered_host,
     AYON_INSTANCE_ID,
     AVALON_INSTANCE_ID,
 )
+from ayon_core.lib import StringTemplate, get_version_from_path
 from ayon_core.tools.utils import SimplePopup
 from ayon_core.settings import get_project_settings
 from ayon_core.pipeline.context_tools import (
     get_current_task_entity
 )
+from ayon_core.pipeline.template_data import get_template_data_with_names
 from ayon_core.pipeline.create import CreateContext
 from ayon_core.style import load_stylesheet
 
@@ -202,14 +207,68 @@ def get_current_renderer():
     return rt.renderers.production
 
 
-def get_default_render_folder(project_setting=None):
-    folder = rt.maxFilePath
-    # hard-coded, should be customized in the setting
-    folder = folder.replace("\\", "/")
+def get_work_default_directory(data: dict) -> str:
+    """Helping function for formatting of anatomy paths
+
+    Arguments:
+        data (dict): dictionary with attributes used for formatting
+
+    Returns:
+        str: path to the default work directory for current context
+    """
+
+    project_name = get_current_project_name()
+    anatomy = Anatomy(project_name)
+
+    version = data.get("version")
+    if version is None:
+        project_filename = rt.maxFileName
+        data["version"] = get_version_from_path(project_filename)
+
+    folder_path = data["folderPath"]
+    task_name = data["task"]
+    host_name = get_current_host_name()
+
+    context_data = get_template_data_with_names(
+        project_name, folder_path, task_name, host_name
+    )
+    data.update(context_data)
+    product_type = data["productType"]
+    product_base_type = data.get("productBaseType")
+    if not product_base_type:
+        product_base_type = product_type
+
+    data.update({
+        "subset": data["productName"],
+        "family": product_base_type,
+        "product": {
+            "name": data["productName"],
+            "type": product_type,
+            "basetype": product_base_type,
+        },
+    })
+
+    work_default_dir_template = anatomy.get_template_item("work", "default", "directory")
+    normalized_dir = work_default_dir_template.format_strict(data).normalized()
+    return str(normalized_dir).replace("\\", "/")
+
+
+def get_default_render_folder(project_setting: dict=None, data: dict=None) -> str:
+    """_summary_
+
+    Args:
+        project_setting (dict, optional): project settings. Defaults to None.
+        data (dict, optional): template data. Defaults to None.
+
+    Returns:
+        str: The default render folder path.
+    """
+    template_data = copy.deepcopy(data)
+    template_data["work"] = get_work_default_directory(template_data)
     render_folder = (project_setting["max"]
                                     ["RenderSettings"]
                                     ["default_render_image_folder"])
-    return os.path.join(folder, render_folder)
+    return StringTemplate(render_folder).format(template_data)
 
 
 def get_expected_render_folder(setting, filename):

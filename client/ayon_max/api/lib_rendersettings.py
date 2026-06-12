@@ -59,7 +59,7 @@ class RenderSettings(object):
         "underscore": "_"
     }
 
-    def __init__(self, project_settings=None):
+    def __init__(self, project_settings=None, data: dict=None):
         """
         Set up the naming convention for the render
         elements for the deadline submission
@@ -70,6 +70,7 @@ class RenderSettings(object):
             self._project_settings = get_project_settings(
                 get_current_project_name()
             )
+        self._data = data if data else {}
 
     def set_render_camera(self, selection):
         for sel in selection:
@@ -79,11 +80,12 @@ class RenderSettings(object):
                 return
         raise RuntimeError("Active Camera not found")
 
-    def render_output(self, container):
+    def render_output(self):
         # hard-coded, should be customized in the setting
         file = rt.maxFileName
         # hard-coded, set the renderoutput path
         setting = self._project_settings
+        container = self._data["instance_node"]
         render_folder = get_default_render_folder(setting)
         filename, _ = os.path.splitext(file)
         output_dir = os.path.join(render_folder, filename)
@@ -268,12 +270,11 @@ class RenderSettings(object):
             aov_name = f"{directory}_{camera}_{renderpass}..{ext}"
             render_elem.SetRenderElementFileName(i, aov_name)
 
-    def batch_render_layers_by_multi_camera(self, container, output_dir, cameras):
+    def batch_render_layers_by_multi_camera(self, output_dir, cameras):
         """Get the list of renderlayers for the multi-camera from batch render
         manager.
 
         Args:
-            container (str): container name
             output_dir (str): output render directory
             cameras (list): Cameras to create render layers for.
 
@@ -281,6 +282,7 @@ class RenderSettings(object):
             list: List of output filenames for the render layers
         """
         outputs = list()
+        container = self._data["instance_node"]
         output = os.path.join(output_dir, container)
         img_fmt = self._project_settings["max"]["RenderSettings"]["image_format"]   # noqa
         for cam in cameras:
