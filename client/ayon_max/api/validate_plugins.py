@@ -139,7 +139,6 @@ class ValidateRenderSettingsBase(object):
         """Get the invalid render output settings.
 
         Args:
-            instance (pyblish.api.Instance): The instance to validate.
             image_format (str): The image format to validate.
             workfile_pattern (str): The workfile pattern to validate.
             multicam (bool, optional): Whether multi-camera is enabled.
