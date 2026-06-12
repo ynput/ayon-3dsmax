@@ -253,12 +253,12 @@ def get_work_default_directory(data: dict) -> str:
     return str(normalized_dir).replace("\\", "/")
 
 
-def get_default_render_folder(project_setting: dict=None, data: dict=None) -> str:
+def get_default_render_folder(data: dict, project_setting: dict=None) -> str:
     """_summary_
 
     Args:
+        data (dict): template data
         project_setting (dict, optional): project settings. Defaults to None.
-        data (dict, optional): template data. Defaults to None.
 
     Returns:
         str: The default render folder path.
@@ -269,11 +269,6 @@ def get_default_render_folder(project_setting: dict=None, data: dict=None) -> st
                                     ["RenderSettings"]
                                     ["default_render_image_folder"])
     return StringTemplate(render_folder).format(template_data)
-
-
-def get_expected_render_folder(setting, filename):
-    render_folder = get_default_render_folder(setting)
-    return os.path.join(render_folder, filename)
 
 
 def get_vray_settings(renderer_name: str, renderer: Any) -> Any:
@@ -1068,7 +1063,7 @@ def set_correct_workfile_name_for_render_output(
     """
     project_settings = instance.context.data["project_settings"]
     render_root = os.path.normpath(
-        get_default_render_folder(project_settings)
+        get_default_render_folder(instance.data, project_settings)
     )
     normalized_path = os.path.normpath(filepath)
 

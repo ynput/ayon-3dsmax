@@ -86,7 +86,7 @@ class RenderSettings(object):
         # hard-coded, set the renderoutput path
         setting = self._project_settings
         container = self._data["instance_node"]
-        render_folder = get_default_render_folder(setting, self._data)
+        render_folder = get_default_render_folder(self._data, setting)
         filename, _ = os.path.splitext(file)
         output_dir = os.path.join(render_folder, filename)
         if not os.path.exists(output_dir):
