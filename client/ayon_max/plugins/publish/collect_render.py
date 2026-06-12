@@ -55,17 +55,20 @@ class CollectRender(pyblish.api.InstancePlugin):
     def process(self, instance):
         context = instance.context
 
+        filepath = context.data["currentFile"]
+
         if self.sync_current_workfile_name:
-            filepath = context.data["currentFile"]
             filename = os.path.basename(filepath)
             filename_pattern = os.path.splitext(filename)[0].strip(".")
             instance.data["original_workfile_pattern"] = filename_pattern
         else:
-            # backwards compatibility for render pre-create settings.
-            if instance.data.get("AssetName"):
-                filename_pattern = instance.data["AssetName"].strip(".")
-                instance.data["original_workfile_pattern"] = filename_pattern
-
+            # Backwards compatibility for render pre-create settings.
+            filename_pattern = (
+                instance.data.get("original_workfile_pattern")
+                or instance.data.get("AssetName", "").strip(".")
+            )
+            if filename_pattern:
+                instance.data.setdefault("original_workfile_pattern", filename_pattern)
         renderer = get_current_renderer()
         renderer_name = str(renderer).split(":")[0]
         renderproducts = RenderProducts(context.data["project_settings"])
