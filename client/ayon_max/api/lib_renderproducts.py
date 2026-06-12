@@ -365,7 +365,7 @@ class RenderProducts(object):
             if "Cryptomatte" in renderlayer.elementname:
                 return renderlayer.enabled
 
-        return renderlayer.enabled if multipass else False
+        return renderlayer.enabled and multipass
 
     def _get_vray_additional_outputs(self, renderer: Any, is_multipass: bool) -> list[str]:
         """Get additional V-Ray outputs like Alpha and RGB_color.
