@@ -190,12 +190,14 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
 
         multicam = instance.data.get("multiCamera", False)
         cameras = instance.data.get("cameras", [])
+        sync_current_workfile = instance.data.get("sync_current_workfile_name", True)
         invalid.extend(
             cls.get_invalid_renderoutput(
                 image_format,
                 workfile_pattern,
                 multicam=multicam,
                 cameras=cameras,
+                sync_current_workfile=sync_current_workfile,
             )
         )
 
@@ -404,12 +406,14 @@ class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
         aov_manager = renderer.AOVManager
         output_path = aov_manager.outputPath
         image_format = instance.data["imageFormat"]
+        sync_current_workfile = instance.data.get("sync_current_workfile_name", True)
         invalid.extend(
             cls.get_invalid_renderoutput(
             image_format,
-            workfile_pattern
+            workfile_pattern,
+            sync_current_workfile=sync_current_workfile,
         ))
-        if workfile_pattern not in output_path:
+        if sync_current_workfile and workfile_pattern not in output_path:
             msg = (
                 f"Invalid Arnold AOV output path {output_path}. "
                 f"Output path should contain the workfile name pattern: {workfile_pattern}."
@@ -700,9 +704,17 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
                     workfile_pattern,
                 )
             )
-        else:
+        elif not multipass_enabled:
+            sync_current_workfile = instance.data.get(
+                "sync_current_workfile_name",
+                True
+            )
             invalid.extend(
-                cls.get_invalid_renderoutput(image_format, workfile_pattern)
+                cls.get_invalid_renderoutput(
+                    image_format,
+                    workfile_pattern,
+                    sync_current_workfile=sync_current_workfile,
+                )
             )
 
         return invalid
