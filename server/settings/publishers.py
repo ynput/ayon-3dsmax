@@ -9,6 +9,9 @@ class CollectRenderModel(BaseSettingsModel):
     sync_workfile_version: bool = SettingsField(
         title="Sync render version with workfile"
     )
+    sync_current_workfile_name: bool = SettingsField(
+        title="Sync current workfile name to instance data"
+    )s
 
 
 class ValidateAttributesModel(BaseSettingsModel):
