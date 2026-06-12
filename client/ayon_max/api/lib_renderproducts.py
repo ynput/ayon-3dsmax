@@ -361,6 +361,9 @@ class RenderProducts(object):
         if renderer_name == "Default_Scanline_Renderer":
             return renderlayer.enabled
 
+        # If cryptomatte render element is enabled in Redshift it will
+        # always write it out as a separate file, regardless of whether
+        # 'separate AOVs' is enabled or not
         if renderer_name == "Redshift_Renderer" and image_format == "exr":
             if "Cryptomatte" in renderlayer.elementname:
                 return renderlayer.enabled
