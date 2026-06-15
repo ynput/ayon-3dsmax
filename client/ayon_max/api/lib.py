@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Library of functions useful for 3dsmax pipeline."""
 import os
-import copy
 import contextlib
 import logging
 import json
@@ -263,12 +262,11 @@ def get_default_render_folder(data: dict, project_setting: dict=None) -> str:
     Returns:
         str: The default render folder path.
     """
-    template_data = copy.deepcopy(data)
-    template_data["work"] = get_work_default_directory(template_data)
+    data["work"] = get_work_default_directory(data)
     render_folder = (project_setting["max"]
                                     ["RenderSettings"]
                                     ["default_render_image_folder"])
-    return StringTemplate(render_folder).format(template_data)
+    return StringTemplate(render_folder).format(data)
 
 
 def get_vray_settings(renderer_name: str, renderer: Any) -> Any:
