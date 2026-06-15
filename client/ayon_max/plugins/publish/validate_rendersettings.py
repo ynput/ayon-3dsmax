@@ -218,7 +218,7 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
                     workfile_pattern,
                     multi_camera=multicam,
                     cameras=cameras,
-                    sync_current_workfile_name=instance.data.get("sync_current_workfile_name", True),
+                    sync_current_workfile_name=sync_current_workfile,
                 )
             )
             r_fname = os.path.basename(render_element_filename)
@@ -406,13 +406,17 @@ class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
         aov_manager = renderer.AOVManager
         output_path = aov_manager.outputPath
         image_format = instance.data["imageFormat"]
-        sync_current_workfile = instance.data.get("sync_current_workfile_name", True)
+        sync_current_workfile = instance.data.get(
+            "sync_current_workfile_name",
+            True,
+        )
         invalid.extend(
             cls.get_invalid_renderoutput(
-            image_format,
-            workfile_pattern,
-            sync_current_workfile=sync_current_workfile,
-        ))
+                image_format,
+                workfile_pattern,
+                sync_current_workfile=sync_current_workfile,
+            )
+        )
         if sync_current_workfile and workfile_pattern not in output_path:
             msg = (
                 f"Invalid Arnold AOV output path {output_path}. "

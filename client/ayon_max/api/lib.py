@@ -219,6 +219,8 @@ def get_work_default_directory(data: dict) -> str:
     project_name = get_current_project_name()
     anatomy = Anatomy(project_name)
 
+    data = dict(data)
+
     version = data.get("version")
     if version is None:
         project_filename = rt.maxFileName
@@ -253,7 +255,7 @@ def get_work_default_directory(data: dict) -> str:
 
 
 def get_default_render_folder(data: dict, project_setting: dict=None) -> str:
-    """_summary_
+    """Get the default render folder path for current context based on project settings
 
     Args:
         data (dict): template data
@@ -262,11 +264,12 @@ def get_default_render_folder(data: dict, project_setting: dict=None) -> str:
     Returns:
         str: The default render folder path.
     """
-    data["work"] = get_work_default_directory(data)
+    render_data = dict(data)
+    render_data["work"] = get_work_default_directory(render_data)
     render_folder = (project_setting["max"]
                                     ["RenderSettings"]
                                     ["default_render_image_folder"])
-    return StringTemplate(render_folder).format(data)
+    return StringTemplate(render_folder).format(render_data)
 
 
 def get_vray_settings(renderer_name: str, renderer: Any) -> Any:
@@ -837,12 +840,13 @@ def get_view_node_from_sme_view(sme_view, view_node_name):
 
 
 def get_target_sme_view(target_view: int):
-    """_summary_
+    """Return a Slate Material Editor view by index.
 
     Args:
-        target_view (int): active SME view
+        target_view (int): Active SME view index.
+
     Returns:
-        IObject: SME View object
+        IObject: The requested SME view object.
     """
     return rt.sme.GetView(target_view)
 
