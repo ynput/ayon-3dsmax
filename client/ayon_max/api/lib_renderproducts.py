@@ -17,6 +17,7 @@ from ayon_max.api.lib import (
     get_current_renderer,
     get_multipass_setting,
     reformat_filename,
+    is_vray_exr_saverawfile,
 )
 from ayon_core.pipeline import get_current_project_name
 from ayon_core.settings import get_project_settings
@@ -218,13 +219,21 @@ class RenderProducts(object):
             if "GPU" in str(vr_renderer)
             else vr_renderer
         )
+        is_save_vray_exr_rawfile = is_vray_exr_saverawfile(vray_settings, image_format)
         output_attr = (
             "output_rawfilename"
-            if not is_render_element and image_format == "exr"
+            if not is_render_element
+            and is_save_vray_exr_rawfile
             else "output_splitfilename"
         )
-        render_output = getattr(vray_settings, output_attr)
-        return render_output if render_output else rt.rendOutputFilename
+        render_output = getattr(vray_settings, output_attr, "")
+        if not render_output:
+            return rt.rendOutputFilename
+
+        if output_attr == "output_splitfilename":
+            return ""
+
+        return render_output
 
     def get_arnold_render_output(self, arnold_renderer: Any, extension: str) -> str:
         """Get the Arnold render output filename.
