@@ -219,7 +219,10 @@ class RenderProducts(object):
             if "GPU" in str(vr_renderer)
             else vr_renderer
         )
-        is_save_vray_exr_rawfile = is_vray_exr_saverawfile(vray_settings, image_format)
+        is_save_vray_exr_rawfile = is_vray_exr_saverawfile(
+            image_format,
+            vray_settings,
+        )
         output_attr = (
             "output_rawfilename"
             if not is_render_element
@@ -230,8 +233,12 @@ class RenderProducts(object):
         if not render_output:
             return rt.rendOutputFilename
 
-        if output_attr == "output_splitfilename":
-            return ""
+        if (
+            output_attr == "output_splitfilename"
+            and hasattr(vray_settings, "output_splitgbuffer")
+            and vray_settings.output_splitgbuffer
+        ):
+            return render_output
 
         return render_output
 
