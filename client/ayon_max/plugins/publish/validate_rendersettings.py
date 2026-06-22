@@ -734,8 +734,8 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
         project_settings = instance.context.data["project_settings"]
         multipass_enabled = get_multipass_setting(renderer_name, project_settings)
         vr_settings.output_splitgbuffer = multipass_enabled
-
-        if is_vray_exr_saverawfile(image_format, vr_settings):
+        if image_format == "exr":
+            vr_settings.output_saverawfile = True
             vr_settings.output_rawfilename = cls._repair_vray_output_filename(
                 vr_settings.output_rawfilename,
                 image_format,
