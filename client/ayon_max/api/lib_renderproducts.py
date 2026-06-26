@@ -361,14 +361,14 @@ class RenderProducts(object):
         if renderer_name == "Default_Scanline_Renderer":
             return renderlayer.enabled
 
-        if multipass:
-            if renderer_name == "Redshift_Renderer" and image_format == "exr":
-                if "Cryptomatte" in renderlayer.elementname:
-                    return renderlayer.enabled
-                return False
-            return renderlayer.enabled
+        # If cryptomatte render element is enabled in Redshift it will
+        # always write it out as a separate file, regardless of whether
+        # 'separate AOVs' is enabled or not
+        if renderer_name == "Redshift_Renderer" and image_format == "exr":
+            if "Cryptomatte" in renderlayer.elementname:
+                return renderlayer.enabled
 
-        return False
+        return renderlayer.enabled and multipass
 
     def _get_vray_additional_outputs(self, renderer: Any, is_multipass: bool) -> list[str]:
         """Get additional V-Ray outputs like Alpha and RGB_color.
