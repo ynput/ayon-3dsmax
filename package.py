@@ -1,6 +1,6 @@
 name = "max"
 title = "Max"
-version = "0.4.5+dev"
+version = "0.4.6+dev"
 app_host_name = "max"
 client_dir = "ayon_max"
 project_can_override_addon_version = True
