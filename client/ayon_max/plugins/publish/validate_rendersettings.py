@@ -14,7 +14,8 @@ from ayon_max.api.lib import (
     is_general_default_output_regex_matched,
     set_correct_workfile_name_for_render_output,
     build_general_output_filename,
-    get_vray_settings
+    get_vray_settings,
+    is_vray_exr_saverawfile,
 
 )
 from ayon_max.api.validate_plugins import ValidateRenderSettingsBase
@@ -314,6 +315,8 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
                 "Render element output filename has been repaired to %s",
                 render_elem.GetRenderElementFilename(index),
             )
+
+        rt.rendSaveFile = True
         rt.renderSceneDialog.update()
 
 
@@ -511,6 +514,7 @@ class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
                 "Arnold AOV driver filename suffix has been repaired to %s.",
                 driver.filenameSuffix,
             )
+        rt.rendSaveFile = True
 
 
 class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
@@ -730,8 +734,8 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
         project_settings = instance.context.data["project_settings"]
         multipass_enabled = get_multipass_setting(renderer_name, project_settings)
         vr_settings.output_splitgbuffer = multipass_enabled
-
         if image_format == "exr":
+            vr_settings.output_saverawfile = True
             vr_settings.output_rawfilename = cls._repair_vray_output_filename(
                 vr_settings.output_rawfilename,
                 image_format,
@@ -754,6 +758,10 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
                 render_dir,
                 filename,
             )
+
+        # save the file when it is not with saw raw exr file
+        rt.rendSaveFile = not is_vray_exr_saverawfile(image_format, vr_settings)
+        rt.renderSceneDialog.update()
 
     @classmethod
     def _repair_vray_output_filename(

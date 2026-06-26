@@ -19,6 +19,7 @@ from ayon_max.api.lib import (
     get_default_render_folder,
     get_multipass_setting,
     get_vray_settings,
+    is_vray_exr_saverawfile,
 )
 
 
@@ -152,8 +153,10 @@ class RenderSettings(object):
                 rt.renderers.production.OutputExrMultipart = multipass_enabled
 
         # prevent rendering extra files when using V-Ray
-        rt.rendSaveFile = True if not renderer_name.startswith("V_Ray_") else False
-
+        rt.rendSaveFile = not (
+            renderer_name.startswith("V_Ray_")
+            and is_vray_exr_saverawfile(img_fmt, vr_settings)
+        )
         rt.renderSceneDialog.update()
 
     def arnold_setup(self, output_dir, container, multipass_enabled):

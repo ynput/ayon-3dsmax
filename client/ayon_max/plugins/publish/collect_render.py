@@ -141,7 +141,6 @@ class CollectRender(pyblish.api.InstancePlugin):
         # also need to get the render dir for conversion
         data = {
             "folderPath": instance.data["folderPath"],
-            "workfile_name": filename,
             "productName": str(instance.name),
             "publish": True,
             "original_workfile_pattern": filename_pattern,
