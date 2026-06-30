@@ -33,9 +33,11 @@ from ayon_core.style import load_stylesheet
 
 try:
     from pymxs import runtime as rt
+    import pymxs
 
 except ImportError:
     rt = None
+    pymxs = None
 
 
 JSON_PREFIX = "JSON::"
@@ -206,11 +208,11 @@ def get_current_renderer():
     return rt.renderers.production
 
 
-def get_work_default_directory(data: dict) -> str:
+def get_work_default_directory(data: Dict) -> str:
     """Helping function for formatting of anatomy paths
 
     Arguments:
-        data (dict): dictionary with attributes used for formatting
+        data (Dict): dictionary with attributes used for formatting
 
     Returns:
         str: path to the default work directory for current context
@@ -250,16 +252,43 @@ def get_work_default_directory(data: dict) -> str:
     })
 
     work_default_dir_template = anatomy.get_template_item("work", "default", "directory")
-    normalized_dir = work_default_dir_template.format_strict(data).normalized()
+    clean_data = sanitize_data_for_path(data)
+    normalized_dir = work_default_dir_template.format_strict(clean_data).normalized()
     return str(normalized_dir).replace("\\", "/")
 
 
-def get_default_render_folder(data: dict, project_setting: dict=None) -> str:
+def sanitize_data_for_path(data: Dict) -> Dict:
+    """Remove or convert pymxs objects from data dict
+
+    Args:
+        data (Dict): Dictionary containing data to be sanitized.
+
+    Returns:
+        Dict: Sanitized dictionary with pymxs objects converted to strings.
+    """
+    sanitized = {}
+    for key, value in data.items():
+        if isinstance(value, pymxs.MXSWrapperBase):
+            # Convert to string or skip
+            sanitized[key] = str(value) if value else ""
+        elif isinstance(value, dict):
+            sanitized[key] = sanitize_data_for_path(value)
+        elif isinstance(value, list):
+            sanitized[key] = [
+                str(val) if isinstance(val, pymxs.MXSWrapperBase) else val
+                for val in value
+            ]
+        else:
+            sanitized[key] = value
+    return sanitized
+
+
+def get_default_render_folder(data: Dict, project_setting: Dict=None) -> str:
     """Get the default render folder path for current context based on project settings
 
     Args:
-        data (dict): template data
-        project_setting (dict, optional): project settings. Defaults to None.
+        data (Dict): template data
+        project_setting (Dict, optional): project settings. Defaults to None.
 
     Returns:
         str: The default render folder path.
