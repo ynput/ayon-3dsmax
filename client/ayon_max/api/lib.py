@@ -276,7 +276,7 @@ def get_work_default_directory(data: Dict) -> str:
     })
     work_default_dir_template = anatomy.get_template_item("work", "default", "directory")
     normalized_dir = work_default_dir_template.format_strict(data).normalized()
-    return str(normalized_dir).replace("\\", "/"), data
+    return str(normalized_dir), data
 
 def get_default_render_folder(
     data: Dict,
