@@ -265,6 +265,7 @@ def get_work_default_directory(data: Dict) -> str:
         product_base_type = product_type
 
     data.update({
+        "root": anatomy.roots,
         "subset": data["productName"],
         "family": product_base_type,
         "product": {
@@ -275,7 +276,7 @@ def get_work_default_directory(data: Dict) -> str:
     })
     work_default_dir_template = anatomy.get_template_item("work", "default", "directory")
     normalized_dir = work_default_dir_template.format_strict(data).normalized()
-    return str(normalized_dir).replace("\\", "/")
+    return str(normalized_dir).replace("\\", "/"), data
 
 def get_default_render_folder(
     data: Dict,
@@ -295,8 +296,7 @@ def get_default_render_folder(
         project_name = get_current_project_name()
         project_setting = get_project_settings(project_name)
 
-    render_data["work"] = get_work_default_directory(render_data)
-    print(render_data)
+    render_data["work"], render_data = get_work_default_directory(render_data)
     render_folder = project_setting["max"]["RenderSettings"]["default_render_image_folder"]
     formatted_render_folder = StringTemplate(render_folder).format(render_data)
     normalized_render_folder = os.path.normpath(formatted_render_folder)
