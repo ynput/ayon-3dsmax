@@ -1,6 +1,7 @@
 """3dsmax workfile template builder implementation"""
 import json
 from pathlib import Path
+import logging
 
 try:
     from pymxs import runtime as rt
@@ -10,6 +11,7 @@ except ImportError:
 
 from ayon_core.pipeline import registered_host
 from ayon_core.pipeline.workfile.workfile_template_builder import (
+    TemplateProfileNotFound,
     TemplateAlreadyImported,
     AbstractTemplateBuilder,
     PlaceholderPlugin,
@@ -27,7 +29,7 @@ from .lib import (
     update_content_on_context_change,
 )
 
-
+log = logging.getLogger(__name__)
 PLACEHOLDER_SET = "PLACEHOLDERS_SET"
 
 
@@ -63,13 +65,8 @@ class MaxTemplateBuilder(AbstractTemplateBuilder):
             quiet=True,
             includeFullGroup=True
         )
-        max_objects = rt.getLastMergedNodes()
-        if not max_objects:
-            return True
-
         # update imported sets information
         update_content_on_context_change()
-        return True
 
 
 class MaxPlaceholderPlugin(PlaceholderPlugin):
@@ -219,7 +216,12 @@ class MaxPlaceholderPlugin(PlaceholderPlugin):
 def create_first_workfile_from_template(*args) -> None:
     """Create the first workfile from template for 3ds Max."""
     builder = MaxTemplateBuilder(registered_host())
-    builder.build_template(workfile_creation_enabled=True)
+    try:
+        builder.build_template(workfile_creation_enabled=True)
+    except TemplateProfileNotFound:
+        log.warning(
+            "Template profile not found. Skipping..."
+        )
 
 
 def build_workfile_template(*args) -> None:

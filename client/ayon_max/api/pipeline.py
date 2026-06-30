@@ -114,6 +114,8 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         return filepath
 
     def get_current_workfile(self):
+        if not rt.maxFilePath or not rt.maxFileName:
+            return ""
         return os.path.normpath(
             os.path.join(rt.maxFilePath, rt.maxFileName)
         )
@@ -284,6 +286,8 @@ def on_init():
 
 
 def on_new():
+    from .workfile_template_builder import create_first_workfile_from_template
+    create_first_workfile_from_template()
     lib.set_context_settings()
 
 
