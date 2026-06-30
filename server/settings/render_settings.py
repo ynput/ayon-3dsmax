@@ -57,7 +57,7 @@ class RenderSettingsModel(BaseSettingsModel):
 
 
 DEFAULT_RENDER_SETTINGS = {
-    "default_render_image_folder": "{work}/renders/3dsmax/{product[name]}",
+    "default_render_image_folder": "{work}/renders/3dsmax/{productName}",
     "aov_separator": "underscore",
     "image_format": "exr",
     "vray_render_settings": {
