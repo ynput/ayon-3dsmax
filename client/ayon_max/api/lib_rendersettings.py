@@ -81,9 +81,9 @@ class RenderSettings(object):
         raise RuntimeError("Active Camera not found")
 
     def render_output(self):
-        # hard-coded, should be customized in the setting
+        # Set output paths for current workfile using project settings templates.
         file = rt.maxFileName
-        # hard-coded, set the renderoutput path
+        # Resolve project settings used for output path formatting.
         setting = self._project_settings
         container = self._data["instance_node"]
         render_folder = get_default_render_folder(self._data, setting)
