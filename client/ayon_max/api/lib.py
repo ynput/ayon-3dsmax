@@ -267,19 +267,27 @@ def sanitize_data_for_path(data: Dict) -> Dict:
         Dict: Sanitized dictionary with pymxs objects converted to strings.
     """
     sanitized = {}
+    mxs_wrapper_base = getattr(pymxs, "MXSWrapperBase", None)
+
     for key, value in data.items():
-        if isinstance(value, pymxs.MXSWrapperBase):
+        if mxs_wrapper_base and isinstance(value, mxs_wrapper_base):
             # Convert to string or skip
             sanitized[key] = str(value) if value else ""
         elif isinstance(value, dict):
             sanitized[key] = sanitize_data_for_path(value)
         elif isinstance(value, list):
             sanitized[key] = [
-                str(val) if isinstance(val, pymxs.MXSWrapperBase) else val
+                sanitize_data_for_path(val) if isinstance(val, dict)
+                else (
+                    str(val)
+                    if (mxs_wrapper_base and isinstance(val, mxs_wrapper_base))
+                    else val
+                )
                 for val in value
             ]
         else:
             sanitized[key] = value
+
     return sanitized
 
 
