@@ -717,7 +717,7 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
                     sync_current_workfile_name=sync_current_workfile,
                 )
             )
-        elif not multipass_enabled:
+        else:
             invalid.extend(
                 cls.get_invalid_renderoutput(
                     image_format,
