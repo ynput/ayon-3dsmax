@@ -4,6 +4,7 @@ import os
 import contextlib
 import logging
 import json
+from pathlib import Path
 from functools import partial
 import pyblish.api
 import re
@@ -231,20 +232,22 @@ def get_current_renderer():
     return rt.renderers.production
 
 
-def get_work_default_directory(data: Dict) -> str:
+def get_work_default_directory(data: Dict) -> tuple[str, Dict]:
     """Helping function for formatting of anatomy paths
 
     Arguments:
         data (Dict): dictionary with attributes used for formatting
 
     Returns:
-        str: path to the default work directory for current context
+        tuple[str, Dict]:
+            - Path to the default work directory for current context.
+            - Sanitized template data used for formatting.
     """
 
     project_name = get_current_project_name()
     anatomy = Anatomy(project_name)
 
-    data = dict(data)
+    data = _sanitize_template_data(dict(data))
 
     version = data.get("version")
     if version is None:
@@ -299,14 +302,12 @@ def get_default_render_folder(
     render_data["work"], render_data = get_work_default_directory(render_data)
     render_folder = project_setting["max"]["RenderSettings"]["default_render_image_folder"]
     formatted_render_folder = StringTemplate(render_folder).format(render_data)
-    normalized_render_folder = os.path.normpath(formatted_render_folder)
+    normalized_render_folder = Path(formatted_render_folder)
 
-    if os.path.isabs(normalized_render_folder):
-        return normalized_render_folder.replace("\\", "/")
+    if normalized_render_folder.is_absolute():
+        return normalized_render_folder.as_posix()
 
-    return os.path.normpath(
-        os.path.join(render_data["work"], normalized_render_folder)
-    ).replace("\\", "/")
+    return (Path(render_data["work"]) / normalized_render_folder).as_posix()
 
 
 def get_vray_settings(renderer_name: str, renderer: Any) -> Any:
