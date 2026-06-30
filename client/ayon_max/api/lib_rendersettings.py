@@ -88,7 +88,8 @@ class RenderSettings(object):
         container = self._data["instance_node"]
         render_folder = get_default_render_folder(self._data, setting)
         filename, _ = os.path.splitext(file)
-        output_dir = os.path.join(render_folder, filename)
+        sync_name = self._data.get("sync_current_workfile_name", True)
+        output_dir = os.path.join(render_folder, filename.strip(".")) if sync_name else render_folder
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         # hard-coded, should be customized in the setting
