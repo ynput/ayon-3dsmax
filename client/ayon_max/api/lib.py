@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Library of functions useful for 3dsmax pipeline."""
 import os
-import copy
 import contextlib
 import logging
 import json
@@ -34,15 +33,38 @@ from ayon_core.style import load_stylesheet
 
 try:
     from pymxs import runtime as rt
-    import pymxs
 
 except ImportError:
     rt = None
-    pymxs = None
 
 
 JSON_PREFIX = "JSON::"
 log = logging.getLogger("ayon_max")
+
+
+def _sanitize_template_data(value: Any) -> Any:
+    """Function to sanitize template data to avoid
+    pickle issue from QMainWindow or Max Objects
+
+    Args:
+        value (Any): Any type of value to sanitize
+
+    Returns:
+        Any: Sanitized value
+    """
+    if isinstance(value, dict):
+        return {
+            key: _sanitize_template_data(sub_value)
+            for key, sub_value in value.items()
+        }
+
+    if isinstance(value, (list, tuple, set)):
+        return [_sanitize_template_data(item) for item in value]
+
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+
+    return str(value)
 
 
 def get_main_window():
@@ -251,46 +273,9 @@ def get_work_default_directory(data: Dict) -> str:
             "basetype": product_base_type,
         },
     })
-
     work_default_dir_template = anatomy.get_template_item("work", "default", "directory")
-    clean_data = sanitize_data_for_path(data)
-    normalized_dir = work_default_dir_template.format_strict(clean_data).normalized()
+    normalized_dir = work_default_dir_template.format_strict(data).normalized()
     return str(normalized_dir).replace("\\", "/")
-
-
-def sanitize_data_for_path(data: Dict) -> Dict:
-    """Remove or convert pymxs objects from data dict
-
-    Args:
-        data (Dict): Dictionary containing data to be sanitized.
-
-    Returns:
-        Dict: Sanitized dictionary with pymxs objects converted to strings.
-    """
-    sanitized = {}
-    mxs_wrapper_base = getattr(pymxs, "MXSWrapperBase", None)
-
-    for key, value in data.items():
-        if mxs_wrapper_base and isinstance(value, mxs_wrapper_base):
-            # Convert to string or skip
-            sanitized[key] = str(value) if value else ""
-        elif isinstance(value, dict):
-            sanitized[key] = sanitize_data_for_path(value)
-        elif isinstance(value, list):
-            sanitized[key] = [
-                sanitize_data_for_path(val) if isinstance(val, dict)
-                else (
-                    str(val)
-                    if (mxs_wrapper_base and isinstance(val, mxs_wrapper_base))
-                    else val
-                )
-                for val in value
-            ]
-        else:
-            sanitized[key] = value
-
-    return sanitized
-
 
 def get_default_render_folder(
     data: Dict,
@@ -305,15 +290,23 @@ def get_default_render_folder(
     Returns:
         str: The default render folder path.
     """
-    render_data = copy.deepcopy(data)
+    render_data = _sanitize_template_data(dict(data))
     if project_setting is None:
         project_name = get_current_project_name()
         project_setting = get_project_settings(project_name)
 
     render_data["work"] = get_work_default_directory(render_data)
+    print(render_data)
     render_folder = project_setting["max"]["RenderSettings"]["default_render_image_folder"]
     formatted_render_folder = StringTemplate(render_folder).format(render_data)
-    return os.path.normpath(os.path.join(render_data["work"], formatted_render_folder))
+    normalized_render_folder = os.path.normpath(formatted_render_folder)
+
+    if os.path.isabs(normalized_render_folder):
+        return normalized_render_folder.replace("\\", "/")
+
+    return os.path.normpath(
+        os.path.join(render_data["work"], normalized_render_folder)
+    ).replace("\\", "/")
 
 
 def get_vray_settings(renderer_name: str, renderer: Any) -> Any:
