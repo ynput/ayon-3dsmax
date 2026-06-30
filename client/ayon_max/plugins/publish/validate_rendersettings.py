@@ -589,6 +589,7 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
         render_filepath: str,
         extension: str,
         workfile_pattern: str,
+        sync_current_workfile_name: bool = True,
     ) -> list[tuple[str, str]]:
         """Get invalid V-Ray filepaths for the given instance.
 
@@ -603,7 +604,7 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
         invalid = []
         render_dir = os.path.dirname(render_filepath)
         render_filename = os.path.basename(render_filepath)
-        if workfile_pattern not in render_dir:
+        if sync_current_workfile_name and workfile_pattern not in render_dir:
             msg = (
                 f"Invalid render output filename {render_filename} for V-Ray. "
                 f"Filename should contain the workfile name pattern: {workfile_pattern}."
@@ -633,6 +634,7 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
         filepath: str,
         extension: str,
         workfile_pattern: str,
+        sync_current_workfile_name: bool = True,
     ) -> list[tuple[str, str]]:
         """Get invalid V-Ray output settings for the given instance.
 
@@ -657,6 +659,7 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
             filepath,
             extension,
             workfile_pattern,
+            sync_current_workfile_name=sync_current_workfile_name,
         )
 
     @classmethod
@@ -685,6 +688,10 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
         vr_settings = get_vray_settings(renderer_name, renderer)
         image_format = instance.data["imageFormat"]
         multipass_enabled = get_multipass_setting(renderer_name, project_settings)
+        sync_current_workfile = instance.data.get(
+            "sync_current_workfile_name",
+            True
+        )
         if multipass_enabled != vr_settings.output_splitgbuffer:
             invalid.append((
                 "Invalid V-Ray multipass setting",
@@ -697,6 +704,7 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
                     vr_settings.output_rawfilename,
                     image_format,
                     workfile_pattern,
+                    sync_current_workfile_name=sync_current_workfile,
                 )
             )
 
@@ -706,13 +714,10 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
                     vr_settings.output_splitfilename,
                     image_format,
                     workfile_pattern,
+                    sync_current_workfile_name=sync_current_workfile,
                 )
             )
         elif not multipass_enabled:
-            sync_current_workfile = instance.data.get(
-                "sync_current_workfile_name",
-                True
-            )
             invalid.extend(
                 cls.get_invalid_renderoutput(
                     image_format,
