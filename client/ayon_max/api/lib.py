@@ -232,7 +232,7 @@ def get_current_renderer():
     return rt.renderers.production
 
 
-def get_work_default_directory(data: Dict) -> tuple[str, Dict]:
+def get_work_default_directory_and_data(data: Dict) -> tuple[str, Dict]:
     """Helping function for formatting of anatomy paths
 
     Arguments:
@@ -299,15 +299,12 @@ def get_default_render_folder(
         project_name = get_current_project_name()
         project_setting = get_project_settings(project_name)
 
-    render_data["work"], render_data = get_work_default_directory(render_data)
+    work_dir, render_data = get_work_default_directory_and_data(render_data)
+    render_data["work"] = work_dir
     render_folder = project_setting["max"]["RenderSettings"]["default_render_image_folder"]
     formatted_render_folder = StringTemplate(render_folder).format(render_data)
     normalized_render_folder = Path(formatted_render_folder)
-
-    if normalized_render_folder.is_absolute():
-        return normalized_render_folder.as_posix()
-
-    return (Path(render_data["work"]) / normalized_render_folder).as_posix()
+    return str(normalized_render_folder)
 
 
 def get_vray_settings(renderer_name: str, renderer: Any) -> Any:
