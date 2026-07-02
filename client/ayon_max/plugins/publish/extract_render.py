@@ -37,8 +37,6 @@ class ExtractLocalRender(publish.Extractor):
                 if camera else rt.viewport.GetCamera()
             )
 
-            was_cancelled = rt.Name('wasCancelled')
-            was_cancelled.value = False
             for frame in instance.data["expectedFrameRange"]:
                 _, cancelled = rt.render(
                     frame=frame,
