@@ -60,7 +60,9 @@ class RenderProducts(object):
         render_dict: Dict[str, list[str]] = {}
 
         # Always add beauty pass
-        render_dict["beauty"] = self.get_expected_beauty(start_frame, end_frame, extension)
+        beauty_files = self.get_expected_beauty(start_frame, end_frame, extension)
+        if beauty_files:
+            render_dict["beauty"] = beauty_files
 
         # Optionally add AOVs
         renderer = get_current_renderer()
@@ -218,6 +220,8 @@ class RenderProducts(object):
             if "GPU" in str(vr_renderer)
             else vr_renderer
         )
+        if not is_render_element and vray_settings.output_rawfilename:
+            return ""
         output_attr = (
             "output_rawfilename"
             if not is_render_element and image_format == "exr"
@@ -276,6 +280,8 @@ class RenderProducts(object):
             list[str]: List of expected file paths.
         """
         expected_aovs: list[str] = []
+        if not filepath:
+            return expected_aovs
         directory = os.path.dirname(filepath)
         filename = os.path.basename(filepath)
         name, ext = os.path.splitext(filename)

@@ -50,12 +50,24 @@ class CollectRender(pyblish.api.InstancePlugin):
 
     # Settings
     sync_workfile_version = False
+    sync_current_workfile_name = True
 
     def process(self, instance):
         context = instance.context
+
         filepath = context.data["currentFile"]
-        filename = os.path.basename(filepath)
-        filename_pattern = os.path.splitext(filename)[0].strip(".")
+
+        if self.sync_current_workfile_name:
+            filename = os.path.basename(filepath)
+            filename_pattern = os.path.splitext(filename)[0].strip(".")
+            instance.data["original_workfile_pattern"] = filename_pattern
+        else:
+            # Backwards compatibility for render pre-create settings.
+            filename_pattern = (
+                instance.data.get("original_workfile_pattern")
+                or instance.data.get("AssetName", "").strip(".")
+            )
+            instance.data["original_workfile_pattern"] = filename_pattern
         renderer = get_current_renderer()
         renderer_name = str(renderer).split(":")[0]
         renderproducts = RenderProducts(context.data["project_settings"])
@@ -85,10 +97,9 @@ class CollectRender(pyblish.api.InstancePlugin):
                 context.data["project_settings"]
             )
             render_dir = os.path.dirname(render_output)
-
-            container_name = instance.data.get("instance_node")
-            outputs = RenderSettings().batch_render_layers_by_multi_camera(
-                container_name, render_dir, sel_cam
+            render_settings = RenderSettings(data=instance.data)
+            outputs = render_settings.batch_render_layers_by_multi_camera(
+                render_dir, sel_cam
             )
 
             instance.data["cameras"] = sel_cam
@@ -141,10 +152,8 @@ class CollectRender(pyblish.api.InstancePlugin):
         # also need to get the render dir for conversion
         data = {
             "folderPath": instance.data["folderPath"],
-            "workfile_name": filename,
             "productName": str(instance.name),
             "publish": True,
-            "original_workfile_pattern": filename_pattern,
             "maxversion": str(get_max_version()),
             "imageFormat": img_format,
             "productBaseType": product_base_type,
@@ -158,7 +167,8 @@ class CollectRender(pyblish.api.InstancePlugin):
             "frameEnd": instance.data["frameEndHandle"],
             "resolutionWidth": rt.renderWidth,
             "resolutionHeight": rt.renderHeight,
-            "farm": farm_render
+            "farm": farm_render,
+            "sync_current_workfile_name": self.sync_current_workfile_name,
         }
 
         # sync workfile version

@@ -4,25 +4,30 @@ import os
 import contextlib
 import logging
 import json
+from pathlib import Path
 from functools import partial
 import pyblish.api
 import re
 from typing import Any, Dict, Union
 
 from ayon_core.pipeline import (
+    Anatomy,
     get_current_project_name,
     get_current_folder_path,
     get_current_task_name,
+    get_current_host_name,
     colorspace,
     registered_host,
     AYON_INSTANCE_ID,
     AVALON_INSTANCE_ID,
 )
+from ayon_core.lib import StringTemplate, get_version_from_path
 from ayon_core.tools.utils import SimplePopup
 from ayon_core.settings import get_project_settings
 from ayon_core.pipeline.context_tools import (
     get_current_task_entity
 )
+from ayon_core.pipeline.template_data import get_template_data_with_names
 from ayon_core.pipeline.create import CreateContext
 from ayon_core.style import load_stylesheet
 
@@ -36,6 +41,31 @@ except ImportError:
 
 JSON_PREFIX = "JSON::"
 log = logging.getLogger("ayon_max")
+
+
+def _sanitize_template_data(value: Any) -> Any:
+    """Function to sanitize template data to avoid
+    pickle issue from QMainWindow or Max Objects
+
+    Args:
+        value (Any): Any type of value to sanitize
+
+    Returns:
+        Any: Sanitized value
+    """
+    if isinstance(value, dict):
+        return {
+            key: _sanitize_template_data(sub_value)
+            for key, sub_value in value.items()
+        }
+
+    if isinstance(value, (list, tuple, set)):
+        return [_sanitize_template_data(item) for item in value]
+
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+
+    return str(value)
 
 
 def get_main_window():
@@ -202,19 +232,79 @@ def get_current_renderer():
     return rt.renderers.production
 
 
-def get_default_render_folder(project_setting=None):
-    folder = rt.maxFilePath
-    # hard-coded, should be customized in the setting
-    folder = folder.replace("\\", "/")
-    render_folder = (project_setting["max"]
-                                    ["RenderSettings"]
-                                    ["default_render_image_folder"])
-    return os.path.join(folder, render_folder)
+def get_work_default_directory_and_data(data: Dict) -> tuple[str, Dict]:
+    """Helping function for formatting of anatomy paths
 
+    Arguments:
+        data (Dict): dictionary with attributes used for formatting
 
-def get_expected_render_folder(setting, filename):
-    render_folder = get_default_render_folder(setting)
-    return os.path.join(render_folder, filename)
+    Returns:
+        tuple[str, Dict]:
+            - Path to the default work directory for current context.
+            - Sanitized template data used for formatting.
+    """
+
+    project_name = get_current_project_name()
+    anatomy = Anatomy(project_name)
+
+    data = _sanitize_template_data(dict(data))
+
+    version = data.get("version")
+    if version is None:
+        project_filename = rt.maxFileName
+        data["version"] = get_version_from_path(project_filename)
+
+    folder_path = data["folderPath"]
+    task_name = data["task"]
+    host_name = get_current_host_name()
+
+    context_data = get_template_data_with_names(
+        project_name, folder_path, task_name, host_name
+    )
+    data.update(context_data)
+    product_type = data["productType"]
+    product_base_type = data.get("productBaseType")
+    if not product_base_type:
+        product_base_type = product_type
+
+    data.update({
+        "root": anatomy.roots,
+        "subset": data["productName"],
+        "family": product_base_type,
+        "product": {
+            "name": data["productName"],
+            "type": product_type,
+            "basetype": product_base_type,
+        },
+    })
+    work_default_dir_template = anatomy.get_template_item("work", "default", "directory")
+    normalized_dir = work_default_dir_template.format_strict(data).normalized()
+    return str(normalized_dir), data
+
+def get_default_render_folder(
+    data: Dict,
+    project_setting: Dict = None,
+) -> str:
+    """Get the default render folder path for current context based on project settings
+
+    Args:
+        data (Dict): template data
+        project_setting (Dict, optional): project settings. Defaults to None.
+
+    Returns:
+        str: The default render folder path.
+    """
+    render_data = _sanitize_template_data(dict(data))
+    if project_setting is None:
+        project_name = get_current_project_name()
+        project_setting = get_project_settings(project_name)
+
+    work_dir, render_data = get_work_default_directory_and_data(render_data)
+    render_data["work"] = work_dir
+    render_folder = project_setting["max"]["RenderSettings"]["default_render_image_folder"]
+    formatted_render_folder = StringTemplate(render_folder).format(render_data)
+    normalized_render_folder = Path(formatted_render_folder)
+    return str(normalized_render_folder)
 
 
 def get_vray_settings(renderer_name: str, renderer: Any) -> Any:
@@ -785,12 +875,13 @@ def get_view_node_from_sme_view(sme_view, view_node_name):
 
 
 def get_target_sme_view(target_view: int):
-    """_summary_
+    """Return a Slate Material Editor view by index.
 
     Args:
-        target_view (int): active SME view
+        target_view (int): Active SME view index.
+
     Returns:
-        IObject: SME View object
+        IObject: The requested SME view object.
     """
     return rt.sme.GetView(target_view)
 
@@ -1009,7 +1100,7 @@ def set_correct_workfile_name_for_render_output(
     """
     project_settings = instance.context.data["project_settings"]
     render_root = os.path.normpath(
-        get_default_render_folder(project_settings)
+        get_default_render_folder(instance.data, project_settings)
     )
     normalized_path = os.path.normpath(filepath)
 
@@ -1023,7 +1114,7 @@ def set_correct_workfile_name_for_render_output(
     )
     match = re.match(pattern, normalized_path)
     if not match:
-        return filepath
+        return ""
 
     render_workfile_name = match.group("workfile")
     if render_workfile_name == current_workfile_filename:
