@@ -37,7 +37,7 @@ class ExtractLocalRender(publish.Extractor):
                 if camera else rt.viewport.GetCamera()
             )
 
-            for frame in range(int(rt.rendStart), int(rt.rendEnd) + 1):
+            for frame in instance.data["expectedFrameRange"]:
                 _, cancelled = rt.render(
                     frame=frame,
                     vfb=False,
@@ -46,8 +46,7 @@ class ExtractLocalRender(publish.Extractor):
                 )
                 if cancelled:
                     raise KnownPublishError(f"Render cancelled at frame {frame}.")
-
-                self.log.debug("Local render extraction completed.")
+            self.log.debug("Local render extraction completed.")
         else:
             self.log.debug(
                 "Local render extraction for multi-camera is already "
