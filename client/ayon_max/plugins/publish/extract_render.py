@@ -40,7 +40,6 @@ class ExtractLocalRender(publish.Extractor):
             for frame in instance.data["expectedFrameRange"]:
                 _, cancelled = rt.render(
                     frame=frame,
-                    vfb=False,
                     camera=camera_node,
                     cancelled=pymxs.byref(None)
                 )

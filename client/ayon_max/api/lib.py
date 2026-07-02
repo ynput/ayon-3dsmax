@@ -23,6 +23,8 @@ from ayon_core.settings import get_project_settings
 from ayon_core.pipeline.context_tools import (
     get_current_task_entity
 )
+from ayon_core.pipeline.farm.pyblish_functions import \
+    convert_frames_str_to_list
 from ayon_core.pipeline.create import CreateContext
 from ayon_core.style import load_stylesheet
 
@@ -1071,47 +1073,9 @@ def get_expected_frames(instance: pyblish.api.Instance) -> list[int]:
     Returns:
         list[int]: A list containing the expected frames.
     """
-    def parse_frame_range(frame_str: str) -> list[int]:
-        """Parse a frame range string into a list of frames.
-
-        Args:
-            frame_str (str): The frame range string.
-
-        Returns:
-            list[int]: A list of frames.
-        """
-        frames = []
-        for part in frame_str.split(","):
-            part = part.strip()
-            if not part:
-                continue
-
-            if "-" in part:
-                start_end = part.split("-", 1)
-                if len(start_end) != 2 or not start_end[0] or not start_end[1]:
-                    raise ValueError(
-                        f"Invalid frame range segment: '{part}'"
-                    )
-
-                start, end = map(int, start_end)
-                if start > end:
-                    raise ValueError(
-                        f"Frame range start must be less than or equal "
-                        f"to end: '{part}'"
-                    )
-                frames.extend(range(start, end + 1))
-            else:
-                frames.append(int(part))
-
-        if not frames:
-            raise ValueError(
-                f"No valid frames could be parsed from '{frame_str}'"
-            )
-        return frames
-
     frames = instance.data.get("customFrames", "")
     if frames:
-        return parse_frame_range(frames)
+        return convert_frames_str_to_list(frames)
     frame_start = int(rt.rendStart)
     frame_end = int(rt.rendEnd)
     return list(range(frame_start, frame_end + 1))
