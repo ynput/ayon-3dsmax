@@ -67,8 +67,7 @@ class CollectRender(pyblish.api.InstancePlugin):
                 instance.data.get("original_workfile_pattern")
                 or instance.data.get("AssetName", "").strip(".")
             )
-            if filename_pattern:
-                instance.data.setdefault("original_workfile_pattern", filename_pattern)
+            instance.data["original_workfile_pattern"] = filename_pattern
         renderer = get_current_renderer()
         renderer_name = str(renderer).split(":")[0]
         renderproducts = RenderProducts(context.data["project_settings"])

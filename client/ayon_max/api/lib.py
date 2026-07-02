@@ -1114,7 +1114,7 @@ def set_correct_workfile_name_for_render_output(
     )
     match = re.match(pattern, normalized_path)
     if not match:
-        return filepath
+        return ""
 
     render_workfile_name = match.group("workfile")
     if render_workfile_name == current_workfile_filename:
