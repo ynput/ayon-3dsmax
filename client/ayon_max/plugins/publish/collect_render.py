@@ -180,18 +180,20 @@ class CollectRender(pyblish.api.InstancePlugin):
 
         self.log.info("data: {0}".format(data))
 
-    def get_colorspace_data(self) -> dict[str, str] | None:
+    def get_colorspace_data(self) -> Dict[str, str]:
         """Get colorspace data from the ColorPipelineMgr.
 
         Returns:
-            dict[str, str] | None: A dictionary containing
-                colorspace data or None if not available.
+            Dict[str, str]: A dictionary containing colorspace data. Empty dict
+                is returned when colorspace data is not available.
         """
+        if int(get_max_version()) < 2024:
+            return {}
+
         colorspace_mgr = rt.ColorPipelineMgr
         ocio_path: str = colorspace_mgr.OCIOConfigPath
         if not ocio_path:
-            return None
-
+            return {}
         display: str = pymxs.pyref("")
         view: str = pymxs.pyref("")
         colorspace_mgr.GetDefaultDisplayViewTransform(
