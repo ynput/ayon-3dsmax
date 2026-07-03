@@ -106,7 +106,7 @@ class CollectRender(pyblish.api.InstancePlugin):
         # OCIO config not support in
         # most of the 3dsmax renderers
         # so this is currently hard coded
-        colorspace_data = self.get_colorspace_data()
+        colorspace_data = self.get_colorspace_data() or {}
         self.log.debug(f"Collected colorspace data: {colorspace_data}")
         if colorspace_data:
             instance.data.update(colorspace_data)
@@ -115,12 +115,13 @@ class CollectRender(pyblish.api.InstancePlugin):
             instance.data["frameStartHandle"],
             instance.data["frameEndHandle"]
         )
-        instance.data["renderProducts"] = colorspace_product.add_colorspace_data(
+        colorspace_product.add_colorspace_data(
             product_name=str(instance.name),
             colorspace=colorspace_data.get("colorspace", "sRGB"),
             view=colorspace_data.get("sceneView", "ACES 1.0"),
             display=colorspace_data.get("sceneDisplay", "sRGB")
         )
+        instance.data["renderProducts"] = colorspace_product
 
         instance.data["publishJobState"] = "Suspended"
         instance.data["attachTo"] = []
@@ -179,20 +180,22 @@ class CollectRender(pyblish.api.InstancePlugin):
 
         self.log.info("data: {0}".format(data))
 
-    def get_colorspace_data(self) -> dict[str, str] | None:
+    def get_colorspace_data(self) -> Dict[str, str]:
         """Get colorspace data from the ColorPipelineMgr.
 
         Returns:
-            dict[str, str] | None: A dictionary containing
-                colorspace data or None if not available.
+            Dict[str, str]: A dictionary containing colorspace data. Empty dict
+                is returned when colorspace data is not available.
         """
+        if int(get_max_version()) < 2024:
+            return {}
+
         colorspace_mgr = rt.ColorPipelineMgr
         ocio_path: str = colorspace_mgr.OCIOConfigPath
         if not ocio_path:
-            return None
-
-        display: str = pymxs.byref("")
-        view: str = pymxs.byref("")
+            return {}
+        display: str = pymxs.pyref("")
+        view: str = pymxs.pyref("")
         colorspace_mgr.GetDefaultDisplayViewTransform(
             rt.Name("Global"),
             False,
