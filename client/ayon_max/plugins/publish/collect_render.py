@@ -194,8 +194,8 @@ class CollectRender(pyblish.api.InstancePlugin):
         ocio_path: str = colorspace_mgr.OCIOConfigPath
         if not ocio_path:
             return {}
-        display: str = pymxs.pyref("")
-        view: str = pymxs.pyref("")
+        display: str = pymxs.byref("")
+        view: str = pymxs.byref("")
         colorspace_mgr.GetDefaultDisplayViewTransform(
             rt.Name("Global"),
             False,
