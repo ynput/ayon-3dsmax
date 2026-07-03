@@ -106,7 +106,7 @@ class CollectRender(pyblish.api.InstancePlugin):
         # OCIO config not support in
         # most of the 3dsmax renderers
         # so this is currently hard coded
-        colorspace_data = self.get_colorspace_data()
+        colorspace_data = self.get_colorspace_data() or {}
         self.log.debug(f"Collected colorspace data: {colorspace_data}")
         if colorspace_data:
             instance.data.update(colorspace_data)
@@ -115,12 +115,13 @@ class CollectRender(pyblish.api.InstancePlugin):
             instance.data["frameStartHandle"],
             instance.data["frameEndHandle"]
         )
-        instance.data["renderProducts"] = colorspace_product.add_colorspace_data(
+        colorspace_product.add_colorspace_data(
             product_name=str(instance.name),
             colorspace=colorspace_data.get("colorspace", "sRGB"),
             view=colorspace_data.get("sceneView", "ACES 1.0"),
             display=colorspace_data.get("sceneDisplay", "sRGB")
         )
+        instance.data["renderProducts"] = colorspace_product
 
         instance.data["publishJobState"] = "Suspended"
         instance.data["attachTo"] = []
