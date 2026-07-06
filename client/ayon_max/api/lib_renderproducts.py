@@ -78,7 +78,6 @@ class RenderProducts(object):
                     renderer_name
                 )
                 render_dict[aov_name] = aov_expected_files
-
         return render_dict
 
     def get_multiple_render_products(
@@ -220,7 +219,7 @@ class RenderProducts(object):
             if "GPU" in str(vr_renderer)
             else vr_renderer
         )
-        if not is_render_element and vray_settings.output_rawfilename:
+        if not is_render_element and not vray_settings.output_rawfilename:
             return ""
         output_attr = (
             "output_rawfilename"
