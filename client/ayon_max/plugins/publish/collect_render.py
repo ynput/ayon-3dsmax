@@ -129,17 +129,19 @@ class CollectRender(pyblish.api.InstancePlugin):
         self._precollect_required_data(instance)
 
         # set the colorspace data for each AOV in the instance data
-        for aov_name in files_by_aov.keys():
+        if colorspace_data:
             colorspace_product = colorspace.ARenderProduct(
                 instance.data["frameStartHandle"],
                 instance.data["frameEndHandle"]
             )
-            colorspace_product.add_colorspace_data(
-                product_name=aov_name,
-                colorspace=colorspace_data.get("colorspace", "sRGB"),
-                view=colorspace_data.get("sceneView", "ACES 1.0"),
-                display=colorspace_data.get("sceneDisplay", "sRGB")
-            )
+            for aov_name in files_by_aov.keys():
+                colorspace_product.add_colorspace_data(
+                    product_name=aov_name,
+                    colorspace=colorspace_data["colorspace"],
+                    view=colorspace_data,
+                    display=colorspace_data.get("sceneDisplay", "sRGB")
+                )
+
             instance.data["renderProducts"] = colorspace_product
 
         data = {
