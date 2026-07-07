@@ -61,8 +61,7 @@ class RenderProducts(object):
 
         # Always add beauty pass
         beauty_files = self.get_expected_beauty(start_frame, end_frame, extension)
-        if beauty_files:
-            render_dict["beauty"] = beauty_files
+        render_dict["beauty"] = beauty_files
 
         # Optionally add AOVs
         renderer = get_current_renderer()
