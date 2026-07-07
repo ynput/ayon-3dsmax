@@ -304,6 +304,8 @@ def get_default_render_folder(
     render_folder = project_setting["max"]["RenderSettings"]["default_render_image_folder"]
     formatted_render_folder = StringTemplate(render_folder).format(render_data)
     normalized_render_folder = Path(formatted_render_folder)
+    if not normalized_render_folder.is_absolute():
+        normalized_render_folder = Path(work_dir) / normalized_render_folder
     return str(normalized_render_folder)
 
 
