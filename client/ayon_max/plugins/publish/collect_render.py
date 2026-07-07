@@ -62,8 +62,6 @@ class CollectRender(pyblish.api.InstancePlugin):
         renderproducts = RenderProducts(context.data["project_settings"])
         img_format = renderproducts.image_format()
         expected_frames = instance.data.get("expectedFrameRange")
-        if not expected_frames:
-            expected_frames = list(range(int(rt.rendStart), int(rt.rendEnd) + 1))
         files_by_aov: Dict[str, list[str]] = renderproducts.get_render_products(expected_frames)
 
 

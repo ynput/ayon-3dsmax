@@ -18,6 +18,7 @@ from ayon_core.pipeline import (
     AYON_INSTANCE_ID,
     AVALON_INSTANCE_ID,
 )
+from ayon_core.pipeline.publish import PublishError
 from ayon_core.tools.utils import SimplePopup
 from ayon_core.settings import get_project_settings
 from ayon_core.pipeline.context_tools import (
@@ -1073,9 +1074,16 @@ def get_expected_frames(instance: pyblish.api.Instance) -> list[int]:
     Returns:
         list[int]: A list containing the expected frames.
     """
-    frames = instance.data.get("customFrames", "")
-    if frames:
-        return convert_frames_str_to_list(frames)
+    frames_str = instance.data.get("customFrames", "")
+    if frames_str:
+        frames_list = convert_frames_str_to_list(frames_str.strip())
+        frames_list = sorted({int(frame) for frame in frames_list})
+        if not frames_list:
+            raise PublishError(
+                f"Invalid customFrames value: {frames_str}. "
+                "Expected a comma-separated list of integers or ranges."
+            )
+        return frames_list
     frame_start = int(rt.rendStart)
     frame_end = int(rt.rendEnd)
     return list(range(frame_start, frame_end + 1))
