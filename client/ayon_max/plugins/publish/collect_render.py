@@ -138,11 +138,11 @@ class CollectRender(pyblish.api.InstancePlugin):
                 colorspace_product.add_colorspace_data(
                     product_name=aov_name,
                     colorspace=colorspace_data["colorspace"],
-                    view=colorspace_data,
-                    display=colorspace_data.get("sceneDisplay", "sRGB")
+                    view=colorspace_data["sceneView"],
+                    display=colorspace_data["sceneDisplay"]
                 )
 
-            instance.data["renderProducts"] = colorspace_product
+        instance.data["renderProducts"] = colorspace_product
 
         data = {
             "folderPath": instance.data["folderPath"],
