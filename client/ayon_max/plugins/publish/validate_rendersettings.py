@@ -853,14 +853,18 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
         return os.path.join(output_dir, output_filename)
 
 
-def reset_rendersetting(instance: pyblish.api.Instance, project_settings: dict) -> None:
+def reset_rendersetting(instance: pyblish.api.Instance, project_settings: dict) -> str:
     """Reset the render settings for the given instance based on project settings.
+
     This is built for customized render settings, and it will reset the render output path
     to the default path based on the project settings.
 
     Args:
         instance (pyblish.api.Instance): The instance.
         project_settings (dict): The project settings.
+
+    Returns:
+        str: The resulting render output filename (rt.rendOutputFilename).
 
     """
     render_settings = RenderSettings(
