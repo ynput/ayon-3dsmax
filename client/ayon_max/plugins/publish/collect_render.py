@@ -111,18 +111,6 @@ class CollectRender(pyblish.api.InstancePlugin):
         if colorspace_data:
             instance.data.update(colorspace_data)
 
-        colorspace_product = colorspace.ARenderProduct(
-            instance.data["frameStartHandle"],
-            instance.data["frameEndHandle"]
-        )
-        colorspace_product.add_colorspace_data(
-            product_name=str(instance.name),
-            colorspace=colorspace_data.get("colorspace", "sRGB"),
-            view=colorspace_data.get("sceneView", "ACES 1.0"),
-            display=colorspace_data.get("sceneDisplay", "sRGB")
-        )
-        instance.data["renderProducts"] = colorspace_product
-
         instance.data["publishJobState"] = "Suspended"
         instance.data["attachTo"] = []
 
@@ -139,6 +127,20 @@ class CollectRender(pyblish.api.InstancePlugin):
             creator_attribute.get("render_target", "farm") == "farm"
         )
         self._precollect_required_data(instance)
+
+        # set the colorspace data for each AOV in the instance data
+        for aov_name in files_by_aov.keys():
+            colorspace_product = colorspace.ARenderProduct(
+                instance.data["frameStartHandle"],
+                instance.data["frameEndHandle"]
+            )
+            colorspace_product.add_colorspace_data(
+                product_name=aov_name,
+                colorspace=colorspace_data.get("colorspace", "sRGB"),
+                view=colorspace_data.get("sceneView", "ACES 1.0"),
+                display=colorspace_data.get("sceneDisplay", "sRGB")
+            )
+            instance.data["renderProducts"] = colorspace_product
 
         # also need to get the render dir for conversion
         data = {
