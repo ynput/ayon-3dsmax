@@ -219,8 +219,12 @@ class RenderProducts(object):
             if "GPU" in str(vr_renderer)
             else vr_renderer
         )
-        if not is_render_element and not vray_settings.output_rawfilename:
-            return ""
+        if (
+            not is_render_element
+            and image_format == "exr"
+            and not vray_settings.output_rawfilename
+        ):
+            return getattr(vray_settings, "output_splitfilename", "") or rt.rendOutputFilename
         output_attr = (
             "output_rawfilename"
             if not is_render_element and image_format == "exr"
