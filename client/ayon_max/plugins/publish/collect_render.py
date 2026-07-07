@@ -142,7 +142,6 @@ class CollectRender(pyblish.api.InstancePlugin):
             )
             instance.data["renderProducts"] = colorspace_product
 
-        # also need to get the render dir for conversion
         data = {
             "folderPath": instance.data["folderPath"],
             "workfile_name": filename,
