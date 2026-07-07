@@ -89,6 +89,8 @@ class RenderProducts(object):
         Args:
             outputs (list[str]): A list of output file paths.
             cameras (list[str]): A list of camera names.
+            frame_range (list[int]): A list of frames to generate expected
+                output file paths for.
 
         Returns:
             Dict[str, list[str]]: A dictionary containing render output file
