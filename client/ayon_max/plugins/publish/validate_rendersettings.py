@@ -111,6 +111,7 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
         workfile_pattern: str,
         multi_camera: bool = False,
         cameras: Optional[list[str]] = None,
+        sync_current_workfile_name: bool = True,
     ) -> list[tuple[str, str]]:
         """Get the invalid render element directory settings.
 
@@ -121,13 +122,15 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
             Defaults to False.
             cameras (Optional[list[str]], optional): The list of camera
                 names to validate. Defaults to None.
+            sync_current_workfile_name (bool, optional): Whether to sync workfile name.
+                Defaults to True.
 
         Returns:
             list[tuple[str, str]]: A list of tuples containing the error
                 type and the invalid directory.
         """
         invalid = []
-        if workfile_pattern not in directory:
+        if sync_current_workfile_name and workfile_pattern not in directory:
             msg = (
                 f"Invalid render element output directory {directory}. "
                 f"Directory should contain the workfile name pattern: {workfile_pattern}."
@@ -188,12 +191,14 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
 
         multicam = instance.data.get("multiCamera", False)
         cameras = instance.data.get("cameras", [])
+        sync_current_workfile = instance.data.get("sync_current_workfile_name", True)
         invalid.extend(
             cls.get_invalid_renderoutput(
                 image_format,
                 workfile_pattern,
                 multicam=multicam,
                 cameras=cameras,
+                sync_current_workfile=sync_current_workfile,
             )
         )
 
@@ -214,6 +219,7 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
                     workfile_pattern,
                     multi_camera=multicam,
                     cameras=cameras,
+                    sync_current_workfile_name=sync_current_workfile,
                 )
             )
             r_fname = os.path.basename(render_element_filename)
@@ -238,9 +244,12 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
             return
 
         if instance.data.get("multiCamera"):
-            instance_node = instance.data.get("instance_node")
             project_settings = instance.context.data["project_settings"]
-            RenderSettings(project_settings).render_output(instance_node)
+            render_settings = RenderSettings(
+                project_settings=project_settings,
+                data=instance.data
+            )
+            render_settings.render_output()
             return
 
         cls.repair_generic_render_settings(instance, renderer_name, renderer)
@@ -263,15 +272,16 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
         renderoutput = rt.rendOutputFilename
         project_settings = instance.context.data["project_settings"]
         if not renderoutput:
-            RenderSettings(project_settings).render_output(
-                instance.data.get("instance_node")
+            renderoutput = reset_rendersetting(instance, project_settings)
+        output_dir = os.path.dirname(renderoutput)
+        if instance.data.get("sync_current_workfile_name", True):
+            output_dir = set_correct_workfile_name_for_render_output(
+                instance,
+                output_dir,
             )
-            renderoutput = rt.rendOutputFilename
-
-        output_dir = set_correct_workfile_name_for_render_output(
-            instance,
-            os.path.dirname(renderoutput),
-        )
+            if not output_dir:
+                renderoutput = reset_rendersetting(instance, project_settings)
+                output_dir = os.path.dirname(renderoutput)
         if renderer_name == "Redshift_Renderer":
             renderer.separateAovFiles = get_multipass_setting(
                 renderer_name,
@@ -305,10 +315,15 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
 
             render_element_filename = render_elem.GetRenderElementFilename(index)
             r_fname = os.path.basename(render_element_filename)
-            output_dir = set_correct_workfile_name_for_render_output(
-                instance,
-                os.path.dirname(render_element_filename),
-            )
+            output_dir = os.path.dirname(render_element_filename)
+            if instance.data.get("sync_current_workfile_name", True):
+                output_dir = set_correct_workfile_name_for_render_output(
+                    instance,
+                    output_dir,
+                )
+                if not output_dir:
+                    renderoutput = reset_rendersetting(instance, project_settings)
+                    output_dir = os.path.dirname(renderoutput)
             output_filename = build_general_output_filename(output_dir, r_fname)
             render_elem.SetRenderElementFilename(index, output_filename)
             cls.log.info(
@@ -398,12 +413,18 @@ class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
         aov_manager = renderer.AOVManager
         output_path = aov_manager.outputPath
         image_format = instance.data["imageFormat"]
+        sync_current_workfile = instance.data.get(
+            "sync_current_workfile_name",
+            True,
+        )
         invalid.extend(
             cls.get_invalid_renderoutput(
-            image_format,
-            workfile_pattern
-        ))
-        if workfile_pattern not in output_path:
+                image_format,
+                workfile_pattern,
+                sync_current_workfile=sync_current_workfile,
+            )
+        )
+        if sync_current_workfile and workfile_pattern not in output_path:
             msg = (
                 f"Invalid Arnold AOV output path {output_path}. "
                 f"Output path should contain the workfile name pattern: {workfile_pattern}."
@@ -466,19 +487,20 @@ class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
         image_format = instance.data["imageFormat"]
         project_settings = instance.context.data["project_settings"]
         aov_manager = renderer.AOVManager
-        path = set_correct_workfile_name_for_render_output(
-            instance,
-            aov_manager.outputPath,
-        )
-        aov_manager.outputPath = path
+        path = aov_manager.outputPath
         # check if the beauty output path is correct if using the
         # default native 3dsmax render
-        render_output = rt.rendOutputFilename
-        render_dir = set_correct_workfile_name_for_render_output(
-            instance,
-            os.path.dirname(render_output),
-        )
-        filename = os.path.basename(render_output)
+        render_dir = os.path.dirname(path)
+        if instance.data.get("sync_current_workfile_name", True):
+            path = set_correct_workfile_name_for_render_output(
+                instance,
+                path,
+            )
+            if not path:
+                path = reset_rendersetting(instance, project_settings)
+                render_dir = os.path.dirname(path)
+        aov_manager.outputPath = path
+        filename = os.path.basename(path)
         rt.rendOutputFilename = build_general_output_filename(
             render_dir,
             filename,
@@ -573,6 +595,7 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
         render_filepath: str,
         extension: str,
         workfile_pattern: str,
+        sync_current_workfile_name: bool = True,
     ) -> list[tuple[str, str]]:
         """Get invalid V-Ray filepaths for the given instance.
 
@@ -587,7 +610,7 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
         invalid = []
         render_dir = os.path.dirname(render_filepath)
         render_filename = os.path.basename(render_filepath)
-        if workfile_pattern not in render_dir:
+        if sync_current_workfile_name and workfile_pattern not in render_dir:
             msg = (
                 f"Invalid render output filename {render_filename} for V-Ray. "
                 f"Filename should contain the workfile name pattern: {workfile_pattern}."
@@ -617,6 +640,7 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
         filepath: str,
         extension: str,
         workfile_pattern: str,
+        sync_current_workfile_name: bool = True,
     ) -> list[tuple[str, str]]:
         """Get invalid V-Ray output settings for the given instance.
 
@@ -641,6 +665,7 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
             filepath,
             extension,
             workfile_pattern,
+            sync_current_workfile_name=sync_current_workfile_name,
         )
 
     @classmethod
@@ -669,6 +694,10 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
         vr_settings = get_vray_settings(renderer_name, renderer)
         image_format = instance.data["imageFormat"]
         multipass_enabled = get_multipass_setting(renderer_name, project_settings)
+        sync_current_workfile = instance.data.get(
+            "sync_current_workfile_name",
+            True
+        )
         if multipass_enabled != vr_settings.output_splitgbuffer:
             invalid.append((
                 "Invalid V-Ray multipass setting",
@@ -681,6 +710,7 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
                     vr_settings.output_rawfilename,
                     image_format,
                     workfile_pattern,
+                    sync_current_workfile_name=sync_current_workfile,
                 )
             )
 
@@ -690,11 +720,16 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
                     vr_settings.output_splitfilename,
                     image_format,
                     workfile_pattern,
+                    sync_current_workfile_name=sync_current_workfile,
                 )
             )
         else:
             invalid.extend(
-                cls.get_invalid_renderoutput(image_format, workfile_pattern)
+                cls.get_invalid_renderoutput(
+                    image_format,
+                    workfile_pattern,
+                    sync_current_workfile=sync_current_workfile,
+                )
             )
 
         return invalid
@@ -749,10 +784,15 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
             )
         else:
             render_output = rt.rendOutputFilename
-            render_dir = set_correct_workfile_name_for_render_output(
-                instance,
-                os.path.dirname(render_output),
-            )
+            render_dir = os.path.dirname(render_output)
+            if instance.data.get("sync_current_workfile_name", True):
+                render_dir = set_correct_workfile_name_for_render_output(
+                    instance,
+                    render_dir,
+                )
+                if not render_dir:
+                    render_output = reset_rendersetting(instance, project_settings)
+                    render_dir = os.path.dirname(render_output)
             filename = os.path.basename(render_output)
             rt.rendOutputFilename = build_general_output_filename(
                 render_dir,
@@ -780,16 +820,18 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
         Returns:
             str: The repaired V-Ray output filename.
         """
-        instance_node = instance.data.get("instance_node")
         project_settings = instance.context.data["project_settings"]
         if not filename:
-            RenderSettings(project_settings).render_output(instance_node)
-            filename = rt.rendOutputFilename
-
-        output_dir = set_correct_workfile_name_for_render_output(
-            instance,
-            os.path.dirname(filename),
-        )
+            filename = reset_rendersetting(instance, project_settings)
+        output_dir = os.path.dirname(filename)
+        if instance.data.get("sync_current_workfile_name", True):
+            output_dir = set_correct_workfile_name_for_render_output(
+                instance,
+                output_dir,
+            )
+            if not output_dir:
+                filename = reset_rendersetting(instance, project_settings)
+                output_dir = os.path.dirname(filename)
         output_filename = os.path.basename(filename)
         return cls._build_vray_output_filename(
             output_dir,
@@ -814,6 +856,28 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
         Returns:
             str: The full path to the repaired V-Ray output file.
         """
-        name = os.path.splitext(filename)[0].lstrip(".")
+        name = os.path.splitext(filename)[0].strip(".")
         output_filename = f"{name}.{image_format}"
         return os.path.join(output_dir, output_filename)
+
+
+def reset_rendersetting(instance: pyblish.api.Instance, project_settings: dict) -> str:
+    """Reset the render settings for the given instance based on project settings.
+
+    This is built for customized render settings, and it will reset the render output path
+    to the default path based on the project settings.
+
+    Args:
+        instance (pyblish.api.Instance): The instance.
+        project_settings (dict): The project settings.
+
+    Returns:
+        str: The resulting render output filename (rt.rendOutputFilename).
+
+    """
+    render_settings = RenderSettings(
+        project_settings=project_settings,
+        data=instance.data
+    )
+    render_settings.render_output()
+    return rt.rendOutputFilename
