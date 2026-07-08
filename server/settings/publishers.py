@@ -9,6 +9,9 @@ class CollectRenderModel(BaseSettingsModel):
     sync_workfile_version: bool = SettingsField(
         title="Sync render version with workfile"
     )
+    sync_current_workfile_name: bool = SettingsField(
+        title="Sync current workfile name to instance data"
+    )
 
 
 class ValidateAttributesModel(BaseSettingsModel):
@@ -160,7 +163,8 @@ class PublishersModel(BaseSettingsModel):
 
 DEFAULT_PUBLISH_SETTINGS = {
     "CollectRender": {
-        "sync_workfile_version": False
+        "sync_workfile_version": False,
+        "sync_current_workfile_name": True
     },
     "ValidateInstanceInContext": {
         "enabled": True,

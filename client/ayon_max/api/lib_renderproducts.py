@@ -74,7 +74,6 @@ class RenderProducts(object):
                     renderer_name
                 )
                 render_dict[aov_name] = aov_expected_files
-
         return render_dict
 
     def get_multiple_render_products(
@@ -214,6 +213,12 @@ class RenderProducts(object):
             if "GPU" in str(vr_renderer)
             else vr_renderer
         )
+        if (
+            not is_render_element
+            and image_format == "exr"
+            and not vray_settings.output_rawfilename
+        ):
+            return getattr(vray_settings, "output_splitfilename", "") or rt.rendOutputFilename
         output_attr = (
             "output_rawfilename"
             if not is_render_element and image_format == "exr"
@@ -270,6 +275,8 @@ class RenderProducts(object):
             list[str]: List of expected file paths.
         """
         expected_aovs: list[str] = []
+        if not filepath:
+            return expected_aovs
         directory = os.path.dirname(filepath)
         filename = os.path.basename(filepath)
         name, ext = os.path.splitext(filename)

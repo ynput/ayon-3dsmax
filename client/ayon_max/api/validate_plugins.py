@@ -134,6 +134,7 @@ class ValidateRenderSettingsBase(object):
         workfile_pattern: str,
         multicam: bool = False,
         cameras: Optional[list[str]] = None,
+        sync_current_workfile: bool = True,
     ) -> list[tuple[str, str]]:
         """Get the invalid render output settings.
 
@@ -144,6 +145,8 @@ class ValidateRenderSettingsBase(object):
                 Defaults to False.
             cameras (Optional[list[str]], optional): The list of camera names
                 to validate. Defaults to None.
+            sync_current_workfile (bool, optional): Whether to validate against the current
+                workfile name pattern. Defaults to True.
 
         Returns:
             list[tuple[str, str]]: A list of tuples containing the error type
@@ -151,7 +154,7 @@ class ValidateRenderSettingsBase(object):
         """
         invalid = []
         beauty_dir = os.path.dirname(rt.rendOutputFilename)
-        if workfile_pattern not in beauty_dir:
+        if sync_current_workfile and workfile_pattern not in beauty_dir:
             msg = (
                 f"Invalid render output filename {rt.rendOutputFilename}. "
                 f"Filename should contain the workfile name pattern: {workfile_pattern}."
