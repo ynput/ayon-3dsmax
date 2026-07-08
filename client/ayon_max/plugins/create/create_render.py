@@ -30,7 +30,7 @@ class CreateRender(MaxCreator):
                 "Please save the scene before creating render instance"
             )
         filename, _ = os.path.splitext(file)
-        instance_data["AssetName"] = filename
+        instance_data["original_workfile_pattern"] = filename.strip(".")
         instance_data["multiCamera"] = pre_create_data.get("multi_cam")
         num_of_renderlayer = rt.batchRenderMgr.numViews
         if num_of_renderlayer > 0:
@@ -47,9 +47,9 @@ class CreateRender(MaxCreator):
             instance_data,
             pre_create_data)
 
-        container_name = instance.data.get("instance_node")
+        render_settings = RenderSettings(data=instance.data)
         # set output paths for rendering(mandatory for deadline)
-        RenderSettings().render_output(container_name)
+        render_settings.render_output()
         # TODO: create multiple camera options
         if self.selected_nodes:
             selected_nodes_name = []
@@ -57,8 +57,8 @@ class CreateRender(MaxCreator):
                 name = sel.name
                 selected_nodes_name.append(name)
             output_dir = os.path.dirname(rt.rendOutputFilename)
-            RenderSettings().batch_render_layers_by_multi_camera(
-                container_name, output_dir, selected_nodes_name
+            render_settings.batch_render_layers_by_multi_camera(
+                output_dir, selected_nodes_name
             )
 
     def get_instance_attr_defs(self):
