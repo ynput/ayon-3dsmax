@@ -223,11 +223,7 @@ class RenderProducts(object):
             image_format,
             vray_settings,
         )
-        if (
-            not is_render_element
-            and image_format == "exr"
-            and not vray_settings.output_rawfilename
-        ):
+        if not is_save_vray_exr_rawfile:
             return getattr(vray_settings, "output_splitfilename", "") or rt.rendOutputFilename
         output_attr = (
             "output_rawfilename"
