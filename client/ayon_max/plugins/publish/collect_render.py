@@ -6,6 +6,7 @@ import pyblish.api
 import ayon_api
 from typing import Dict, Any
 
+import pymxs
 from pymxs import runtime as rt
 from ayon_core.pipeline.publish import KnownPublishError
 from ayon_max.api import colorspace
@@ -105,22 +106,11 @@ class CollectRender(pyblish.api.InstancePlugin):
         # OCIO config not support in
         # most of the 3dsmax renderers
         # so this is currently hard coded
-        # TODO: add options for redshift/vray ocio config
-        instance.data["colorspaceConfig"] = ""
-        instance.data["colorspaceDisplay"] = "sRGB"
-        instance.data["colorspaceView"] = "ACES 1.0 SDR-video"
+        colorspace_data = self.get_colorspace_data() or {}
+        self.log.debug(f"Collected colorspace data: {colorspace_data}")
+        if colorspace_data:
+            instance.data.update(colorspace_data)
 
-        if int(get_max_version()) >= 2024:
-            colorspace_mgr = rt.ColorPipelineMgr      # noqa
-            display = next(
-                (display for display in colorspace_mgr.GetDisplayList()))
-            view_transform = next(
-                (view for view in colorspace_mgr.GetViewList(display)))
-            instance.data["colorspaceConfig"] = colorspace_mgr.OCIOConfigPath
-            instance.data["colorspaceDisplay"] = display
-            instance.data["colorspaceView"] = view_transform
-
-        instance.data["renderProducts"] = colorspace.ARenderProduct()
         instance.data["publishJobState"] = "Suspended"
         instance.data["attachTo"] = []
 
@@ -138,7 +128,22 @@ class CollectRender(pyblish.api.InstancePlugin):
         )
         self._precollect_required_data(instance)
 
-        # also need to get the render dir for conversion
+        # set the colorspace data for each AOV in the instance data
+        if colorspace_data:
+            colorspace_product = colorspace.ARenderProduct(
+                instance.data["frameStartHandle"],
+                instance.data["frameEndHandle"]
+            )
+            for aov_name in files_by_aov.keys():
+                colorspace_product.add_colorspace_data(
+                    product_name=aov_name,
+                    colorspace=colorspace_data["colorspace"],
+                    view=colorspace_data["sceneView"],
+                    display=colorspace_data["sceneDisplay"]
+                )
+
+        instance.data["renderProducts"] = colorspace_product
+
         data = {
             "folderPath": instance.data["folderPath"],
             "workfile_name": filename,
@@ -177,6 +182,36 @@ class CollectRender(pyblish.api.InstancePlugin):
                     "renderers.current.separateAovFiles")})
 
         self.log.info("data: {0}".format(data))
+
+    def get_colorspace_data(self) -> Dict[str, str]:
+        """Get colorspace data from the ColorPipelineMgr.
+
+        Returns:
+            Dict[str, str]: A dictionary containing colorspace data. Empty dict
+                is returned when colorspace data is not available.
+        """
+        if int(get_max_version()) < 2024:
+            return {}
+
+        colorspace_mgr = rt.ColorPipelineMgr
+        ocio_path: str = colorspace_mgr.OCIOConfigPath
+        if not ocio_path:
+            return {}
+        display_ref = pymxs.byref("")
+        view_ref = pymxs.byref("")
+        _, display, view =colorspace_mgr.GetDefaultDisplayViewTransform(
+            rt.Name("Global"),
+            False,
+            display_ref,
+            view_ref
+        )
+
+        return {
+            "colorspaceConfig": ocio_path,
+            "sceneDisplay": display,
+            "sceneView": view,
+            "colorspace": colorspace_mgr.RenderingColorSpace
+        }
 
     def get_render_output(
             self,

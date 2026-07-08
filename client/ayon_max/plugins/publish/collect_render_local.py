@@ -5,6 +5,7 @@ from ayon_core.pipeline.farm.pyblish_functions import (
     create_instances_for_aov
 )
 
+
 class CollectLocalRenderInstances(pyblish.api.InstancePlugin):
     """Collect instances for local render.
     """
@@ -18,6 +19,10 @@ class CollectLocalRenderInstances(pyblish.api.InstancePlugin):
         "instance_node",
         "members",
         "cameras",
+        "colorspaceConfig",
+        "colorspace",
+        "sceneDisplay",
+        "sceneView",
     }
 
     def process(self, instance):
@@ -67,7 +72,6 @@ class CollectLocalRenderInstances(pyblish.api.InstancePlugin):
             # absolute again.
             for repre in aov_instance_data["representations"]:
                 repre["stagingDir"] = anatomy.fill_root(repre["stagingDir"])
-
             aov_instance = context.create_instance(
                 aov_instance_data["productName"]
             )
@@ -77,6 +81,7 @@ class CollectLocalRenderInstances(pyblish.api.InstancePlugin):
             # Pass on 'review' family
             if "review" in aov_instance_data["families"]:
                 aov_instance.data["families"].append("review")
+
         # Skip integrating original render instance.
         # We are not removing it because it's used to trigger the render.
         instance.data["integrate"] = False
