@@ -287,6 +287,7 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
         render_dir = os.path.dirname(render_output)
         if not render_output:
             render_output = reset_rendersetting(instance, project_settings)
+            rt.rendOutputFilename = render_output
             render_dir = os.path.dirname(render_output)
         if instance.data.get("sync_current_workfile_name", True):
             render_dir = set_correct_workfile_name_for_render_output(
