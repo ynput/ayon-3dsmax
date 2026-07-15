@@ -29,8 +29,9 @@ from ayon_core.pipeline.context_tools import (
     get_current_task_entity
 )
 from ayon_core.pipeline.template_data import get_template_data_with_names
-from ayon_core.pipeline.farm.pyblish_functions import \
-    convert_frames_str_to_list
+from ayon_core.pipeline.farm.pyblish_functions import (
+    convert_frames_str_to_list,
+)
 from ayon_core.pipeline.create import CreateContext
 from ayon_core.style import load_stylesheet
 
