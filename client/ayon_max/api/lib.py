@@ -1132,13 +1132,19 @@ def set_correct_workfile_name_for_render_output(
         # backward compatibility for older versions of Ayon
         "AssetName"
     }
-    for instance in create_context.instances:
-        for key in workfile_name_keys:
-            if key not in instance:
-                continue
-            instance[key] = current_workfile_filename
-    create_context.save_changes()
 
+    has_changes = False
+    for created_instance in create_context.instances:
+        for key in workfile_name_keys:
+            if key not in created_instance:
+                continue
+            if created_instance[key] == current_workfile_filename:
+                continue
+            created_instance[key] = current_workfile_filename
+            has_changes = True
+
+    if has_changes:
+        create_context.save_changes()
     return os.path.join(
         render_root,
         current_workfile_filename,
