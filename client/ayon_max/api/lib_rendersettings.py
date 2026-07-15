@@ -142,6 +142,10 @@ class RenderSettings(object):
                 vr_settings.output_saverawfile = True
                 vr_settings.output_rawfilename = f"{output}.{img_fmt}"
             else:
+                if hasattr(vr_settings, "output_saverawfile"):
+                    vr_settings.output_saverawfile = False
+                if hasattr(vr_settings, "output_rawfilename"):
+                    vr_settings.output_rawfilename = ""
                 rt.rendOutputFilename = f"{output}..{img_fmt}"
 
             if multipass_enabled:
