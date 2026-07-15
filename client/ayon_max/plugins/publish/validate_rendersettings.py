@@ -295,6 +295,7 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
             )
             if not render_dir:
                 render_output = reset_rendersetting(instance, project_settings)
+                rt.rendOutputFilename = render_output
                 render_dir = os.path.dirname(render_output)
         return image_format, render_dir, multipass_enabled
 
