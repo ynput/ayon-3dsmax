@@ -141,12 +141,13 @@ class RenderSettings(object):
             if img_fmt == "exr":
                 vr_settings.output_saverawfile = True
                 vr_settings.output_rawfilename = f"{output}.{img_fmt}"
+            else:
+                rt.rendOutputFilename = f"{output}..{img_fmt}"
 
             if multipass_enabled:
                 rt.rendOutputFilename = output_filename
                 vr_settings.output_splitfilename = f"{output}.{img_fmt}"
-            else:
-                rt.rendOutputFilename = f"{output}_tmp..{img_fmt}"
+
             self.render_element_layer(output, width, height, img_fmt)
         # TODO: supports multipass for different renderers
         elif renderer_name == "Redshift_Renderer":
