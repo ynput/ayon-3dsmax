@@ -141,8 +141,8 @@ class CollectRender(pyblish.api.InstancePlugin):
 
         # set the colorspace data for each AOV in the instance data
         colorspace_product = colorspace.ARenderProduct(
-            instance.data.get("frameStartHandle"),
-            instance.data.get("frameEndHandle")
+            instance.data["frameStartHandle"],
+            instance.data["frameEndHandle"]
         )
         if colorspace_data:
             for aov_name in files_by_aov.keys():
