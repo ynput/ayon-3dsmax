@@ -809,8 +809,12 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
 
         if is_vray_exr_saverawfile(image_format, vr_settings):
             vr_settings.output_saverawfile = True
+            split_beauty_basename = (
+                os.path.basename(vr_settings.output_rawfilename)
+                or os.path.basename(rt.rendOutputFilename)
+            )
             vr_settings.output_rawfilename = cls._repair_vray_output_filename(
-                os.path.basename(vr_settings.output_rawfilename),
+                split_beauty_basename,
                 render_dir,
                 image_format,
             )
@@ -822,9 +826,12 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
             )
 
         if multipass_enabled:
-            split_basename = os.path.basename(vr_settings.output_splitfilename) or os.path.basename(rt.rendOutputFilename)
+            split_aov_basename =(
+                os.path.basename(vr_settings.output_splitfilename)
+                or os.path.basename(rt.rendOutputFilename)
+            )
             vr_settings.output_splitfilename = cls._repair_vray_output_filename(
-                split_basename,
+                split_aov_basename,
                 render_dir,
                 image_format,
             )
