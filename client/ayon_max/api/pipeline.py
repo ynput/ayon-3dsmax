@@ -274,7 +274,13 @@ def get_containers() -> List:
     ]
 
 
-def on_init():
+def on_init() -> None:
+    """Callback for initialization event."""
+    if lib.is_headless():
+        return
+    from .workfile_template_builder import trigger_on_app_launch
+    trigger_on_app_launch()
+
     if not os.path.exists(rt.ColorPipelineMgr.OCIOConfigPath):
         lib.reset_colorspace()
     last_workfile = os.getenv("AYON_LAST_WORKFILE")
@@ -283,7 +289,12 @@ def on_init():
             lib.set_context_settings()
 
 
-def on_new():
+def on_new() -> None:
+    """Callback for new scene event."""
+    if lib.is_headless():
+        return
+    from .workfile_template_builder import trigger_on_new_file
+    trigger_on_new_file()
     lib.set_context_settings()
 
 
