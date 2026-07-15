@@ -213,9 +213,18 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
                 continue
 
             render_element_filename = render_elem.GetRenderElementFilename(index)
+            render_element_dir = os.path.dirname(render_element_filename)
+            if render_element_dir != os.path.dirname(rt.rendOutputFilename):
+                invalid.append((
+                    "Invalid render element output directory",
+                    f"Render element output directory {render_element_dir} "
+                    f"does not match the beauty output directory "
+                    f"{os.path.dirname(rt.rendOutputFilename)}.",
+                ))
+
             invalid.extend(
                 cls.get_invalid_render_element_directory(
-                    os.path.dirname(render_element_filename),
+                    render_element_dir,
                     workfile_pattern,
                     multi_camera=multicam,
                     cameras=cameras,
@@ -255,6 +264,41 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
         cls.repair_generic_render_settings(instance, renderer_name, renderer)
 
     @classmethod
+    def _get_useful_attributes_for_repair_action(
+        cls,
+        instance: pyblish.api.Instance,
+        renderer_name: str
+    ) -> tuple[str, str, bool]:
+        """Get the attributes needed for repairing the render settings.
+
+        Args:
+            instance (pyblish.api.Instance): The instance to repair.
+            renderer_name (str): The renderer name.
+
+        Returns:
+            tuple[str, str, bool]: A tuple containing the image format,
+            render directory,
+            and multipass enabled flag.
+        """
+        image_format = instance.data["imageFormat"]
+        project_settings = instance.context.data["project_settings"]
+        multipass_enabled = get_multipass_setting(renderer_name, project_settings)
+        render_output = rt.rendOutputFilename
+        render_dir = os.path.dirname(render_output)
+        if not render_output:
+            render_output = reset_rendersetting(instance, project_settings)
+            render_dir = os.path.dirname(render_output)
+        if instance.data.get("sync_current_workfile_name", True):
+            render_dir = set_correct_workfile_name_for_render_output(
+                instance,
+                render_dir,
+            )
+            if not render_dir:
+                render_output = reset_rendersetting(instance, project_settings)
+                render_dir = os.path.dirname(render_output)
+        return image_format, render_dir, multipass_enabled
+
+    @classmethod
     def repair_generic_render_settings(
         cls,
         instance: pyblish.api.Instance,
@@ -268,34 +312,20 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
             renderer_name (str): The name of the renderer.
             renderer (rt.Renderers.current): The current renderer.
         """
-        image_format = instance.data["imageFormat"]
-        renderoutput = rt.rendOutputFilename
-        project_settings = instance.context.data["project_settings"]
-        if not renderoutput:
-            renderoutput = reset_rendersetting(instance, project_settings)
-        output_dir = os.path.dirname(renderoutput)
-        if instance.data.get("sync_current_workfile_name", True):
-            output_dir = set_correct_workfile_name_for_render_output(
+        image_format, render_dir, multipass_enabled = (
+            cls._get_useful_attributes_for_repair_action(
                 instance,
-                output_dir,
-            )
-            if not output_dir:
-                renderoutput = reset_rendersetting(instance, project_settings)
-                output_dir = os.path.dirname(renderoutput)
-        if renderer_name == "Redshift_Renderer":
-            renderer.separateAovFiles = get_multipass_setting(
                 renderer_name,
-                project_settings,
             )
+        )
+        if renderer_name == "Redshift_Renderer":
+            renderer.separateAovFiles = multipass_enabled
             if image_format == "exr":
-                renderer.OutputExrMultipart = get_multipass_setting(
-                    renderer_name,
-                    project_settings,
-                )
+                renderer.OutputExrMultipart = multipass_enabled
 
-        filename = os.path.basename(renderoutput)
+        filename = os.path.basename(rt.rendOutputFilename)
         rt.rendOutputFilename = build_general_output_filename(
-            output_dir,
+            render_dir,
             filename,
         )
         cls.log.info(
@@ -315,16 +345,7 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
 
             render_element_filename = render_elem.GetRenderElementFilename(index)
             r_fname = os.path.basename(render_element_filename)
-            output_dir = os.path.dirname(render_element_filename)
-            if instance.data.get("sync_current_workfile_name", True):
-                output_dir = set_correct_workfile_name_for_render_output(
-                    instance,
-                    output_dir,
-                )
-                if not output_dir:
-                    renderoutput = reset_rendersetting(instance, project_settings)
-                    output_dir = os.path.dirname(renderoutput)
-            output_filename = build_general_output_filename(output_dir, r_fname)
+            output_filename = build_general_output_filename(render_dir, r_fname)
             render_elem.SetRenderElementFilename(index, output_filename)
             cls.log.info(
                 "Render element output filename has been repaired to %s",
@@ -713,6 +734,16 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
                     sync_current_workfile_name=sync_current_workfile,
                 )
             )
+            beauty_dir = os.path.dirname(vr_settings.output_rawfilename)
+        else:
+            invalid.extend(
+                cls.get_invalid_renderoutput(
+                    image_format,
+                    workfile_pattern,
+                    sync_current_workfile=sync_current_workfile,
+                )
+            )
+            beauty_dir = os.path.dirname(rt.rendOutputFilename)
 
         if multipass_enabled:
             invalid.extend(
@@ -723,14 +754,14 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
                     sync_current_workfile_name=sync_current_workfile,
                 )
             )
-        else:
-            invalid.extend(
-                cls.get_invalid_renderoutput(
-                    image_format,
-                    workfile_pattern,
-                    sync_current_workfile=sync_current_workfile,
-                )
-            )
+            render_element_dir = os.path.dirname(vr_settings.output_splitfilename)
+
+            if beauty_dir != render_element_dir:
+                invalid.append((
+                    "Invalid V-Ray render element output directory",
+                    f"Render element output directory {render_element_dir} "
+                    f"does not match the beauty output directory {beauty_dir}.",
+                ))
 
         return invalid
 
@@ -765,29 +796,23 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
             renderer_name (str): The name of the renderer.
             vr_settings (Any): The V-Ray settings object.
         """
-        image_format = instance.data["imageFormat"]
-        project_settings = instance.context.data["project_settings"]
-        multipass_enabled = get_multipass_setting(renderer_name, project_settings)
+        image_format, render_dir, multipass_enabled = (
+            cls._get_useful_attributes_for_repair_action(
+                instance,
+                renderer_name,
+            )
+        )
         vr_settings.output_splitgbuffer = multipass_enabled
+
         if is_vray_exr_saverawfile(image_format, vr_settings):
             vr_settings.output_saverawfile = True
             vr_settings.output_rawfilename = cls._repair_vray_output_filename(
-                vr_settings.output_rawfilename,
+                os.path.basename(vr_settings.output_rawfilename),
+                render_dir,
                 image_format,
-                instance,
             )
         else:
-            render_output = rt.rendOutputFilename
-            render_dir = os.path.dirname(render_output)
-            if instance.data.get("sync_current_workfile_name", True):
-                render_dir = set_correct_workfile_name_for_render_output(
-                    instance,
-                    render_dir,
-                )
-                if not render_dir:
-                    render_output = reset_rendersetting(instance, project_settings)
-                    render_dir = os.path.dirname(render_output)
-            filename = os.path.basename(render_output)
+            filename = os.path.basename(rt.rendOutputFilename)
             rt.rendOutputFilename = build_general_output_filename(
                 render_dir,
                 filename,
@@ -795,11 +820,10 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
 
         if multipass_enabled:
             vr_settings.output_splitfilename = cls._repair_vray_output_filename(
-                vr_settings.output_splitfilename,
+                os.path.basename(vr_settings.output_splitfilename),
+                render_dir,
                 image_format,
-                instance,
             )
-
         # save the file when it is not with saw raw exr file
         rt.rendSaveFile = not is_vray_exr_saverawfile(image_format, vr_settings)
         rt.renderSceneDialog.update()
@@ -808,59 +832,22 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
     def _repair_vray_output_filename(
         cls,
         filename: str,
+        render_dir: str,
         image_format: str,
-        instance: pyblish.api.Instance,
     ) -> str:
         """Repair the V-Ray output filename for the given instance.
 
         Args:
             filename (str): The current V-Ray output filename.
+            render_dir (str): The directory where the output file will be saved.
             image_format (str): The image format for the output file.
-            instance (pyblish.api.Instance): The instance being processed.
 
         Returns:
             str: The repaired V-Ray output filename.
         """
-        project_settings = instance.context.data["project_settings"]
-        if not filename:
-            filename = reset_rendersetting(instance, project_settings)
-        output_dir = os.path.dirname(filename)
-        if instance.data.get("sync_current_workfile_name", True):
-            output_dir = set_correct_workfile_name_for_render_output(
-                instance,
-                output_dir,
-            )
-            if not output_dir:
-                filename = reset_rendersetting(instance, project_settings)
-                output_dir = os.path.dirname(filename)
-        output_filename = os.path.basename(filename)
-        return cls._build_vray_output_filename(
-            output_dir,
-            output_filename,
-            image_format,
-        )
-
-    @classmethod
-    def _build_vray_output_filename(
-        cls,
-        output_dir: str,
-        filename: str,
-        image_format: str,
-    ) -> str:
-        """Build the full path for the V-Ray output file.
-
-        Args:
-            output_dir (str): The directory where the output file will be saved.
-            filename (str): The name of the output file.
-            image_format (str): The image format for the output file.
-
-        Returns:
-            str: The full path to the repaired V-Ray output file.
-        """
         name = os.path.splitext(filename)[0].strip(".")
         output_filename = f"{name}.{image_format}"
-        return os.path.join(output_dir, output_filename)
-
+        return os.path.join(render_dir, output_filename)
 
 def reset_rendersetting(instance: pyblish.api.Instance, project_settings: dict) -> str:
     """Reset the render settings for the given instance based on project settings.
