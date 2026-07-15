@@ -822,8 +822,9 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
             )
 
         if multipass_enabled:
+            split_basename = os.path.basename(vr_settings.output_splitfilename) or os.path.basename(rt.rendOutputFilename)
             vr_settings.output_splitfilename = cls._repair_vray_output_filename(
-                os.path.basename(vr_settings.output_splitfilename),
+                split_basename,
                 render_dir,
                 image_format,
             )
