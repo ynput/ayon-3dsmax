@@ -1123,6 +1123,22 @@ def set_correct_workfile_name_for_render_output(
         return filepath
 
     rest = match.group("rest") or ""
+
+    # update the changes in the context instances to reflect the new workfile name
+    host = registered_host()
+    create_context = CreateContext(host, discover_publish_plugins=False)
+    workfile_name_keys = {
+        "original_workfile_pattern",
+        # backward compatibility for older versions of Ayon
+        "AssetName"
+    }
+    for instance in create_context.instances:
+        for key in workfile_name_keys:
+            if key not in instance:
+                continue
+            instance[key] = current_workfile_filename
+    create_context.save_changes()
+
     return os.path.join(
         render_root,
         current_workfile_filename,
