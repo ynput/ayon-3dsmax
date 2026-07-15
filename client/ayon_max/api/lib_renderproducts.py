@@ -224,7 +224,8 @@ class RenderProducts(object):
             vray_settings,
         )
         if not is_save_vray_exr_rawfile and not is_render_element:
-            return getattr(vray_settings, "output_splitfilename", "") or rt.rendOutputFilename
+            # In non-raw mode V-Ray writes the beauty output to `rt.rendOutputFilename`.
+            return rt.rendOutputFilename or getattr(vray_settings, "output_splitfilename", "")
         output_attr = (
             "output_rawfilename"
             if not is_render_element
