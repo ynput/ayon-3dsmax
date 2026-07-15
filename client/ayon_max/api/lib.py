@@ -1138,7 +1138,7 @@ def set_correct_workfile_name_for_render_output(
         for key in workfile_name_keys:
             if key not in created_instance:
                 continue
-            if created_instance[key] == current_workfile_filename:
+            if created_instance[key] != render_workfile_name:
                 continue
             created_instance[key] = current_workfile_filename
             has_changes = True
