@@ -16,7 +16,7 @@ class RenderProduct(object):
     """
     productName = attr.ib(default="")
     colorspace = attr.ib(default="sRGB")
-    view = attr.ib(default="ACES 1.0")
+    view = attr.ib(default="ACES")
     display = attr.ib(default="sRGB")
 
 
