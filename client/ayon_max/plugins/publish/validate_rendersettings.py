@@ -826,7 +826,7 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
                 render_dir,
                 image_format,
             )
-        # save the file when it is not with saw raw exr file
+        # Save the file when it is not set to save raw EXR output
         rt.rendSaveFile = not is_vray_exr_saverawfile(image_format, vr_settings)
         rt.renderSceneDialog.update()
 
