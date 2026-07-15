@@ -727,7 +727,8 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
                 f"Expected: {multipass_enabled}, Found: {vr_settings.output_splitgbuffer}",
             ))
 
-        if image_format == "exr":
+        uses_raw_exr_output = is_vray_exr_saverawfile(image_format, vr_settings)
+        if uses_raw_exr_output:
             invalid.extend(
                 cls._get_invalid_vray_output(
                     vr_settings.output_rawfilename,
