@@ -236,13 +236,6 @@ class RenderProducts(object):
         if not render_output:
             return rt.rendOutputFilename
 
-        if (
-            output_attr == "output_splitfilename"
-            and hasattr(vray_settings, "output_splitgbuffer")
-            and vray_settings.output_splitgbuffer
-        ):
-            return render_output
-
         return render_output
 
     def get_arnold_render_output(self, arnold_renderer: Any, extension: str) -> str:
