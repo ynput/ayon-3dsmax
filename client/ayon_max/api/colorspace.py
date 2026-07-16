@@ -15,9 +15,9 @@ class RenderProduct(object):
     publish job.
     """
     productName = attr.ib(default="")
-    colorspace = attr.ib(default="sRGB")
-    view = attr.ib(default="ACES 1.0")
-    display = attr.ib(default="sRGB")
+    colorspace = attr.ib(default=None)
+    view = attr.ib(default=None)
+    display = attr.ib(default=None)
 
 
 @attr.s
