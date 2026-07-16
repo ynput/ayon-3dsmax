@@ -80,7 +80,7 @@ class CollectLocalRenderInstances(pyblish.api.InstancePlugin):
 
             # The hasExplicitFrames flag controls whether frame indices are renumbered.
             # Setting this to True ensures the published frames keep their original numbering
-            # and are not shifted during integration with the AOV server.
+            # and are not shifted during integration with the AYON server.
             aov_instance.data["hasExplicitFrames"] = True
 
             # Pass on 'review' family
