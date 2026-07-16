@@ -44,6 +44,10 @@ class RenderProducts(object):
         Handles both beauty and AOV extraction with shared setup logic.
         Always includes the beauty pass; optionally includes render elements/AOVs.
 
+        Args:
+            frame_range (list[int]): A list of frames to generate expected
+                output file paths for.
+
         Returns:
             Dict[str, list[str]]: A dictionary containing render output file paths.
                 Beauty key is "beauty"; AOV keys are named after the render element
