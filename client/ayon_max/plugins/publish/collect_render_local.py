@@ -78,10 +78,10 @@ class CollectLocalRenderInstances(pyblish.api.InstancePlugin):
             aov_instance.data.update(aov_instance_data)
             aov_instance.data["families"] = [f"render.{render_target}"]
 
+            # The hasExplicitFrames flag controls whether frame indices are renumbered.
+            # Setting this to True ensures the published frames keep their original numbering
+            # and are not shifted during integration with the AOV server.
             aov_instance.data["hasExplicitFrames"] = True
-            aov_instance.data["reuseLastVersion"] = instance.data.get(
-                "reuse_last_version", False
-            )
 
             # Pass on 'review' family
             if "review" in aov_instance_data["families"]:
