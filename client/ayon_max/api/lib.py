@@ -22,12 +22,16 @@ from ayon_core.pipeline import (
     AVALON_INSTANCE_ID,
 )
 from ayon_core.lib import StringTemplate, get_version_from_path
+from ayon_core.pipeline.publish import PublishError
 from ayon_core.tools.utils import SimplePopup
 from ayon_core.settings import get_project_settings
 from ayon_core.pipeline.context_tools import (
     get_current_task_entity
 )
 from ayon_core.pipeline.template_data import get_template_data_with_names
+from ayon_core.pipeline.farm.pyblish_functions import (
+    convert_frames_str_to_list,
+)
 from ayon_core.pipeline.create import CreateContext
 from ayon_core.style import load_stylesheet
 
@@ -1153,3 +1157,27 @@ def build_general_output_filename(
         ext = match.group("ext")
         filename = f"{name}_{element}..{ext}"
     return os.path.join(output_dir, filename)
+
+
+def get_expected_frames(instance: pyblish.api.Instance) -> list[int]:
+    """Get expected frames from the instance.
+
+    Args:
+        instance (pyblish.api.Instance): The Pyblish instance.
+
+    Returns:
+        list[int]: A list containing the expected frames.
+    """
+    frames_str = instance.data.get("customFrames", "")
+    if frames_str:
+        frames_list = convert_frames_str_to_list(frames_str.strip())
+        frames_list = sorted({int(frame) for frame in frames_list})
+        if not frames_list:
+            raise PublishError(
+                f"Invalid customFrames value: {frames_str}. "
+                "Expected a comma-separated list of integers or ranges."
+            )
+        return frames_list
+    frame_start = int(rt.rendStart)
+    frame_end = int(rt.rendEnd)
+    return list(range(frame_start, frame_end + 1))
