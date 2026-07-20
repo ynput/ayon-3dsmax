@@ -216,16 +216,39 @@ class MaxPlaceholderPlugin(PlaceholderPlugin):
         imprint(node, data)
 
 
-def create_first_workfile_from_template(*args) -> None:
+def trigger_on_app_launch() -> None:
+    """Build the workfile template during application
+    launch if the setting is enabled.
+    """
+    builder = MaxTemplateBuilder(registered_host())
+    preset = builder.get_template_preset()
+    if preset.execute_on_new_file:
+        builder.trigger_on_new_file()
+    else:
+        builder.trigger_on_app_launch()
+
+
+def trigger_on_new_file() -> None:
+    """Build the workfile template during new file creation
+    if the setting is enabled.
+    """
+    builder = MaxTemplateBuilder(registered_host())
+    builder.trigger_on_new_file()
+
+
+def create_first_workfile_from_template() -> None:
     """Create the first workfile from template for 3ds Max."""
     builder = MaxTemplateBuilder(registered_host())
-    builder.build_template(workfile_creation_enabled=True)
+    builder.create_first_workfile_version()
 
 
-def build_workfile_template(*args) -> None:
+def build_workfile_template() -> None:
     """Build the workfile template for 3ds Max."""
     builder = MaxTemplateBuilder(registered_host())
-    builder.build_template()
+    preset = builder.get_template_preset()
+    if not preset.has_valid_path():
+        return
+    builder.build_template(preset=preset)
 
 
 def update_workfile_template(*args) -> None:
