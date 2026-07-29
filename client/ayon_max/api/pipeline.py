@@ -22,7 +22,6 @@ from ayon_core.pipeline import (
     AYON_CONTAINER_ID,
     get_current_project_name
 )
-from ayon_max.api.menu import AYONMenu
 from ayon_core.settings import get_project_settings
 from ayon_max.api import lib
 from ayon_max.api.plugin import MS_CUSTOM_ATTRIB
@@ -158,6 +157,8 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
 
     def _deferred_menu_creation(self):
         self.log.info("Building menu ...")
+        # Import menu lazily so Qt bindings are resolved after Max runtime init.
+        from ayon_max.api.menu import AYONMenu
         self.menu = AYONMenu()
 
     @staticmethod
@@ -280,7 +281,7 @@ def on_init():
     last_workfile = os.getenv("AYON_LAST_WORKFILE")
     if os.getenv("AVALON_OPEN_LAST_WORKFILE") != "1"  \
         or not os.path.exists(last_workfile):
-            lib.set_context_settings()
+        lib.set_context_settings()
 
 
 def on_new():
