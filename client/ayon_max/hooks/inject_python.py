@@ -8,7 +8,7 @@ from ayon_max import MAX_HOST_DIR
 class InjectPythonPath(PreLaunchHook):
     """Inject AYON environment to 3dsmax.
 
-    Note that this works in combination whit 3dsmax startup script that
+    Note that this works in combination with 3dsmax startup script that
     is translating it back to PYTHONPATH for cases when 3dsmax drops PYTHONPATH
     environment.
 
