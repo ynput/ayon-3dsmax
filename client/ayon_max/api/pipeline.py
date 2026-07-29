@@ -278,9 +278,8 @@ def get_containers() -> List:
 def on_init():
     if not os.path.exists(rt.ColorPipelineMgr.OCIOConfigPath):
         lib.reset_colorspace()
-    last_workfile = os.getenv("AYON_LAST_WORKFILE")
-    if os.getenv("AVALON_OPEN_LAST_WORKFILE") != "1"  \
-        or not os.path.exists(last_workfile):
+    last_workfile = os.getenv("AYON_LAST_WORKFILE") or ""
+    if os.getenv("AVALON_OPEN_LAST_WORKFILE") != "1" or not os.path.exists(last_workfile):
         lib.set_context_settings()
 
 
