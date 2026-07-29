@@ -235,7 +235,23 @@ class AYONMenu(object):
 
     def workfiles_callback(self):
         """Callback to show Workfiles tool."""
-        host_tools.show_workfiles(parent=self.main_widget)
+        workfiles_tool = host_tools.show_workfiles(parent=self.main_widget)
+        # Refresh after the UI has finished its initial setup cycle.
+        if lib.get_max_version() >= 2027:
+            QtCore.QTimer.singleShot(
+                100,
+                lambda tool=workfiles_tool: self._refresh_workfiles_tool(tool)
+            )
+
+    def _refresh_workfiles_tool(self, workfiles_tool):
+        """Refresh the Workfiles tool after it has been created or without any
+        cache data for _refresh.
+
+        Args:
+            workfiles_tool (QtWidgets.QWidget): The workfiles tool widget to refresh.
+        """
+        if not getattr(workfiles_tool, "_refresh", None):
+            workfiles_tool.refresh()
 
     def resolution_callback(self):
         """Callback to reset scene resolution"""
