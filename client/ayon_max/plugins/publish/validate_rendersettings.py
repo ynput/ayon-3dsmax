@@ -137,15 +137,6 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
             cls.log.error(msg)
             invalid.append((msg, directory))
 
-        if multi_camera and cameras:
-            for camera in cameras:
-                if camera not in directory:
-                    invalid.append((
-                        "Invalid render element output directory",
-                        "Render element output directory should contain camera name "
-                        f"{camera} when multiCamera is enabled. Found: {directory}",
-                    ))
-
         return invalid
 
     @classmethod
