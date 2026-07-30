@@ -22,7 +22,6 @@ from ayon_core.pipeline import (
     AVALON_INSTANCE_ID,
 )
 from ayon_core.lib import StringTemplate, get_version_from_path
-from ayon_core.pipeline.publish import PublishError
 from ayon_core.tools.utils import SimplePopup
 from ayon_core.settings import get_project_settings
 from ayon_core.pipeline.context_tools import (
