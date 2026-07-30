@@ -38,14 +38,14 @@ class RenderProducts(object):
                 get_current_project_name()
             )
 
-    def get_render_products(self, frame_range: list[int]) -> Dict[str, list[str]]:
+    def get_render_products(self, frames: list[int]) -> Dict[str, list[str]]:
         """Get render output file paths for the current scene.
 
         Handles both beauty and AOV extraction with shared setup logic.
         Always includes the beauty pass; optionally includes render elements/AOVs.
 
         Args:
-            frame_range (list[int]): A list of frames to generate expected
+            frames (list[int]): A list of frames to generate expected
                 output file paths for.
 
         Returns:
@@ -63,7 +63,7 @@ class RenderProducts(object):
         render_dict: Dict[str, list[str]] = {}
 
         # Always add beauty pass
-        render_dict["beauty"] = self.get_expected_beauty(frame_range, extension)
+        render_dict["beauty"] = self.get_expected_beauty(frames, extension)
 
         # Optionally add AOVs
         renderer = get_current_renderer()
@@ -73,7 +73,7 @@ class RenderProducts(object):
             for aov_name, aov_filepath in render_elements:
                 aov_expected_files = self.get_expected_files(
                     aov_filepath,
-                    frame_range,
+                    frames,
                     aov_name,
                     renderer_name
                 )
@@ -81,7 +81,7 @@ class RenderProducts(object):
         return render_dict
 
     def get_multiple_render_products(
-            self, outputs: list[str], cameras: list[str], frame_range: list[int]
+            self, outputs: list[str], cameras: list[str], frames: list[int]
     ) -> Dict[str, list[str]]:
         """Get render output file paths for multiple cameras.
 
@@ -92,7 +92,7 @@ class RenderProducts(object):
         Args:
             outputs (list[str]): A list of output file paths.
             cameras (list[str]): A list of camera names.
-            frame_range (list[int]): A list of frames to generate expected
+            frames (list[int]): A list of frames to generate expected
                 output file paths for.
 
         Returns:
@@ -110,7 +110,7 @@ class RenderProducts(object):
             ext = ext.replace(".", "")
 
             # Always add beauty pass
-            beauty_files = self.get_expected_beauty(frame_range, ext)
+            beauty_files = self.get_expected_beauty(frames, ext)
             render_output_frames[f"{camera}_beauty"] = beauty_files
 
             # Add AOVs
@@ -119,7 +119,7 @@ class RenderProducts(object):
                 for aov_name, aov_filepath in render_elements:
                     aov_expected_files = self.get_expected_files(
                         aov_filepath,
-                        frame_range,
+                        frames,
                         aov_name,
                         renderer_name
                     )
@@ -128,12 +128,12 @@ class RenderProducts(object):
         return render_output_frames
 
     def get_expected_beauty(
-            self, frame_range: list[int], extension: str
+            self, frames: list[int], extension: str
     ) -> list[str]:
         """Get expected beauty render output file paths for each frame.
 
         Args:
-            frame_range (list[int]): The frame range to generate expected
+            frames (list[int]): The frame range to generate expected
                 output file paths for.
             extension (str): The file extension for the output files.
 
@@ -151,7 +151,7 @@ class RenderProducts(object):
 
         return self.get_expected_files(
             output_path,
-            frame_range,
+            frames,
             "",
             renderer_name
         )
@@ -263,7 +263,7 @@ class RenderProducts(object):
     def get_expected_files(
         self,
         filepath: str,
-        frame_range: list[int],
+        frames: list[int],
         aov_name: str,
         renderer_name: str,
     ) -> list[str]:
@@ -271,7 +271,7 @@ class RenderProducts(object):
 
         Args:
             filepath (str): filepath of the render output.
-            frame_range (list[int]): range of frames of the render sequence.
+            frames (list[int]): range of frames of the render sequence.
             aov_name (str): name of the AOV.
             renderer_name (str): name of the renderer.
 
@@ -286,7 +286,7 @@ class RenderProducts(object):
         name, ext = os.path.splitext(filename)
         name = name.lstrip(".")
         aov_name = aov_name.strip()
-        for frame in frame_range:
+        for frame in frames:
             aov_filename =  f"{name}.{frame:04d}{ext}"
             expected_aov = os.path.join(directory, aov_filename)
             if aov_name and renderer_name.startswith("V_Ray_"):
