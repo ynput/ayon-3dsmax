@@ -7,6 +7,8 @@ from ayon_max.api.lib import get_expected_frames
 class CollectFrameRange(pyblish.api.InstancePlugin):
     """Collect Frame Range."""
 
+    # move the collector order later to ensure
+    # it run after CollectCustomFrameRange in Core addon
     order = pyblish.api.CollectorOrder + 0.019
     label = "Collect Frame Range"
     hosts = ['max']
