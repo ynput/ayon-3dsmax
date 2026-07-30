@@ -7,6 +7,7 @@ import tempfile
 
 from pymxs import runtime as rt
 from ayon_core.lib import run_subprocess
+from ayon_max.api.lib import get_max_version
 from ayon_max.api.lib_rendersettings import RenderSettings
 from ayon_max.api.lib_renderproducts import RenderProducts
 
@@ -88,8 +89,10 @@ if not farm:
                     ext=fmt,
                     farm=instance.data.get("farm"))
             scripts.append(script)
-        maxbatch_exe = os.path.join(
-            os.path.dirname(sys.executable), "3dsmaxbatch")
+        max_directory = os.path.dirname(sys.executable)
+        if get_max_version() >= 2026:
+            max_directory = os.path.dirname(max_directory)
+        maxbatch_exe = os.path.join(max_directory, "3dsmaxbatch")
         maxbatch_exe = maxbatch_exe.replace("\\", "/")
         if platform.system().lower() == "windows":
             maxbatch_exe += ".exe"
@@ -104,7 +107,7 @@ if not farm:
                     tmp.write(script + "\n")
 
             full_script = "\n".join(scripts)
-            self.log.debug(f"Failed running script {tmp_script_path}:\n{full_script}")
+            self.log.debug(f"Prepared script {tmp_script_path}:\n{full_script}")
             current_filepath = current_filepath.replace("\\", "/")
             tmp_script_path = tmp_script_path.replace("\\", "/")
             run_subprocess([maxbatch_exe, tmp_script_path,
