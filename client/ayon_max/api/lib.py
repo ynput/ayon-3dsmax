@@ -1171,12 +1171,6 @@ def get_expected_frames(instance: pyblish.api.Instance) -> list[int]:
     frames_str = instance.data.get("customFrames", "")
     if frames_str:
         frames_list = convert_frames_str_to_list(frames_str.strip())
-        frames_list = sorted({int(frame) for frame in frames_list})
-        if not frames_list:
-            raise PublishError(
-                f"Invalid customFrames value: {frames_str}. "
-                "Expected a comma-separated list of integers or ranges."
-            )
         return frames_list
     frame_start = int(rt.rendStart)
     frame_end = int(rt.rendEnd)
