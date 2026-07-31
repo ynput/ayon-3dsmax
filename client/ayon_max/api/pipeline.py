@@ -114,6 +114,8 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         return filepath
 
     def get_current_workfile(self):
+        if not rt.maxFileName or not rt.maxFilePath:
+            return ""
         return os.path.normpath(
             os.path.join(rt.maxFilePath, rt.maxFileName)
         )
