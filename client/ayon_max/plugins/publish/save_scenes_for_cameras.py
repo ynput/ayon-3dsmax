@@ -69,8 +69,7 @@ rt.viewport.setCamera(target_camera_node)
 rt.rendOutputFilename = new_output
 directory = os.path.dirname(rt.rendOutputFilename)
 directory = os.path.join(directory, filename)
-if not os.path.exists(directory):
-    os.mkdir(directory)
+os.makedirs(directory, exist_ok=True)
 
 if renderer.startswith("V_Ray_"):
     if "GPU" in renderer:
