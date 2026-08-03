@@ -90,7 +90,6 @@ else:
     render_elem = rt.maxOps.GetCurRenderElementMgr()
     render_elem_num = render_elem.NumRenderElements()
     if render_elem_num > 0:
-        else:
             ext = "{ext}"
             for i in range(render_elem_num):
                 renderlayer_name = render_elem.GetRenderElement(i)
