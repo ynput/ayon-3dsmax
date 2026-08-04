@@ -64,6 +64,7 @@ camera = "{camera}"
 farm = {farm}
 renderer = "{renderer}"
 camera_name = camera.replace(":", "_")
+rt.rendUseActiveView = True
 target_camera_node = rt.getNodeByName(camera)
 rt.viewport.setCamera(target_camera_node)
 rt.rendOutputFilename = new_output
