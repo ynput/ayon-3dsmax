@@ -39,6 +39,7 @@ class SaveScenesForCamera(pyblish.api.InstancePlugin):
         cameras = instance.data.get("cameras")
         if not cameras:
             return
+        renderer = instance.data["renderer"]
         new_folder = f"{current_folder}_{filename}"
         os.makedirs(new_folder, exist_ok=True)
         render_settings = RenderSettings(data=instance.data)
@@ -61,32 +62,52 @@ new_filepath = "{new_filepath}"
 new_output = "{new_output}"
 camera = "{camera}"
 farm = {farm}
+renderer = "{renderer}"
 camera_name = camera.replace(":", "_")
+rt.rendUseActiveView = True
 target_camera_node = rt.getNodeByName(camera)
 rt.viewport.setCamera(target_camera_node)
 rt.rendOutputFilename = new_output
 directory = os.path.dirname(rt.rendOutputFilename)
 directory = os.path.join(directory, filename)
-if not os.path.exists(directory):
-    os.mkdir(directory)
-render_elem = rt.maxOps.GetCurRenderElementMgr()
-render_elem_num = render_elem.NumRenderElements()
-if render_elem_num > 0:
-    ext = "{ext}"
-    for i in range(render_elem_num):
-        renderlayer_name = render_elem.GetRenderElement(i)
-        target, renderpass = str(renderlayer_name).split(":")
-        aov_name =  f"{{directory}}_{{camera_name}}_{{renderpass}}..{ext}"
-        render_elem.SetRenderElementFileName(i, aov_name)
+os.makedirs(directory, exist_ok=True)
+
+if renderer.startswith("V_Ray_"):
+    if "GPU" in renderer:
+        vray_settings = rt.renderers.current.V_Ray_settings
+    else:
+        vray_settings = rt.renderers.current
+
+    if vray_settings.output_saverawfile:
+       vray_settings.output_rawfilename = f"{{directory}}_{{camera_name}}.{ext}"
+
+    if vray_settings.output_splitgbuffer:
+        vray_settings.output_splitfilename = f"{{directory}}_{{camera_name}}.{ext}"
+    else:
+        rt.rendOutputFilename = f"{{directory}}_{{camera_name}}_tmp..{ext}"
+
+else:
+    render_elem = rt.maxOps.GetCurRenderElementMgr()
+    render_elem_num = render_elem.NumRenderElements()
+    if render_elem_num > 0:
+            ext = "{ext}"
+            for i in range(render_elem_num):
+                renderlayer_name = render_elem.GetRenderElement(i)
+                target, renderpass = str(renderlayer_name).split(":")
+                aov_name =  f"{{directory}}_{{camera_name}}_{{renderpass}}..{ext}"
+                render_elem.SetRenderElementFileName(i, aov_name)
+
+rt.renderSceneDialog.update()
 rt.saveMaxFile(new_filepath)
 if not farm:
     for frame in range(int(rt.rendStart), int(rt.rendEnd) + 1):
-        rt.render(outputFile=rt.rendOutputFilename, frame=frame, vfb=False)
+        rt.render(frame=frame, camera=target_camera_node, vfb=False)
         """).format(filename=instance.name,
                     new_filepath=new_filepath,
                     new_output=new_output,
                     camera=camera,
                     ext=fmt,
+                    renderer=renderer,
                     farm=instance.data.get("farm"))
             scripts.append(script)
         max_directory = os.path.dirname(sys.executable)
