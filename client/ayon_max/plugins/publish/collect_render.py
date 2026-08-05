@@ -4,7 +4,7 @@ from __future__ import annotations
 import os
 import pyblish.api
 import ayon_api
-from typing import Dict, Any
+from typing import Dict
 
 import pymxs
 from pymxs import runtime as rt
@@ -13,8 +13,6 @@ from ayon_max.api import colorspace
 from ayon_max.api.lib import (
     get_max_version,
     get_current_renderer,
-    get_vray_settings,
-    get_multipass_setting,
 )
 from ayon_max.api.lib_rendersettings import RenderSettings
 from ayon_max.api.lib_renderproducts import RenderProducts
