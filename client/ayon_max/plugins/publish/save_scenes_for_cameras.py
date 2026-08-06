@@ -86,6 +86,12 @@ if renderer.startswith("V_Ray_"):
     else:
         rt.rendOutputFilename = f"{{directory}}_{{camera_name}}_tmp..{ext}"
 
+elif renderer.startswith("Arnold"):
+    aov_manager = rt.renderers.current.AOVManager
+    instance_name = aov_manager.drivers[1].filenameSuffix
+    instance_name = instance_name.strip(".")
+    aov_manager.drivers[1].filenameSuffix = f"{{instance_name}}_{{camera_name}}."
+
 else:
     render_elem = rt.maxOps.GetCurRenderElementMgr()
     render_elem_num = render_elem.NumRenderElements()
