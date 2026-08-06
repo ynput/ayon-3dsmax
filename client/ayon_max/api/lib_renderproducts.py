@@ -299,7 +299,7 @@ class RenderProducts(object):
         directory = os.path.dirname(filepath)
         filename = os.path.basename(filepath)
         name, ext = os.path.splitext(filename)
-        name = name.lstrip(".")
+        name = name.strip(".")
         aov_name = aov_name.strip()
         if camera is not None:
             name = f"{name}_{camera}"
