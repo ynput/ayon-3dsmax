@@ -88,10 +88,8 @@ if renderer.startswith("V_Ray_"):
 
 elif renderer.startswith("Arnold"):
     aov_manager = rt.renderers.current.AOVManager
+    aov_manager.outputPath = f"{{directory}}_{{camera_name}}..{ext}"
     aov_driver = aov_manager.drivers[0]
-    instance_name = aov_driver.filenameSuffix
-    instance_name = instance_name.strip(".")
-    aov_driver.filenameSuffix = f"{{instance_name}}_{{camera_name}}."
 
 else:
     render_elem = rt.maxOps.GetCurRenderElementMgr()
