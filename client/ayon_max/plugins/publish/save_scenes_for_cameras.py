@@ -107,8 +107,12 @@ else:
 rt.renderSceneDialog.update()
 rt.saveMaxFile(new_filepath)
 if not farm:
-    for frame in range(int(rt.rendStart), int(rt.rendEnd) + 1):
-        rt.render(frame=frame, camera=target_camera_node, vfb=False)
+    if not renderer.startswith("Arnold"):
+        for frame in range(int(rt.rendStart), int(rt.rendEnd) + 1):
+            rt.render(frame=frame, camera=target_camera_node, vfb=False)
+    else:
+        for frame in range(int(rt.rendStart), int(rt.rendEnd) + 1):
+            rt.render(outputfile=rt.rendOutputFilename, frame=frame, camera=target_camera_node, vfb=False)
         """).format(filename=instance.name,
                     new_filepath=new_filepath,
                     new_output=new_output,
