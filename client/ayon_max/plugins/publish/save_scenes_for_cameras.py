@@ -112,7 +112,8 @@ if not farm:
             rt.render(frame=frame, camera=target_camera_node, vfb=False)
     else:
         for frame in range(int(rt.rendStart), int(rt.rendEnd) + 1):
-            rt.render(outputfile=rt.rendOutputFilename, frame=frame, camera=target_camera_node, vfb=False)
+            outputfile = f"{{directory}}_{{camera_name}}.{{frame}}.{ext}"
+            rt.render(outputfile=outputfile, frame=frame, camera=target_camera_node, vfb=False)
         """).format(filename=instance.name,
                     new_filepath=new_filepath,
                     new_output=new_output,
