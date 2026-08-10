@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import os
 from ayon_core.pipeline import publish
 from ayon_core.pipeline.publish import KnownPublishError
 
@@ -36,13 +38,19 @@ class ExtractLocalRender(publish.Extractor):
                 rt.getNodeByName(camera)
                 if camera else rt.viewport.GetCamera()
             )
-
+            kwargs = {
+                "camera_node": camera_node,
+                "cancelled": pymxs.byref(None),
+                "vfb": False,
+            }
             for frame in instance.data["expectedFrameRange"]:
+                if instance.data["renderer"].startswith("Arnold"):
+                    filename, ext = os.path.splitext(rt.rendOutputFilename)
+                    new_output = f"{filename}{frame:04d}{ext}"
+                    kwargs["outputFile"] = new_output
                 _, cancelled = rt.render(
                     frame=frame,
-                    vfb=False,
-                    camera=camera_node,
-                    cancelled=pymxs.byref(None)
+                    **kwargs
                 )
                 if cancelled:
                     raise KnownPublishError(f"Render cancelled at frame {frame}.")
