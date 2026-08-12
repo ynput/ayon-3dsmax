@@ -62,7 +62,8 @@ class RenderProducts(object):
 
         # Always add beauty pass
         beauty_files = self.get_expected_beauty(start_frame, end_frame, extension)
-        render_dict["beauty"] = beauty_files
+        if beauty_files:
+            render_dict["beauty"] = beauty_files
 
         # Optionally add AOVs
         renderer = get_current_renderer()
@@ -225,7 +226,7 @@ class RenderProducts(object):
         )
         if not is_save_vray_exr_rawfile and not is_render_element:
             # In non-raw mode V-Ray writes the beauty output to `rt.rendOutputFilename`.
-            return rt.rendOutputFilename or getattr(vray_settings, "output_splitfilename", "")
+            return ""
         output_attr = (
             "output_rawfilename"
             if not is_render_element
