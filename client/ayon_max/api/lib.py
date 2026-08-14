@@ -4,7 +4,6 @@ import os
 import contextlib
 import logging
 import json
-from pathlib import Path
 from functools import partial
 import pyblish.api
 import re
@@ -306,10 +305,9 @@ def get_default_render_folder(
     render_data["work"] = work_dir
     render_folder = project_setting["max"]["RenderSettings"]["default_render_image_folder"]
     formatted_render_folder = StringTemplate(render_folder).format(render_data)
-    normalized_render_folder = Path(formatted_render_folder)
-    if not normalized_render_folder.is_absolute():
-        normalized_render_folder = Path(work_dir) / normalized_render_folder
-    return str(normalized_render_folder)
+    if not os.path.isabs(formatted_render_folder):
+        formatted_render_folder = os.path.join(work_dir, formatted_render_folder)
+    return formatted_render_folder
 
 
 def get_vray_settings(renderer_name: str, renderer: Any) -> Any:

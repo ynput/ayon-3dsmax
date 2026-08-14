@@ -4,6 +4,7 @@
 # https://help.autodesk.com/view/ARNOL/ENU/?guid=arnold_for_3ds_max_ax_maxscript_commands_ax_renderview_commands_html
 from __future__ import annotations
 import os
+from pathlib import Path
 from typing import Dict, Any
 
 try:
@@ -281,19 +282,19 @@ class RenderProducts(object):
         expected_aovs: list[str] = []
         if not filepath:
             return expected_aovs
-        directory = os.path.dirname(filepath)
-        filename = os.path.basename(filepath)
+        file_path = Path(filepath)
+        directory = file_path.parent
+        filename = file_path.name
         name, ext = os.path.splitext(filename)
         name = name.lstrip(".")
         aov_name = aov_name.strip()
         for frame in frames:
             aov_filename =  f"{name}.{frame:04d}{ext}"
-            expected_aov = os.path.join(directory, aov_filename)
             if aov_name and renderer_name.startswith("V_Ray_"):
                 aov_filename = f"{name}.{aov_name}.{frame:04d}{ext}"
             aov_filename = reformat_filename(aov_filename)
-            expected_aov = os.path.join(directory, aov_filename)
-            expected_aovs.append(expected_aov)
+            expected_aov = Path(directory) / aov_filename
+            expected_aovs.append(expected_aov.as_posix())
 
         return expected_aovs
 
