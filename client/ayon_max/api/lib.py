@@ -307,7 +307,8 @@ def get_default_render_folder(
     formatted_render_folder = StringTemplate(render_folder).format(render_data)
     if not os.path.isabs(formatted_render_folder):
         formatted_render_folder = os.path.join(work_dir, formatted_render_folder)
-    return formatted_render_folder
+    # Normalize to forward slashes for consistency
+    return formatted_render_folder.replace("\\", "/")
 
 
 def get_vray_settings(renderer_name: str, renderer: Any) -> Any:
