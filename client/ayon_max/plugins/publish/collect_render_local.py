@@ -1,3 +1,5 @@
+import os
+
 import pyblish.api
 
 from ayon_core.pipeline.farm.pyblish_functions import (
@@ -71,7 +73,7 @@ class CollectLocalRenderInstances(pyblish.api.InstancePlugin):
             # like the "stagingDir" for each representation which we will make
             # absolute again.
             for repre in aov_instance_data["representations"]:
-                repre["stagingDir"] = anatomy.fill_root(repre["stagingDir"])
+                repre["stagingDir"] = os.path.normpath(anatomy.fill_root(repre["stagingDir"]))
             aov_instance = context.create_instance(
                 aov_instance_data["productName"]
             )
