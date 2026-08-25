@@ -137,15 +137,6 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
             cls.log.error(msg)
             invalid.append((msg, directory))
 
-        if multi_camera and cameras:
-            for camera in cameras:
-                if camera not in directory:
-                    invalid.append((
-                        "Invalid render element output directory",
-                        "Render element output directory should contain camera name "
-                        f"{camera} when multiCamera is enabled. Found: {directory}",
-                    ))
-
         return invalid
 
     @classmethod
@@ -496,12 +487,12 @@ class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
             if not path:
                 path = reset_rendersetting(instance, project_settings)
                 render_dir = os.path.dirname(path)
-        aov_manager.outputPath = path
         filename = os.path.basename(path)
         rt.rendOutputFilename = build_general_output_filename(
             render_dir,
             filename,
         )
+        aov_manager.outputPath = os.path.dirname(rt.rendOutputFilename)
         driver = aov_manager.drivers[0]
         driver.multipart = get_multipass_setting(
             renderer_name,
