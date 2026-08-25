@@ -1123,6 +1123,28 @@ def set_correct_workfile_name_for_render_output(
         return filepath
 
     rest = match.group("rest") or ""
+
+    # update the changes in the context instances to reflect the new workfile name
+    host = registered_host()
+    create_context = CreateContext(host, discover_publish_plugins=False)
+    workfile_name_keys = {
+        "original_workfile_pattern",
+        # backward compatibility for older versions of Ayon
+        "AssetName"
+    }
+
+    has_changes = False
+    for created_instance in create_context.instances:
+        for key in workfile_name_keys:
+            if key not in created_instance:
+                continue
+            if created_instance[key] != render_workfile_name:
+                continue
+            created_instance[key] = current_workfile_filename
+            has_changes = True
+
+    if has_changes:
+        create_context.save_changes()
     return os.path.join(
         render_root,
         current_workfile_filename,
@@ -1153,3 +1175,22 @@ def build_general_output_filename(
         ext = match.group("ext")
         filename = f"{name}_{element}..{ext}"
     return os.path.join(output_dir, filename)
+
+
+def is_vray_exr_saverawfile(image_format: str, vr_settings: Any) -> bool:
+    """Check if V-Ray renderer is set to output raw files in EXR format.
+
+    Args:
+        image_format (str): The image format being used for rendering.
+        vr_settings (Any): The V-Ray settings object
+
+    Returns:
+        bool: True if the image format is EXR and V-Ray is set to save
+            raw files, False otherwise.
+    """
+    return (
+        image_format == "exr"
+        # safe check
+        and hasattr(vr_settings, "output_saverawfile")
+        and vr_settings.output_saverawfile
+    )
