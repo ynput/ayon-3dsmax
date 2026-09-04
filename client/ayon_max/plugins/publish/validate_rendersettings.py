@@ -496,12 +496,12 @@ class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
             if not path:
                 path = reset_rendersetting(instance, project_settings)
                 render_dir = os.path.dirname(path)
-        aov_manager.outputPath = path
         filename = os.path.basename(path)
         rt.rendOutputFilename = build_general_output_filename(
             render_dir,
             filename,
         )
+        aov_manager.outputPath = os.path.dirname(rt.rendOutputFilename)
         driver = aov_manager.drivers[0]
         driver.multipart = get_multipass_setting(
             renderer_name,

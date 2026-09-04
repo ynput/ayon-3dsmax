@@ -4,7 +4,6 @@ import os
 import contextlib
 import logging
 import json
-from pathlib import Path
 from functools import partial
 import pyblish.api
 import re
@@ -28,6 +27,9 @@ from ayon_core.pipeline.context_tools import (
     get_current_task_entity
 )
 from ayon_core.pipeline.template_data import get_template_data_with_names
+from ayon_core.pipeline.farm.pyblish_functions import (
+    convert_frames_str_to_list,
+)
 from ayon_core.pipeline.create import CreateContext
 from ayon_core.style import load_stylesheet
 
@@ -303,10 +305,10 @@ def get_default_render_folder(
     render_data["work"] = work_dir
     render_folder = project_setting["max"]["RenderSettings"]["default_render_image_folder"]
     formatted_render_folder = StringTemplate(render_folder).format(render_data)
-    normalized_render_folder = Path(formatted_render_folder)
-    if not normalized_render_folder.is_absolute():
-        normalized_render_folder = Path(work_dir) / normalized_render_folder
-    return str(normalized_render_folder)
+    if not os.path.isabs(formatted_render_folder):
+        formatted_render_folder = os.path.join(work_dir, formatted_render_folder)
+    # Normalize to forward slashes for consistency
+    return formatted_render_folder.replace("\\", "/")
 
 
 def get_vray_settings(renderer_name: str, renderer: Any) -> Any:
@@ -1153,3 +1155,21 @@ def build_general_output_filename(
         ext = match.group("ext")
         filename = f"{name}_{element}..{ext}"
     return os.path.join(output_dir, filename)
+
+
+def get_expected_frames(instance: pyblish.api.Instance) -> list[int]:
+    """Get expected frames from the instance.
+
+    Args:
+        instance (pyblish.api.Instance): The Pyblish instance.
+
+    Returns:
+        list[int]: A list containing the expected frames.
+    """
+    frames_str = instance.data.get("customFrames", "")
+    if frames_str:
+        frames_list = convert_frames_str_to_list(frames_str.strip())
+        return frames_list
+    frame_start = int(rt.rendStart)
+    frame_end = int(rt.rendEnd)
+    return list(range(frame_start, frame_end + 1))
