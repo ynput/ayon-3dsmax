@@ -455,6 +455,8 @@ class MaxCacheCreator(Creator, MaxTyFlowDataCreatorBase):
                                " found in tyCache Editor.")
         instance_node = self.create_instance_node(product_name)
         instance_data["instance_node"] = instance_node.name
+        if self.get_published_families():
+            instance_data["families"] = self.get_published_families()
         product_type = instance_data.get("productType")
         if not product_type:
             product_type = self.product_base_type
@@ -500,6 +502,8 @@ class MaxCacheCreator(Creator, MaxTyFlowDataCreatorBase):
                             new_product_name))
                 instance_node = new_product_name
                 created_inst["instance_node"] = instance_node
+                if self.get_published_families():
+                    created_inst.data["families"] = self.get_published_families()
                 node.name = instance_node
 
             imprint(
@@ -524,3 +528,6 @@ class MaxCacheCreator(Creator, MaxTyFlowDataCreatorBase):
                 rt.Delete(instance_node)
 
             self._remove_instance_from_context(instance)
+
+    def get_published_families(self):
+        return []
