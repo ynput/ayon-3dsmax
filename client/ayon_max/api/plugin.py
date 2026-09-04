@@ -480,7 +480,7 @@ class MaxCacheCreator(Creator, MaxTyFlowDataCreatorBase):
         self.cache_instance_data(self.collection_shared_data)
         for instance in self.collection_shared_data["max_cached_instances"].get(self.identifier, []):  # noqa
             created_instance = CreatedInstance.from_existing(
-                read(rt.GetNodeByName(instance)), self
+                read(rt.GetNodeByName(instance)), self)
             data = read(rt.GetNodeByName(instance))
             if "families" not in data:
                 data["families"] = self.get_publish_families()
