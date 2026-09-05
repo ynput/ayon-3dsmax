@@ -503,8 +503,6 @@ class MaxCacheCreator(Creator, MaxTyFlowDataCreatorBase):
                             new_product_name))
                 instance_node = new_product_name
                 created_inst["instance_node"] = instance_node
-                if self.get_published_families():
-                    created_inst.data["families"] = self.get_published_families()
                 node.name = instance_node
 
             imprint(
