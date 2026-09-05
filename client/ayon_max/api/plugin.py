@@ -530,5 +530,5 @@ class MaxCacheCreator(Creator, MaxTyFlowDataCreatorBase):
 
             self._remove_instance_from_context(instance)
 
-    def get_published_families(self):
+    def get_published_families(self) -> list[str]:
         return []
