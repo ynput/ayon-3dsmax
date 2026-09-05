@@ -455,6 +455,7 @@ class MaxCacheCreator(Creator, MaxTyFlowDataCreatorBase):
                                " found in tyCache Editor.")
         instance_node = self.create_instance_node(product_name)
         instance_data["instance_node"] = instance_node.name
+        instance_data["families"] = self.get_published_families()
         product_type = instance_data.get("productType")
         if not product_type:
             product_type = self.product_base_type
@@ -478,9 +479,11 @@ class MaxCacheCreator(Creator, MaxTyFlowDataCreatorBase):
     def collect_instances(self):
         self.cache_instance_data(self.collection_shared_data)
         for instance in self.collection_shared_data["max_cached_instances"].get(self.identifier, []):  # noqa
-            created_instance = CreatedInstance.from_existing(
-                read(rt.GetNodeByName(instance)), self
-            )
+            data = read(rt.GetNodeByName(instance))
+            families = self.get_publish_families()
+            if families:
+                data["families"] = families
+            created_instance = CreatedInstance.from_existing(data, self)
             self._add_instance_to_context(created_instance)
 
     def update_instances(self, update_list):
@@ -524,3 +527,6 @@ class MaxCacheCreator(Creator, MaxTyFlowDataCreatorBase):
                 rt.Delete(instance_node)
 
             self._remove_instance_from_context(instance)
+
+    def get_published_families(self) -> list[str]:
+        return []
