@@ -6,7 +6,7 @@ try:
 except ImportError:
     rt = None
 
-
+import json
 from ayon_core.lib import BoolDef
 from ayon_core.pipeline import (
     CreatedInstance,
@@ -385,16 +385,18 @@ class MaxCreator(Creator, MaxCreatorBase):
                 "sel_list", sel_list)
 
         self._add_instance_to_context(instance)
-        imprint(instance_node.name, instance.data_to_store())
+        self.imprint_instance_node(instance_node.name, instance.data_to_store())
 
         return instance
 
     def collect_instances(self):
         self.cache_instance_data(self.collection_shared_data)
         for instance in self.collection_shared_data["max_cached_instances"].get(self.identifier, []):  # noqa
-            created_instance = CreatedInstance.from_existing(
-                read(rt.GetNodeByName(instance)), self
-            )
+            data = read(rt.GetNodeByName(instance))
+            families = self.get_published_families()
+            if families:
+                data["families"] = families
+            created_instance = CreatedInstance.from_existing(data, self)
             self._add_instance_to_context(created_instance)
 
     def update_instances(self, update_list):
@@ -416,10 +418,7 @@ class MaxCreator(Creator, MaxCreatorBase):
                 created_inst["instance_node"] = instance_node
                 node.name = instance_node
 
-            imprint(
-                instance_node,
-                created_inst.data_to_store(),
-            )
+            self.imprint_instance_node(instance_node, created_inst.data_to_store())
 
     def remove_instances(self, instances):
         """Remove specified instance from the scene.
@@ -444,9 +443,51 @@ class MaxCreator(Creator, MaxCreatorBase):
         ]
 
 
-class MaxCacheCreator(Creator, MaxTyFlowDataCreatorBase):
-    skip_discovery = True
-    settings_category = "max"
+    def get_published_families(self) -> list[str]:
+        return []
+
+    def imprint_instance_node(self, node, data):
+
+        data.pop("instance_node", None)
+        data.pop("instance_id", None)
+
+        data.pop("families", None)
+
+        # We store creator attributes at the root level and assume they
+        # will not clash in names with `product`, `task`, etc. and other
+        # default names. This is just so these attributes in many cases
+        # are still editable in the maya UI by artists.
+        # note: pop to move to end of dict to sort attributes last on the node
+        creator_attributes = data.pop("creator_attributes", {})
+
+        # We only flatten value types which `imprint` function supports
+        json_creator_attributes = {}
+        for key, value in dict(creator_attributes).items():
+            if isinstance(value, (list, tuple, dict)):
+                creator_attributes.pop(key)
+                json_creator_attributes[key] = value
+
+        # Flatten remaining creator attributes to the node itself
+        data.update(creator_attributes)
+
+        # We know the "publish_attributes" will be complex data of
+        # settings per plugins, we'll store this as a flattened json structure
+        # pop to move to end of dict to sort attributes last on the node
+        data["publish_attributes"] = data.pop("publish_attributes", {})
+
+        # Persist the non-flattened creator attributes (special value types,
+        # like multiselection EnumDef)
+        data["creator_attributes"] = json_creator_attributes
+        # Since we flattened the data structure for creator attributes we want
+        # to correctly detect which flattened attributes should end back in the
+        # creator attributes when reading the data from the node, so we store
+        # the relevant keys as a string
+        data["__creator_attributes_keys"] = ",".join(creator_attributes.keys())
+
+        return imprint(node, data)
+
+
+class MaxCacheCreator(MaxCreator, MaxTyFlowDataCreatorBase):
 
     def create(self, product_name, instance_data, pre_create_data):
         tyflow_op_nodes = get_tyflow_export_operators()
@@ -472,42 +513,9 @@ class MaxCacheCreator(Creator, MaxTyFlowDataCreatorBase):
             instance_node.modifiers[0].AYONTyCacheData,
             "tyc_handles", node_list)
         self._add_instance_to_context(instance)
-        imprint(instance_node.name, instance.data_to_store())
+        self.imprint_instance_node(instance_node.name, instance.data_to_store())
 
         return instance
-
-    def collect_instances(self):
-        self.cache_instance_data(self.collection_shared_data)
-        for instance in self.collection_shared_data["max_cached_instances"].get(self.identifier, []):  # noqa
-            data = read(rt.GetNodeByName(instance))
-            families = self.get_publish_families()
-            if families:
-                data["families"] = families
-            created_instance = CreatedInstance.from_existing(data, self)
-            self._add_instance_to_context(created_instance)
-
-    def update_instances(self, update_list):
-        for created_inst, changes in update_list:
-            instance_node = created_inst.get("instance_node")
-            new_values = {
-                key: changes[key].new_value
-                for key in changes.changed_keys
-            }
-            product_name = new_values.get("productName", "")
-            if product_name and instance_node != product_name:
-                node = rt.getNodeByName(instance_node)
-                new_product_name = new_values["productName"]
-                if rt.getNodeByName(new_product_name):
-                    raise CreatorError(
-                        "The product '{}' already exists.".format(
-                            new_product_name))
-                instance_node = new_product_name
-                created_inst["instance_node"] = instance_node
-                node.name = instance_node
-                data = created_inst.data_to_store()
-                data.pop("families", None)
-
-            imprint(instance_node, data)
 
     def remove_instances(self, instances):
         """Remove specified instance from the scene.
@@ -526,6 +534,3 @@ class MaxCacheCreator(Creator, MaxTyFlowDataCreatorBase):
                 rt.Delete(instance_node)
 
             self._remove_instance_from_context(instance)
-
-    def get_published_families(self) -> list[str]:
-        return []
