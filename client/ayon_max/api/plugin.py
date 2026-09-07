@@ -452,36 +452,6 @@ class MaxCreator(Creator, MaxCreatorBase):
 
         data.pop("families", None)
 
-        # We store creator attributes at the root level and assume they
-        # will not clash in names with `product`, `task`, etc. and other
-        # default names. This is just so these attributes in many cases
-        # are still editable in the maya UI by artists.
-        # note: pop to move to end of dict to sort attributes last on the node
-        creator_attributes = data.pop("creator_attributes", {})
-
-        # We only flatten value types which `imprint` function supports
-        json_creator_attributes = {}
-        for key, value in dict(creator_attributes).items():
-            if isinstance(value, (list, tuple, dict)):
-                creator_attributes.pop(key)
-                json_creator_attributes[key] = value
-
-        # Flatten remaining creator attributes to the node itself
-        data.update(creator_attributes)
-
-        # We know the "publish_attributes" will be complex data of
-        # settings per plugins, we'll store this as a flattened json structure
-        # pop to move to end of dict to sort attributes last on the node
-        data["publish_attributes"] = data.pop("publish_attributes", {})
-
-        # Persist the non-flattened creator attributes (special value types,
-        # like multiselection EnumDef)
-        data["creator_attributes"] = json_creator_attributes
-        # Since we flattened the data structure for creator attributes we want
-        # to correctly detect which flattened attributes should end back in the
-        # creator attributes when reading the data from the node, so we store
-        # the relevant keys as a string
-        data["__creator_attributes_keys"] = ",".join(creator_attributes.keys())
 
         return imprint(node, data)
 
