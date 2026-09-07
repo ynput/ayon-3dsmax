@@ -504,6 +504,7 @@ class MaxCacheCreator(Creator, MaxTyFlowDataCreatorBase):
                 instance_node = new_product_name
                 created_inst["instance_node"] = instance_node
                 node.name = instance_node
+                created_inst.pop("families", None)
 
             imprint(
                 instance_node,
