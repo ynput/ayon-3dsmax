@@ -6,7 +6,6 @@ try:
 except ImportError:
     rt = None
 
-import json
 from ayon_core.lib import BoolDef
 from ayon_core.pipeline import (
     CreatedInstance,
