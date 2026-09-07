@@ -221,11 +221,7 @@ def trigger_on_app_launch() -> None:
     launch if the setting is enabled.
     """
     builder = MaxTemplateBuilder(registered_host())
-    preset = builder.get_template_preset()
-    if preset.execute_on_new_file:
-        builder.trigger_on_new_file()
-    else:
-        builder.trigger_on_app_launch()
+    builder.trigger_on_app_launch()
 
 
 def trigger_on_new_file() -> None:
