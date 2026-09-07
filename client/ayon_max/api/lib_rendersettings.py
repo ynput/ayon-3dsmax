@@ -66,12 +66,20 @@ class RenderSettings(object):
         """
 
         self._project_settings = project_settings
+        self._data = data if data else {}
+        self.img_fmt = self.image_format
+
+    @property
+    def project_settings(self):
         if not self._project_settings:
             self._project_settings = get_project_settings(
                 get_current_project_name()
             )
-        self._data = data if data else {}
+        return self._project_settings
 
+    @property
+    def image_format(self):
+        return self.project_settings["max"]["RenderSettings"]["image_format"]   # noqa
     def set_render_camera(self, selection):
         for sel in selection:
             # to avoid Attribute Error from pymxs wrapper
@@ -84,7 +92,7 @@ class RenderSettings(object):
         # Set output paths for current workfile using project settings templates.
         file = rt.maxFileName
         # Resolve project settings used for output path formatting.
-        setting = self._project_settings
+        setting = self.project_settings
         container = self._data["instance_node"]
         render_folder = get_default_render_folder(self._data, setting)
         filename, _ = os.path.splitext(file)
@@ -106,17 +114,16 @@ class RenderSettings(object):
         renderer = get_current_renderer()
         renderer_name = str(renderer).split(":")[0]
 
-        img_fmt = self._project_settings["max"]["RenderSettings"]["image_format"]   # noqa
         output = os.path.join(output_dir, container)
         try:
             aov_separator = self._aov_chars[(
-                self._project_settings["max"]
-                                      ["RenderSettings"]
-                                      ["aov_separator"]
+                self.project_settings["max"]
+                                     ["RenderSettings"]
+                                     ["aov_separator"]
             )]
         except KeyError:
             aov_separator = "."
-        output_filename = f"{output}..{img_fmt}"
+        output_filename = f"{output}..{self.image_format}"
         output_filename = output_filename.replace("{aov_separator}",
                                                   aov_separator)
         multipass_enabled = get_multipass_setting(renderer_name, setting)
@@ -131,27 +138,27 @@ class RenderSettings(object):
 
         elif is_supported_renderer(renderer_name):
             rt.rendOutputFilename = output_filename
-            self.render_element_layer(output, width, height, img_fmt)
+            self.render_element_layer(output, width, height, self.image_format)
 
         elif renderer_name.startswith("V_Ray_"):
             vr_settings = get_vray_settings(renderer_name, renderer)
             vr_settings.output_force32bit_3dsmax_vfb = True
             vr_settings.output_splitgbuffer = multipass_enabled
-            if img_fmt == "exr":
+            if self.image_format == "exr":
                 vr_settings.output_saverawfile = True
-                vr_settings.output_rawfilename = f"{output}.{img_fmt}"
+                vr_settings.output_rawfilename = f"{output}.{self.image_format}"
 
             if multipass_enabled:
                 rt.rendOutputFilename = output_filename
-                vr_settings.output_splitfilename = f"{output}.{img_fmt}"
+                vr_settings.output_splitfilename = f"{output}.{self.image_format}"
             else:
-                rt.rendOutputFilename = f"{output}_tmp..{img_fmt}"
-            self.render_element_layer(output, width, height, img_fmt)
+                rt.rendOutputFilename = f"{output}_tmp..{self.image_format}"
+            self.render_element_layer(output, width, height, self.image_format)
         # TODO: supports multipass for different renderers
         elif renderer_name == "Redshift_Renderer":
             rt.rendOutputFilename = output_filename
             rt.renderers.production.separateAovFiles = multipass_enabled
-            if img_fmt == "exr" and multipass_enabled:
+            if self.image_format == "exr" and multipass_enabled:
                 rt.renderers.production.OutputExrMultipart = multipass_enabled
 
         # prevent rendering extra files when using V-Ray
@@ -167,9 +174,6 @@ class RenderSettings(object):
         render_camera = rt.viewport.GetCamera()
         if render_camera:
             arv.setOption("Camera", str(render_camera))
-
-        # TODO: add AOVs and extension
-        img_fmt = self._project_settings["max"]["RenderSettings"]["image_format"]   # noqa
         # TODO: enhance this maxscript to make sure it supports separate AOVs
         # with Arnold drivers.
         setup_cmd = (
@@ -179,7 +183,7 @@ class RenderSettings(object):
         aovmgr = renderers.current.AOVManager
         aovmgr.drivers = #()
         aovmgr.outputPath = "{output_dir}"
-        img_fmt = "{img_fmt}"
+        img_fmt = "{self.image_format}"
         if img_fmt == "png" then driver = ArnoldPNGDriver()
         if img_fmt == "jpg" then driver = ArnoldJPEGDriver()
         if img_fmt == "exr" then driver = ArnoldEXRDriver()
@@ -214,8 +218,7 @@ class RenderSettings(object):
 
     def get_render_output(self, container, output_dir):
         output = os.path.join(output_dir, container)
-        img_fmt = self._project_settings["max"]["RenderSettings"]["image_format"]   # noqa
-        output_filename = f"{output}..{img_fmt}"
+        output_filename = f"{output}..{self.image_format}"
         return output_filename
 
     def get_render_element(self):
@@ -239,13 +242,12 @@ class RenderSettings(object):
         render_elem_num = render_elem.NumRenderElements()
         if render_elem_num < 0:
             return
-        img_fmt = self._project_settings["max"]["RenderSettings"]["image_format"]   # noqa
 
         for i in range(render_elem_num):
             renderlayer_name = render_elem.GetRenderElement(i)
             target, renderpass = str(renderlayer_name).split(":")
             camera = camera.replace(":", "_")
-            aov_name = f"{output}_{camera}_{renderpass}..{img_fmt}"
+            aov_name = f"{output}_{camera}_{renderpass}..{self.image_format}"
             render_element_list.append(aov_name)
         return render_element_list
 
@@ -263,20 +265,18 @@ class RenderSettings(object):
         render_elem_num = render_elem.NumRenderElements()
         if render_elem_num < 0:
             return
-        ext = self._project_settings["max"]["RenderSettings"]["image_format"]   # noqa
 
         for i in range(render_elem_num):
             renderlayer_name = render_elem.GetRenderElement(i)
             target, renderpass = str(renderlayer_name).split(":")
-            aov_name = f"{directory}_{camera}_{renderpass}..{ext}"
+            aov_name = f"{directory}_{camera}_{renderpass}..{self.image_format}"
             render_elem.SetRenderElementFileName(i, aov_name)
 
-    def batch_render_layers_by_multi_camera(self, output_dir, cameras):
+    def batch_render_layers_by_multi_camera(self, cameras):
         """Get the list of renderlayers for the multi-camera from batch render
         manager.
 
         Args:
-            output_dir (str): output render directory
             cameras (list): Cameras to create render layers for.
 
         Returns:
@@ -284,8 +284,11 @@ class RenderSettings(object):
         """
         outputs = list()
         container = self._data["instance_node"]
+        render_folder = get_default_render_folder(self._data, self.project_settings)
+        sync_name = self._data.get("sync_current_workfile_name", True)
+        filename, _ = os.path.splitext(rt.MaxFileName)
+        output_dir = os.path.join(render_folder, filename.strip(".")) if sync_name else render_folder
         output = os.path.join(output_dir, container)
-        img_fmt = self._project_settings["max"]["RenderSettings"]["image_format"]   # noqa
         for cam in cameras:
             camera = rt.getNodeByName(cam)
             layer_no = rt.batchRenderMgr.FindView(cam)
@@ -297,6 +300,6 @@ class RenderSettings(object):
             # use camera name as renderlayer name
             renderlayer.name = cam
             cam = cam.replace(":", "_")
-            renderlayer.outputFilename = f"{output}_{cam}..{img_fmt}"
+            renderlayer.outputFilename = f"{output}_{cam}..{self.image_format}"
             outputs.append(renderlayer.outputFilename)
         return outputs

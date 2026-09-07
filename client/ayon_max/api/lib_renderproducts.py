@@ -109,7 +109,12 @@ class RenderProducts(object):
             end_frame = int(rt.rendEnd)
 
             # Always add beauty pass
-            beauty_files = self.get_expected_beauty(start_frame, end_frame, ext)
+            beauty_files = self.get_expected_beauty(
+                start_frame,
+                end_frame,
+                ext,
+                camera=camera,
+            )
             render_output_frames[f"{camera}_beauty"] = beauty_files
 
             # Add AOVs
@@ -121,14 +126,19 @@ class RenderProducts(object):
                         start_frame,
                         end_frame,
                         aov_name,
-                        renderer_name
+                        renderer_name,
+                        camera=camera,
                     )
                     render_output_frames[f"{camera}_{aov_name}"] = aov_expected_files
 
         return render_output_frames
 
     def get_expected_beauty(
-            self, start_frame: int, end_frame: int, extension: str
+        self,
+        start_frame: int,
+        end_frame: int,
+        extension: str,
+        camera: str | None = None
     ) -> list[str]:
         """Get expected beauty render output file paths for each frame.
 
@@ -154,7 +164,8 @@ class RenderProducts(object):
             start_frame,
             end_frame,
             "",
-            renderer_name
+            renderer_name,
+            camera=camera,
         )
 
     def get_render_element_outputfilename(
@@ -268,6 +279,7 @@ class RenderProducts(object):
         end_frame: int,
         aov_name: str,
         renderer_name: str,
+        camera: str | None = None,
     ) -> list[str]:
         """Get expected files
 
@@ -287,8 +299,10 @@ class RenderProducts(object):
         directory = os.path.dirname(filepath)
         filename = os.path.basename(filepath)
         name, ext = os.path.splitext(filename)
-        name = name.lstrip(".")
+        name = name.strip(".")
         aov_name = aov_name.strip()
+        if camera is not None:
+            name = f"{name}_{camera}"
         for frame in range(start_frame, end_frame + 1):
             aov_filename =  f"{name}.{frame:04d}{ext}"
             expected_aov = os.path.join(directory, aov_filename)

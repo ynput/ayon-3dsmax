@@ -4,7 +4,7 @@ from __future__ import annotations
 import os
 import pyblish.api
 import ayon_api
-from typing import Dict, Any
+from typing import Dict
 
 import pymxs
 from pymxs import runtime as rt
@@ -13,8 +13,6 @@ from ayon_max.api import colorspace
 from ayon_max.api.lib import (
     get_max_version,
     get_current_renderer,
-    get_vray_settings,
-    get_multipass_setting,
 )
 from ayon_max.api.lib_rendersettings import RenderSettings
 from ayon_max.api.lib_renderproducts import RenderProducts
@@ -90,18 +88,8 @@ class CollectRender(pyblish.api.InstancePlugin):
                                         " one renderable camera in container")
 
             sel_cam = [camera.name for camera in get_cameras_from_node(cameras)]
-
-            render_output = self.get_render_output(
-                renderer,
-                renderer_name,
-                img_format,
-                context.data["project_settings"]
-            )
-            render_dir = os.path.dirname(render_output)
             render_settings = RenderSettings(data=instance.data)
-            outputs = render_settings.batch_render_layers_by_multi_camera(
-                render_dir, sel_cam
-            )
+            outputs = render_settings.batch_render_layers_by_multi_camera(sel_cam)
 
             instance.data["cameras"] = sel_cam
 
@@ -222,38 +210,6 @@ class CollectRender(pyblish.api.InstancePlugin):
             "sceneView": view,
             "colorspace": colorspace_mgr.RenderingColorSpace
         }
-
-    def get_render_output(
-            self,
-            renderer: Any,
-            renderer_name: str,
-            img_format: str,
-            project_settings: Dict
-        ) -> str:
-        """Get render output path for the given renderer and instance.
-
-        Args:
-            renderer (Any, rt.Renderers.current): The renderer to get the
-                output path from.
-            renderer_name (str): The name of the renderer.
-            img_format (str): The image format.
-            project_settings (Dict): The project settings.
-
-        Returns:
-            str: The render output path.
-        """
-        if renderer_name == "Redshift_Renderer":
-            return rt.rendOutputFilename
-        elif renderer_name == "Arnold_Renderer":
-            return renderer.AOVManager.outputPath
-        elif renderer_name.startswith("V-Ray"):
-            vr_settings = get_vray_settings(renderer_name, renderer)
-            multipass = get_multipass_setting(renderer, project_settings)
-            if multipass and img_format == "exr":
-                return vr_settings.output_rawfilename
-            else:
-                return vr_settings.output_splitfilename
-        return rt.rendOutputFilename
 
     def _precollect_required_data(self, instance: pyblish.api.Instance) -> None:
         """Ensure required data is present.
