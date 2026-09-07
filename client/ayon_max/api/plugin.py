@@ -448,7 +448,6 @@ class MaxCreator(Creator, MaxCreatorBase):
     def imprint_instance_node(self, node, data):
 
         data.pop("instance_node", None)
-        data.pop("instance_id", None)
 
         data.pop("families", None)
 
