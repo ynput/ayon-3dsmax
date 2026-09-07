@@ -446,12 +446,8 @@ class MaxCreator(Creator, MaxCreatorBase):
         return []
 
     def imprint_instance_node(self, node, data):
-
         data.pop("instance_node", None)
-
         data.pop("families", None)
-
-
         return imprint(node, data)
 
 
