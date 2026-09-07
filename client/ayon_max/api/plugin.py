@@ -356,7 +356,8 @@ class MaxCreator(Creator, MaxCreatorBase):
 
         instance_node = self.create_instance_node(product_name)
         instance_data["instance_node"] = instance_node.name
-        instance_data["families"] = self.get_published_families()
+        if families := self.get_published_families():
+            instance_data["families"] = families
         product_type = instance_data.get("productType")
         if not product_type:
             product_type = self.product_base_type
