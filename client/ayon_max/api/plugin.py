@@ -507,10 +507,7 @@ class MaxCacheCreator(Creator, MaxTyFlowDataCreatorBase):
                 data = created_inst.data_to_store()
                 data.pop("families", None)
 
-            imprint(
-                instance_node,
-                created_inst.data_to_store(),
-            )
+            imprint(instance_node, data)
 
     def remove_instances(self, instances):
         """Remove specified instance from the scene.
