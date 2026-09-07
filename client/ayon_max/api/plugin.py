@@ -533,3 +533,6 @@ class MaxCacheCreator(MaxCreator, MaxTyFlowDataCreatorBase):
                 rt.Delete(instance_node)
 
             self._remove_instance_from_context(instance)
+
+    def get_pre_create_attr_defs(self):
+        return []
