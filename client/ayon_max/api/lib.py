@@ -85,6 +85,7 @@ def get_main_window():
 
 
 def imprint(node_name: str, data: dict) -> bool:
+    data.pop("families", None)
     node = rt.GetNodeByName(node_name)
     if not node:
         return False
