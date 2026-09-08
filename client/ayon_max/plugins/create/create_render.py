@@ -32,6 +32,7 @@ class CreateRender(MaxCreator):
         filename, _ = os.path.splitext(file)
         instance_data["original_workfile_pattern"] = filename.strip(".")
         instance_data["multiCamera"] = pre_create_data.get("multi_cam")
+        instance_data["families"] = self.get_published_families()
         num_of_renderlayer = rt.batchRenderMgr.numViews
         if num_of_renderlayer > 0:
             rt.batchRenderMgr.DeleteView(num_of_renderlayer)
@@ -81,3 +82,6 @@ class CreateRender(MaxCreator):
                     label="Multiple Cameras Submission",
                     default=False),
         ]
+
+    def get_published_families(self):
+        return ["maxrender", "custom.frame.range"]

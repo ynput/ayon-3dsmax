@@ -39,7 +39,7 @@ class ExtractLocalRender(publish.Extractor):
                 if camera else rt.viewport.GetCamera()
             )
             kwargs = {
-                "camera_node": camera_node,
+                "camera": camera_node,
                 "cancelled": pymxs.byref(None),
                 "vfb": False,
             }
