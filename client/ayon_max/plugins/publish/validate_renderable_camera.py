@@ -26,7 +26,7 @@ class ValidateRenderableCamera(pyblish.api.InstancePlugin,
     def process(self, instance):
         if not self.is_active(instance.data):
             return
-        if self.get_invalid_cmaera_nodes(instance):
+        if self.get_invalid_camera_nodes(instance):
             raise PublishValidationError(
                 "No renderable Camera found in scene."
             )
@@ -37,7 +37,7 @@ class ValidateRenderableCamera(pyblish.api.InstancePlugin,
             )
 
     @classmethod
-    def get_invalid_cmaera_nodes(cls, instance):
+    def get_invalid_camera_nodes(cls, instance):
         return not instance.data.get("cameras")
 
     @classmethod
@@ -54,7 +54,7 @@ class ValidateRenderableCamera(pyblish.api.InstancePlugin,
 
     @classmethod
     def repair(cls, instance):
-        invalid_camera_nodes = cls.get_invalid_cmaera_nodes(instance)
+        invalid_camera_nodes = cls.get_invalid_camera_nodes(instance)
         if invalid_camera_nodes:
             rt.viewport.setType(rt.Name("view_camera"))
             camera = rt.viewport.GetCamera()
