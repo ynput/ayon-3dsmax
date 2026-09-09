@@ -36,7 +36,7 @@ class ValidateRenderableCamera(pyblish.api.InstancePlugin,
                 "the target renderable camera."
             )
 
-    @ classmethod
+    @classmethod
     def get_invalid_cmaera_nodes(cls, instance):
         if not instance.data["cameras"]:
            return True
@@ -47,9 +47,11 @@ class ValidateRenderableCamera(pyblish.api.InstancePlugin,
         if instance.data["multiCamera"]:
             cls.log.warning("Multiple cameras detected in the scene. Skipping validation.")
             return None
-        camera = next(iter(instance.data.get("cameras", [])), None)
-        if rt.viewport.GetCamera() != rt.getNodeByName(camera):
-            return camera
+        camera_name = next(iter(instance.data["cameras"]))
+        viewport_camera = rt.viewport.GetCamera()
+        target_camera = rt.getNodeByName(camera_name)
+        if viewport_camera != target_camera:
+            return camera_name
         return None
 
     @classmethod
