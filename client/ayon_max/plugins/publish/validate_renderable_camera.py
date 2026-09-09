@@ -38,9 +38,7 @@ class ValidateRenderableCamera(pyblish.api.InstancePlugin,
 
     @classmethod
     def get_invalid_cmaera_nodes(cls, instance):
-        if not instance.data["cameras"]:
-           return True
-        return False
+        return not instance.data.get("cameras")
 
     @classmethod
     def get_mismatch_camera(cls, instance):
