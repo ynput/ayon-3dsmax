@@ -2,7 +2,8 @@
 import pyblish.api
 from ayon_core.pipeline import (
     PublishValidationError,
-    OptionalPyblishPluginMixin)
+    OptionalPyblishPluginMixin,
+)
 from ayon_core.pipeline.publish import RepairAction
 from pymxs import runtime as rt
 
