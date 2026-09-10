@@ -26,12 +26,21 @@ class ValidateNoActiveViewport(pyblish.api.ContextPlugin,
             return
         if not rt.rendUseActiveView:
             raise PublishValidationError(
-                title="Render active viewport disabled in the render settings",
+                title="No Active Render Viewport",
                 message=(
-                    "We need to enable the render active viewport in the render settings"
-                    "to make sure the correct render viewport is used. Please use repair"
-                    "action to activate it."
+                    "The render active viewport is currently disabled "
+                    "in the render settings. Please use the repair action "
+                    "to activate it."
+                ),
+                description=(
+                    "## Render Active Render Viewport\n"
+                    "The render active viewport is currently "
+                    "disabled in the render settings.\n\n"
+                    "We need to enable the render active viewport "
+                    "to ensure the correct render viewport is used.\n\n"
+                    "You can use the repair action to activate it."
                 )
+
             )
 
     @classmethod
