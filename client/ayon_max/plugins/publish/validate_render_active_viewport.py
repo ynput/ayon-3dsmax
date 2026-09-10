@@ -1,14 +1,10 @@
-"""Validates whether the active viewport is set in render settings."""
+"""Validates whether the render active viewport is set in render settings."""
 import pyblish.api
 from ayon_core.pipeline import (
     PublishValidationError,
     OptionalPyblishPluginMixin)
 from ayon_core.pipeline.publish import RepairAction
-
-try:
-    from pymxs import runtime as rt
-except ImportError:
-    rt = None
+from pymxs import runtime as rt
 
 
 class ValidateNoActiveViewport(pyblish.api.ContextPlugin,
@@ -21,7 +17,7 @@ class ValidateNoActiveViewport(pyblish.api.ContextPlugin,
     order = pyblish.api.ValidatorOrder
     families = ["maxrender"]
     hosts = ["max"]
-    label = "No Active Viewport"
+    label = "No Render Active Viewport"
     optional = False
     actions = [RepairAction]
 
@@ -30,7 +26,12 @@ class ValidateNoActiveViewport(pyblish.api.ContextPlugin,
             return
         if not rt.rendUseActiveView:
             raise PublishValidationError(
-                "No active viewport is set in the render settings."
+                title="Render active viewport disabled in the render settings",
+                message=(
+                    "We need to enable the render active viewport in the render settings"
+                    "to make sure the correct render viewport is used. Please use repair"
+                    "action to activate it."
+                )
             )
 
     @classmethod
