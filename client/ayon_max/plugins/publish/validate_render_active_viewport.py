@@ -46,4 +46,3 @@ class ValidateNoActiveViewport(pyblish.api.ContextPlugin,
     @classmethod
     def repair(cls, context):
         rt.rendUseActiveView = True
-        rt.renderSceneDialog.update()
