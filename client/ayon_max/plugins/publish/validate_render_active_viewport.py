@@ -4,7 +4,7 @@ from ayon_core.pipeline import (
     PublishValidationError,
     OptionalPyblishPluginMixin,
 )
-from ayon_core.pipeline.publish import RepairAction
+from ayon_core.pipeline.publish import RepairContextAction
 from pymxs import runtime as rt
 
 
@@ -20,7 +20,7 @@ class ValidateNoActiveViewport(pyblish.api.ContextPlugin,
     hosts = ["max"]
     label = "No Render Active Viewport"
     optional = False
-    actions = [RepairAction]
+    actions = [RepairContextAction]
 
     def process(self, context):
         if not self.is_active(context.data):
