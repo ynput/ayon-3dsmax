@@ -7,6 +7,7 @@ import tempfile
 
 from pymxs import runtime as rt
 from ayon_core.lib import run_subprocess
+from ayon_max.api.lib import get_max_version
 from ayon_max.api.lib_rendersettings import RenderSettings
 from ayon_max.api.lib_renderproducts import RenderProducts
 
@@ -38,6 +39,7 @@ class SaveScenesForCamera(pyblish.api.InstancePlugin):
         cameras = instance.data.get("cameras")
         if not cameras:
             return
+        renderer = instance.data["renderer"]
         new_folder = f"{current_folder}_{filename}"
         os.makedirs(new_folder, exist_ok=True)
         render_settings = RenderSettings(data=instance.data)
@@ -60,36 +62,70 @@ new_filepath = "{new_filepath}"
 new_output = "{new_output}"
 camera = "{camera}"
 farm = {farm}
+renderer = "{renderer}"
 camera_name = camera.replace(":", "_")
+rt.rendUseActiveView = True
 target_camera_node = rt.getNodeByName(camera)
 rt.viewport.setCamera(target_camera_node)
 rt.rendOutputFilename = new_output
 directory = os.path.dirname(rt.rendOutputFilename)
 directory = os.path.join(directory, filename)
-if not os.path.exists(directory):
-    os.mkdir(directory)
-render_elem = rt.maxOps.GetCurRenderElementMgr()
-render_elem_num = render_elem.NumRenderElements()
-if render_elem_num > 0:
-    ext = "{ext}"
-    for i in range(render_elem_num):
-        renderlayer_name = render_elem.GetRenderElement(i)
-        target, renderpass = str(renderlayer_name).split(":")
-        aov_name =  f"{{directory}}_{{camera_name}}_{{renderpass}}..{ext}"
-        render_elem.SetRenderElementFileName(i, aov_name)
+os.makedirs(directory, exist_ok=True)
+
+if renderer.startswith("V_Ray_"):
+    if "GPU" in renderer:
+        vray_settings = rt.renderers.current.V_Ray_settings
+    else:
+        vray_settings = rt.renderers.current
+
+    if vray_settings.output_saverawfile:
+       vray_settings.output_rawfilename = f"{{directory}}_{{camera_name}}.{ext}"
+
+    if vray_settings.output_splitgbuffer:
+        vray_settings.output_splitfilename = f"{{directory}}_{{camera_name}}.{ext}"
+    else:
+        rt.rendOutputFilename = f"{{directory}}_{{camera_name}}_tmp..{ext}"
+
+elif renderer.startswith("Arnold"):
+    aov_manager = rt.renderers.current.AOVManager
+    aov_driver = aov_manager.drivers[0]
+    instance_name = aov_driver.filenameSuffix
+    instance_name = instance_name.strip(".")
+    aov_driver.filenameSuffix = f"{{instance_name}}_{{camera_name}}."
+
+else:
+    render_elem = rt.maxOps.GetCurRenderElementMgr()
+    render_elem_num = render_elem.NumRenderElements()
+    if render_elem_num > 0:
+            ext = "{ext}"
+            for i in range(render_elem_num):
+                renderlayer_name = render_elem.GetRenderElement(i)
+                target, renderpass = str(renderlayer_name).split(":")
+                aov_name =  f"{{directory}}_{{camera_name}}_{{renderpass}}..{ext}"
+                render_elem.SetRenderElementFileName(i, aov_name)
+
+rt.renderSceneDialog.update()
 rt.saveMaxFile(new_filepath)
 if not farm:
-    for frame in range(int(rt.rendStart), int(rt.rendEnd) + 1):
-        rt.render(outputFile=rt.rendOutputFilename, frame=frame, vfb=False)
+    if not renderer.startswith("Arnold"):
+        for frame in range(int(rt.rendStart), int(rt.rendEnd) + 1):
+            rt.render(frame=frame, camera=target_camera_node, vfb=False)
+    else:
+        for frame in range(int(rt.rendStart), int(rt.rendEnd) + 1):
+            outputfile = f"{{directory}}_{{camera_name}}.{{frame}}.{ext}"
+            rt.render(outputfile=outputfile, frame=frame, camera=target_camera_node, vfb=False)
         """).format(filename=instance.name,
                     new_filepath=new_filepath,
                     new_output=new_output,
                     camera=camera,
                     ext=fmt,
+                    renderer=renderer,
                     farm=instance.data.get("farm"))
             scripts.append(script)
-        maxbatch_exe = os.path.join(
-            os.path.dirname(sys.executable), "3dsmaxbatch")
+        max_directory = os.path.dirname(sys.executable)
+        if get_max_version() >= 2026:
+            max_directory = os.path.dirname(max_directory)
+        maxbatch_exe = os.path.join(max_directory, "3dsmaxbatch")
         maxbatch_exe = maxbatch_exe.replace("\\", "/")
         if platform.system().lower() == "windows":
             maxbatch_exe += ".exe"
@@ -104,7 +140,7 @@ if not farm:
                     tmp.write(script + "\n")
 
             full_script = "\n".join(scripts)
-            self.log.debug(f"Failed running script {tmp_script_path}:\n{full_script}")
+            self.log.debug(f"Prepared script {tmp_script_path}:\n{full_script}")
             current_filepath = current_filepath.replace("\\", "/")
             tmp_script_path = tmp_script_path.replace("\\", "/")
             run_subprocess([maxbatch_exe, tmp_script_path,
