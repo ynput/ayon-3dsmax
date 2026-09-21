@@ -2,7 +2,11 @@
 """Validator for Attributes."""
 import json
 
-from pyblish.api import ContextPlugin, ValidatorOrder
+from pyblish.api import (
+    ContextPlugin,
+    ValidatorOrder,
+    Context,
+)
 from pymxs import runtime as rt
 
 from ayon_core.pipeline.publish import (
@@ -10,6 +14,7 @@ from ayon_core.pipeline.publish import (
     PublishValidationError,
     RepairContextAction
 )
+
 
 
 def has_property(object_name, property_name):
@@ -64,7 +69,7 @@ class ValidateAttributes(OptionalPyblishPluginMixin,
     settings_category = "max"
 
     @classmethod
-    def get_invalid(cls, context):
+    def get_invalid(cls, context: Context) -> list[tuple[str, str]]:
         attributes = json.loads(
             context.data
             ["project_settings"]
@@ -73,9 +78,10 @@ class ValidateAttributes(OptionalPyblishPluginMixin,
             ["ValidateAttributes"]
             ["attributes"]
         )
-        if not attributes:
-            return
         invalid = []
+        if not attributes:
+            return invalid
+
         for object_name, required_properties in attributes.items():
             if not rt.Execute(f"isValidValue {object_name}"):
                 # Skip checking if the node does not
@@ -89,7 +95,6 @@ class ValidateAttributes(OptionalPyblishPluginMixin,
                     cls.log.error(
                         "Non-existing property: "
                         f"{object_name}.{property_name}")
-                    invalid.append((object_name, property_name))
                     continue
 
                 if not is_matching_value(object_name, property_name, value):
@@ -100,7 +105,7 @@ class ValidateAttributes(OptionalPyblishPluginMixin,
 
         return invalid
 
-    def process(self, context):
+    def process(self, context: Context) -> None:
         if not self.is_active(context.data):
             self.log.debug("Skipping Validate Attributes...")
             return
@@ -120,7 +125,7 @@ class ValidateAttributes(OptionalPyblishPluginMixin,
                 report, title="Invalid Value(s) for Required Attribute(s)")
 
     @classmethod
-    def repair(cls, context):
+    def repair(cls, context: Context) -> None:
         attributes = json.loads(
             context.data
             ["project_settings"]
@@ -130,12 +135,8 @@ class ValidateAttributes(OptionalPyblishPluginMixin,
             ["attributes"]
         )
         invalid_attributes = cls.get_invalid(context)
-        if not invalid_attributes:
-            return
         for attrs in invalid_attributes:
             prop, attr = attrs
-            if not has_property(prop, attr):
-                continue
             value = attributes[prop][attr]
             if isinstance(value, str) and not value.startswith("#"):
                 attribute_fix = '{}.{}="{}"'.format(
