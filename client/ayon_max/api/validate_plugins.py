@@ -135,7 +135,6 @@ class ValidateRenderSettingsBase(object):
         multicam: bool = False,
         cameras: Optional[list[str]] = None,
         sync_current_workfile: bool = True,
-        render_output_filename: Optional[str] = None,
     ) -> list[tuple[str, str]]:
         """Get the invalid render output settings.
 
@@ -148,56 +147,29 @@ class ValidateRenderSettingsBase(object):
                 to validate. Defaults to None.
             sync_current_workfile (bool, optional): Whether to validate against the current
                 workfile name pattern. Defaults to True.
-            render_output_filename (Optional[str], optional): The output path
-                to validate. Defaults to the current render output path.
 
         Returns:
             list[tuple[str, str]]: A list of tuples containing the error type
                 and the invalid filepath.
         """
         invalid = []
-        if multicam and cameras:
-            for camera in cameras:
-                view_index = rt.batchRenderMgr.FindView(camera)
-                if view_index == 0:
-                    invalid.append((
-                        "Invalid render output filename",
-                        f"No Batch Render view is configured for camera: {camera}",
-                    ))
-                    continue
-
-                output_filename = rt.batchRenderMgr.GetView(
-                    view_index
-                ).outputFilename
-                invalid.extend(cls.get_invalid_renderoutput(
-                    image_format,
-                    workfile_pattern,
-                    sync_current_workfile=sync_current_workfile,
-                    render_output_filename=output_filename,
-                ))
-
-                output_basename = os.path.basename(output_filename)
-                camera_name = camera.replace(":", "_")
-                if camera_name not in output_basename:
-                    invalid.append((
-                        "Invalid render output filename",
-                        "Render output filename should contain camera name "
-                        f"{camera_name}. Found: {output_basename}",
-                    ))
-            return invalid
-
-        render_output_filename = (
-            render_output_filename or rt.rendOutputFilename
-        )
-        beauty_dir = os.path.dirname(render_output_filename)
+        beauty_dir = os.path.dirname(rt.rendOutputFilename)
         if sync_current_workfile and workfile_pattern not in beauty_dir:
             msg = (
-                f"Invalid render output filename {render_output_filename}. "
+                f"Invalid render output filename {rt.rendOutputFilename}. "
                 f"Filename should contain the workfile name pattern: {workfile_pattern}."
             )
             invalid.append((msg, beauty_dir))
 
-        beauty_fname = os.path.basename(render_output_filename)
+        beauty_fname = os.path.basename(rt.rendOutputFilename)
+        if multicam and cameras:
+            for camera in cameras:
+                if camera not in beauty_fname:
+                    invalid.append((
+                        "Invalid render output filename",
+                        "Render output filename should contain camera name "
+                        f"{camera} when multiCamera is enabled. Found: {beauty_fname}",
+                    ))
 
         if not is_general_default_output_regex_matched(beauty_fname):
             invalid.append((
