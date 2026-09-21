@@ -134,6 +134,8 @@ class ValidateAttributes(OptionalPyblishPluginMixin,
             return
         for attrs in invalid_attributes:
             prop, attr = attrs
+            if not has_property(prop, attr):
+                continue
             value = attributes[prop][attr]
             if isinstance(value, str) and not value.startswith("#"):
                 attribute_fix = '{}.{}="{}"'.format(
