@@ -182,7 +182,7 @@ class ValidateRenderSettingsBase(object):
                     invalid.append((
                         "Invalid render output filename",
                         "Render output filename should contain camera name "
-                        f"{camera}. Found: {output_basename}",
+                        f"{camera_name}. Found: {output_basename}",
                     ))
             return invalid
 
