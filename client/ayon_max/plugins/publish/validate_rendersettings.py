@@ -249,6 +249,10 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
                 data=instance.data
             )
             render_settings.render_output()
+            render_settings.batch_render_layers_by_multi_camera(
+                os.path.dirname(rt.rendOutputFilename),
+                instance.data.get("cameras") or [],
+            )
             return
 
         cls.repair_generic_render_settings(instance, renderer_name, renderer)
