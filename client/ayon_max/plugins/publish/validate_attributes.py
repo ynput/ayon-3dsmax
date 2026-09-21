@@ -90,6 +90,7 @@ class ValidateAttributes(OptionalPyblishPluginMixin,
                         "Non-existing property: "
                         f"{object_name}.{property_name}")
                     invalid.append((object_name, property_name))
+                    continue
 
                 if not is_matching_value(object_name, property_name, value):
                     cls.log.error(
@@ -129,6 +130,8 @@ class ValidateAttributes(OptionalPyblishPluginMixin,
             ["attributes"]
         )
         invalid_attributes = cls.get_invalid(context)
+        if not invalid_attributes:
+            return
         for attrs in invalid_attributes:
             prop, attr = attrs
             value = attributes[prop][attr]
