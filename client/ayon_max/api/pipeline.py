@@ -331,7 +331,10 @@ def containerise(name: str, nodes: list, context,
     }
     if additional_data:
         data.update(additional_data)
-    container_name = f"{namespace}:{name}{suffix}"
+    if namespace:
+        container_name = f"{namespace}:{name}{suffix}"
+    else:
+        container_name = f"{name}{suffix}"
     container = rt.container(name=container_name)
     import_custom_attribute_data(container, nodes)
     if not lib.imprint(container_name, data):
@@ -369,7 +372,10 @@ def containerise_texture(name: str, context: dict,
         "view_node": view_node,
         "sme_view_number": sme_view_number,
     }
-    container_name = f"{namespace}:{name}{suffix}"
+    if namespace:
+        container_name = f"{namespace}:{name}{suffix}"
+    else:
+        container_name = f"{name}{suffix}"
     container = rt.container(name=container_name)
     if not lib.imprint(container_name, data):
         raise RuntimeError(f"imprinting of {container_name} failed.")
