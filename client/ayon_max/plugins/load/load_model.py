@@ -1,5 +1,6 @@
 import os
 from ayon_core.pipeline import load
+from ayon_core.pipeline.load import LoadError
 from ayon_max.api.pipeline import (
     containerise,
     get_previous_loaded_object,
@@ -50,7 +51,7 @@ class ModelAbcLoader(load.LoaderPlugin):
         abc_containers = abc_after.difference(abc_before)
 
         if len(abc_containers) != 1:
-            self.log.error("Something failed when loading.")
+            raise LoadError("Something failed when loading Alembic.")
 
         abc_container = abc_containers.pop()
 
