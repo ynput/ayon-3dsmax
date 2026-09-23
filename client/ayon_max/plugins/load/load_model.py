@@ -51,6 +51,7 @@ class ModelAbcLoader(load.LoaderPlugin):
         abc_containers = abc_after.difference(abc_before)
 
         if len(abc_containers) != 1:
+            rt.Delete(list(abc_containers))
             raise LoadError("Something failed when loading Alembic.")
 
         abc_container = abc_containers.pop()
