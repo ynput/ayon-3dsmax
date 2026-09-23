@@ -211,12 +211,17 @@ attributes "AYONContext"
         if lib.is_headless():
             return
 
-        ayon_menu = self.menu.menu
-        if ayon_menu is not None:
-            actions = ayon_menu.actions()
-            context_action = actions[0]
-            context_label = lib.get_context_label()
-            context_action.setText(f"{context_label}")
+        ayon_menu = self.menu
+        if ayon_menu is None or ayon_menu.menu is None:
+            return
+
+        actions = ayon_menu.menu.actions()
+        if not actions:
+            return
+
+        context_action = actions[0]
+        context_label = lib.get_context_label()
+        context_action.setText(f"{context_label}")
 
 
 def _on_scene_init(*args):
@@ -284,12 +289,15 @@ def on_init() -> None:
     if not os.path.exists(rt.ColorPipelineMgr.OCIOConfigPath):
         lib.reset_colorspace()
     last_workfile = os.getenv("AYON_LAST_WORKFILE")
-    if os.getenv("AVALON_OPEN_LAST_WORKFILE") != "1"  \
-        or not os.path.exists(last_workfile):
-            from .workfile_template_builder import trigger_on_app_launch
-            trigger_on_app_launch()
+    if (
+        os.getenv("AVALON_OPEN_LAST_WORKFILE") != "1"
+        or not last_workfile
+        or not os.path.exists(last_workfile)
+    ):
+        from .workfile_template_builder import trigger_on_app_launch
+        trigger_on_app_launch()
 
-            lib.set_context_settings()
+        lib.set_context_settings()
 
 
 def on_new() -> None:
