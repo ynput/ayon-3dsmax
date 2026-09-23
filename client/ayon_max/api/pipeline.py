@@ -284,12 +284,15 @@ def on_init() -> None:
     if not os.path.exists(rt.ColorPipelineMgr.OCIOConfigPath):
         lib.reset_colorspace()
     last_workfile = os.getenv("AYON_LAST_WORKFILE")
-    if os.getenv("AVALON_OPEN_LAST_WORKFILE") != "1"  \
-        or not os.path.exists(last_workfile):
-            from .workfile_template_builder import trigger_on_app_launch
-            trigger_on_app_launch()
+    if (
+        os.getenv("AVALON_OPEN_LAST_WORKFILE") != "1"
+        or not last_workfile
+        or not os.path.exists(last_workfile)
+    ):
+        from .workfile_template_builder import trigger_on_app_launch
+        trigger_on_app_launch()
 
-            lib.set_context_settings()
+        lib.set_context_settings()
 
 
 def on_new() -> None:
