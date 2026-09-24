@@ -8,7 +8,7 @@ from typing import Dict, Any
 
 import pymxs
 from pymxs import runtime as rt
-from ayon_core.pipeline.publish import PublishError
+from ayon_core.pipeline.publish import KnownPublishError
 from ayon_max.api import colorspace
 from ayon_max.api.lib import (
     get_max_version,
@@ -86,8 +86,8 @@ class CollectRender(pyblish.api.InstancePlugin):
         if instance.data.get("multiCamera"):
             cameras = instance.data.get("members")
             if not cameras:
-                raise PublishError("There should be at least"
-                                   " one renderable camera in container")
+                raise KnownPublishError("There should be at least"
+                                        " one renderable camera in container")
 
             sel_cam = [camera.name for camera in get_cameras_from_node(cameras)]
 
