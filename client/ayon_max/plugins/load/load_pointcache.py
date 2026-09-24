@@ -55,7 +55,7 @@ class AbcLoader(load.LoaderPlugin):
         # This should yield new AlembicContainer node
         abc_containers = abc_after.difference(abc_before)
 
-        if len(abc_containers) != 1:
+        if not abc_containers:
             rt.Delete(list(abc_containers))
             raise LoadError("Something failed when loading Alembic.")
 
