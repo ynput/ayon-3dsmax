@@ -72,11 +72,13 @@ class ObjLoader(load.LoaderPlugin):
         selections = rt.GetCurrentSelection()
         for selection in selections:
             selection.name = f"{namespace}:{selection.name}"
-            selection_transform = f"{selection}.transform"
-            if selection_transform in transform_data.keys():
-                selection.pos = transform_data[selection_transform] or 0
+            selection_translate = f"{selection}.translate"
+            if selection_translate in transform_data:
+                selection.pos = transform_data[selection_translate] or 0
+                selection.rotation = transform_data[
+                    f"{selection}.rotation"] or rt.Quat(0, 0, 0, 1)
                 selection.scale = transform_data[
-                    f"{selection}.scale"] or 0
+                    f"{selection}.scale"] or rt.Point3(1, 1, 1)
         update_custom_attribute_data(node, selections)
         with maintained_selection():
             rt.Select(node)
