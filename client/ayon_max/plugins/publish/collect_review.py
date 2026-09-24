@@ -27,8 +27,8 @@ class CollectReview(pyblish.api.InstancePlugin,
             is_camera_class = rt.classOf(node) in rt.Camera.classes
             if hasattr(node, "children") and not is_camera_class:
                 for node_children in node.children:
-                    is_camera_class = rt.classOf(node_children) in rt.Camera.classes
-                    return is_camera_class
+                    if rt.classOf(node_children) in rt.Camera.classes:
+                        return True
 
             return is_camera_class
 
