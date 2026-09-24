@@ -7,7 +7,7 @@ from ayon_core.lib import BoolDef, UISeparatorDef, UILabelDef
 from ayon_max.api.lib import get_max_version
 from ayon_core.pipeline.publish import (
     AYONPyblishPluginMixin,
-    KnownPublishError
+    PublishError
 )
 
 
@@ -67,7 +67,7 @@ class CollectReview(pyblish.api.InstancePlugin,
             # implement this specifically for imported cameras
             focal_length = get_focal_length(camera)
         else:
-            raise KnownPublishError(
+            raise PublishError(
                 "Unable to find a valid camera in 'Review' container."
                 " Only native max Camera supported. "
                 f"Found objects: {nodes}"
