@@ -147,8 +147,8 @@ class MaxPlaceholderPlugin(PlaceholderPlugin):
 
         # Delete attributes to ensure we imprint new data with correct type
         target_node = rt.getNodeByName(node_name)
-        for key in changed_values:
-            placeholder_item.data[key] = changed_values[key]
+        for key, value in changed_values.items():
+            placeholder_item.data[key] = value
             if rt.getUserProp(target_node, key) is not None:
                 rt.deleteUserProp(target_node, key)
 
