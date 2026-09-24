@@ -56,7 +56,6 @@ class AbcLoader(load.LoaderPlugin):
         abc_containers = abc_after.difference(abc_before)
 
         if not abc_containers:
-            rt.Delete(list(abc_containers))
             raise LoadError("Something failed when loading Alembic.")
 
         abc_container = abc_containers.pop()
