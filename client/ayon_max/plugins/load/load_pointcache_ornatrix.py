@@ -96,13 +96,13 @@ class OxAbcLoader(load.LoaderPlugin):
             abc.Parent = container
             abc.name = f"{namespace}:{abc.name}"
             ox_abc_objects.append(abc)
-            ox_translate = f"{abc}.translate"
+            ox_translate = f"{abc.name}.translate"
             if ox_translate in transform_data:
                 abc.pos = transform_data[ox_translate] or 0
                 abc.rotation = transform_data[
-                    f"{abc}.rotation"] or rt.Quat(0, 0, 0, 1)
+                    f"{abc.name}.rotation"] or rt.Quat(0, 0, 0, 1)
                 abc.scale = transform_data[
-                    f"{abc}.scale"] or rt.Point3(1, 1, 1)
+                    f"{abc.name}.scale"] or rt.Point3(1, 1, 1)
         update_custom_attribute_data(node, ox_abc_objects)
         lib.imprint(container["instance_node"], {
             "representation": repre_entity["id"],
