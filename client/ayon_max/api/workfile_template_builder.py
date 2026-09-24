@@ -130,7 +130,7 @@ class MaxPlaceholderPlugin(PlaceholderPlugin):
 
         placeholder = rt.Container(name=placeholder_name)
         if parent_object:
-            parent_object.children = placeholder
+            placeholder.parent = parent_object
             imprinted_placeholder = parent_object.name
         else:
             imprinted_placeholder = placeholder.name
@@ -189,9 +189,11 @@ class MaxPlaceholderPlugin(PlaceholderPlugin):
         # If we just populate the placeholders from current scene, the
         # placeholder set will not be created so account for that.
         placeholder_set = rt.getNodebyName(PLACEHOLDER_SET)
-        if placeholder_set:
+        if not placeholder_set:
             placeholder_set = rt.Container(name=PLACEHOLDER_SET)
-        placeholder_set.children = node
+        node_obj = rt.getNodeByName(node)
+        if node_obj:
+            node_obj.parent = placeholder_set
         placeholder_set.isHidden = True
 
     def delete_placeholder(self, placeholder):
