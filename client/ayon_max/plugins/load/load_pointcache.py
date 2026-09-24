@@ -6,6 +6,7 @@ Because of limited api, alembics can be only loaded, but not easily updated.
 """
 import os
 from ayon_core.pipeline import load
+from ayon_core.pipeline.load import LoadError
 from ayon_max.api import lib, maintained_selection
 from ayon_max.api.lib import unique_namespace, reset_frame_range
 from ayon_max.api.pipeline import (
@@ -54,8 +55,8 @@ class AbcLoader(load.LoaderPlugin):
         # This should yield new AlembicContainer node
         abc_containers = abc_after.difference(abc_before)
 
-        if len(abc_containers) != 1:
-            self.log.error("Something failed when loading.")
+        if not abc_containers:
+            raise LoadError("Something failed when loading Alembic.")
 
         abc_container = abc_containers.pop()
         selections = rt.GetCurrentSelection()

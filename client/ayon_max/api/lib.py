@@ -138,7 +138,7 @@ def read(container) -> dict:
 
     for line in props.split("\r\n"):
         try:
-            key, value = line.split("=")
+            key, value = line.split("=", 1)
         except ValueError:
             # if the line cannot be split we can't really parse it
             continue
