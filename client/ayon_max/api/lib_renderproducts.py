@@ -225,7 +225,6 @@ class RenderProducts(object):
             vray_settings,
         )
         if not is_save_vray_exr_rawfile and not is_render_element:
-            # In non-raw mode V-Ray writes the beauty output to `rt.rendOutputFilename`.
             return ""
         output_attr = (
             "output_rawfilename"
