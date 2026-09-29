@@ -337,6 +337,9 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
 
         render_elem = rt.maxOps.GetCurRenderElementMgr()
         render_elem_num = render_elem.NumRenderElements()
+
+        rt.rendSaveFile = True
+
         if render_elem_num < 1:
             return
 
@@ -354,7 +357,6 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
                 render_elem.GetRenderElementFilename(index),
             )
 
-        rt.rendSaveFile = True
         rt.renderSceneDialog.update()
 
 
