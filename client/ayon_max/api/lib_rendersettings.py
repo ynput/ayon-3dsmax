@@ -289,7 +289,7 @@ class RenderSettings(object):
         filename, _ = os.path.splitext(rt.MaxFileName)
         render_output = rt.rendOutputFilename
         if render_output:
-            output_dir = os.path.splitext(render_output)[0].rstrip(".")
+            output_dir = os.path.dirname(render_output)
         else:
             output_dir = (
                 os.path.join(render_folder, filename.strip("."))
