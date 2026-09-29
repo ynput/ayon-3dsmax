@@ -546,7 +546,7 @@ def convert_unit_scale():
         "kilometers": "km"
     }
     current_unit_scale = rt.Execute("units.MetricType as string")
-    return unit_scale_dict[current_unit_scale]
+    return unit_scale_dict[current_unit_scale.lower().lstrip("#")]
 
 
 def set_context_settings(resolution=True,
