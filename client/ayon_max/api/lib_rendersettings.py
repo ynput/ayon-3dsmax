@@ -99,8 +99,8 @@ class RenderSettings(object):
         width = folder_attributes.get("resolutionWidth")
         height = folder_attributes.get("resolutionHeight")
         # Set Frame Range
-        frame_start = folder_attributes.get("frame_start")
-        frame_end = folder_attributes.get("frame_end")
+        frame_start = folder_attributes.get("frameStart")
+        frame_end = folder_attributes.get("frameEnd")
         set_render_frame_range(frame_start, frame_end)
         # get the production render
         renderer = get_current_renderer()
