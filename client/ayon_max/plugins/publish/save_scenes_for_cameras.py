@@ -89,9 +89,7 @@ if renderer.startswith("V_Ray_"):
 elif renderer.startswith("Arnold"):
     aov_manager = rt.renderers.current.AOVManager
     aov_driver = aov_manager.drivers[0]
-    instance_name = aov_driver.filenameSuffix
-    instance_name = instance_name.strip(".")
-    aov_driver.filenameSuffix = f"{{instance_name}}_{{camera_name}}."
+    aov_driver.filenameSuffix = f"{{filename}}_{{camera_name}}."
 
 else:
     render_elem = rt.maxOps.GetCurRenderElementMgr()
@@ -112,7 +110,7 @@ if not farm:
             rt.render(frame=frame, camera=target_camera_node, vfb=False)
     else:
         for frame in range(int(rt.rendStart), int(rt.rendEnd) + 1):
-            outputfile = f"{{directory}}_{{camera_name}}.{{frame}}.{ext}"
+            outputfile = f"{{directory}}_{{camera_name}}.{{frame:04d}}.{ext}"
             rt.render(outputfile=outputfile, frame=frame, camera=target_camera_node, vfb=False)
         """).format(filename=instance.name,
                     new_filepath=new_filepath,
