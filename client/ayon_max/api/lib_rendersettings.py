@@ -287,7 +287,14 @@ class RenderSettings(object):
         render_folder = get_default_render_folder(self._data, self.project_settings)
         sync_name = self._data.get("sync_current_workfile_name", True)
         filename, _ = os.path.splitext(rt.MaxFileName)
-        output_dir = os.path.join(render_folder, filename.strip(".")) if sync_name else render_folder
+        render_output = rt.rendOutputFilename
+        if render_output:
+            output_dir = os.path.splitext(render_output)[0].rstrip(".")
+        else:
+            output_dir = (
+                os.path.join(render_folder, filename.strip("."))
+                if sync_name else render_folder
+            )
         output = os.path.join(output_dir, container)
         for cam in cameras:
             camera = rt.getNodeByName(cam)
