@@ -97,12 +97,12 @@ else:
     render_elem = rt.maxOps.GetCurRenderElementMgr()
     render_elem_num = render_elem.NumRenderElements()
     if render_elem_num > 0:
-            ext = "{ext}"
-            for i in range(render_elem_num):
-                renderlayer_name = render_elem.GetRenderElement(i)
-                target, renderpass = str(renderlayer_name).split(":")
-                aov_name =  f"{{directory}}_{{camera_name}}_{{renderpass}}..{ext}"
-                render_elem.SetRenderElementFileName(i, aov_name)
+        ext = "{ext}"
+        for i in range(render_elem_num):
+            renderlayer_name = render_elem.GetRenderElement(i)
+            target, renderpass = str(renderlayer_name).split(":")
+            aov_name =  f"{{directory}}_{{camera_name}}_{{renderpass}}..{ext}"
+            render_elem.SetRenderElementFileName(i, aov_name)
 
 rt.renderSceneDialog.update()
 rt.saveMaxFile(new_filepath)
