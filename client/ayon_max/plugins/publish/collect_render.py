@@ -56,6 +56,9 @@ class CollectRender(pyblish.api.InstancePlugin):
 
         filepath = context.data["currentFile"]
 
+        instance.data["sync_current_workfile_name"] = (
+            self.sync_current_workfile_name
+        )
         if self.sync_current_workfile_name:
             filename = os.path.basename(filepath)
             filename_pattern = os.path.splitext(filename)[0].strip(".")
