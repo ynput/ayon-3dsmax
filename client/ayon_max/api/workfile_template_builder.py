@@ -131,7 +131,7 @@ class MaxPlaceholderPlugin(PlaceholderPlugin):
         placeholder = rt.Container(name=placeholder_name)
         if parent_object:
             placeholder.parent = parent_object
-            imprinted_placeholder = parent_object.name
+            imprinted_placeholder = placeholder.name
         else:
             imprinted_placeholder = placeholder.name
 
