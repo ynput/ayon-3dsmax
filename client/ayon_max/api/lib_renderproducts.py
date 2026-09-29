@@ -302,7 +302,10 @@ class RenderProducts(object):
         name = name.strip(".")
         aov_name = aov_name.strip()
         if camera is not None:
-            name = f"{name}_{camera}"
+            name = self.get_aov_name_for_multi_camera(
+                aov_name, renderer_name, name, camera
+            )
+
         for frame in range(start_frame, end_frame + 1):
             aov_filename =  f"{name}.{frame:04d}{ext}"
             expected_aov = os.path.join(directory, aov_filename)
@@ -425,6 +428,37 @@ class RenderProducts(object):
         """
         renderer_name = str(renderer).split(":")[0]
         return renderer_name.startswith("Arnold") and image_format == "exr"
+
+    def get_aov_name_for_multi_camera(
+        self,
+        aov_name: str,
+        renderer_name: str,
+        name: str,
+        camera: str) -> str:
+        """Get aov name for multi camera
+
+        Args:
+            aov_name (str): aov name
+            renderer_name (str): renderer name
+            name (str): render element name
+            camera (str): camera name
+
+        Returns:
+            str: updated aov name for multi camera
+        """
+        # Supported non-V-Ray renderers already embed the pass name in the
+        # render-element filepath ("<product>_<pass>..ext"), and the
+        # multi-camera scene scripts render to "<product>_<camera>_<pass>".
+        # Insert the camera before the pass so the expected paths match.
+        if (
+            aov_name
+            and not renderer_name.startswith("V_Ray_")
+            and name.endswith(f"_{aov_name}")
+        ):
+            base = name[: -len(f"_{aov_name}")]
+            return f"{base}_{camera}_{aov_name}"
+
+        return f"{name}_{camera}"
 
     def image_format(self) -> str:
         """Get the image format of the render output.
