@@ -134,6 +134,10 @@ class PublishersModel(BaseSettingsModel):
         default_factory=ValidateModelNameModel,
         title="Validate Model Name"
     )
+    ValidateNoActiveViewport: BasicValidateModel = SettingsField(
+        default_factory=BasicValidateModel,
+        title="Validate No Active Viewport"
+    )
     ValidateRenderPasses: BasicValidateModel = SettingsField(
         default_factory=BasicValidateModel,
         title="Validate Render Passes"
@@ -215,6 +219,11 @@ DEFAULT_PUBLISH_SETTINGS = {
         "enabled": True,
         "optional": True,
         "active": False,
+    },
+    "ValidateNoActiveViewport": {
+        "enabled": True,
+        "optional": False,
+        "active": True
     },
     "ValidateRenderPasses": {
         "enabled": True,
