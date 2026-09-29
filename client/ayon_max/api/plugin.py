@@ -282,7 +282,7 @@ class MaxCreatorBase(object):
 
         for i in cached_instances:
             creator_id = rt.GetUserProp(i, "creator_identifier")
-            if "openpype" in creator_id:
+            if creator_id and "openpype" in creator_id:
                 # Legacy creator instance
                 shared_data["max_cached_legacy_instances"].setdefault(
                     creator_id, []).append(i.name)

@@ -41,13 +41,20 @@ class CollectTyFlowData(pyblish.api.InstancePlugin,
 
         for tyc_product_name in tyc_product_names:
             self.log.debug(f"Creating instance for operator:{tyc_product_name}")
-            tyc_instance = context.create_instance(tyc_product_name)
-            tyc_instance[:] = instance[:]
-            tyc_instance.data.update(copy.deepcopy(dict(instance.data)))
             # Replace all runs of whitespace with underscore
             prod_name = re.sub(r"\s+", "_", tyc_product_name)
             operator = next((node for node in get_tyflow_export_operators()
                              if node.name == tyc_product_name), None)   # noqa
+            if operator is None:
+                self.log.warning(
+                    f"No matching export operator found for "
+                    f"{tyc_product_name}. Skipping instance creation."
+                )
+                continue
+
+            tyc_instance = context.create_instance(tyc_product_name)
+            tyc_instance[:] = instance[:]
+            tyc_instance.data.update(copy.deepcopy(dict(instance.data)))
 
             product_base_type = (
                 "tycache"
