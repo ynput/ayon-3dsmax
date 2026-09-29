@@ -7,7 +7,7 @@ from ayon_core.lib import BoolDef, UISeparatorDef, UILabelDef
 from ayon_max.api.lib import get_max_version
 from ayon_core.pipeline.publish import (
     AYONPyblishPluginMixin,
-    KnownPublishError
+    PublishError
 )
 
 
@@ -23,14 +23,19 @@ class CollectReview(pyblish.api.InstancePlugin,
     def process(self, instance):
         nodes = instance.data["members"]
 
-        def is_camera(node):
-            is_camera_class = rt.classOf(node) in rt.Camera.classes
-            if hasattr(node, "children") and not is_camera_class:
-                for node_children in node.children:
-                    is_camera_class = rt.classOf(node_children) in rt.Camera.classes
-                    return is_camera_class
+        def get_camera(node):
+            """Return the camera node for the given node.
 
-            return is_camera_class
+            Returns the node itself when it is a camera, otherwise the first
+            camera among its direct children, or None when no camera is found.
+            """
+            if rt.classOf(node) in rt.Camera.classes:
+                return node
+            if hasattr(node, "children"):
+                for child in node.children:
+                    if rt.classOf(child) in rt.Camera.classes:
+                        return child
+            return None
 
         def get_focal_length(camera_node):
             """Get focal length from camera node or its children."""
@@ -48,7 +53,8 @@ class CollectReview(pyblish.api.InstancePlugin,
             return 45.0
 
         # Use first camera in instance
-        cameras = [node for node in nodes if is_camera(node)]
+        cameras = [cam for cam in (get_camera(node) for node in nodes)
+                   if cam is not None]
         if cameras:
             if len(cameras) > 1:
                 self.log.warning(
@@ -61,7 +67,7 @@ class CollectReview(pyblish.api.InstancePlugin,
             # implement this specifically for imported cameras
             focal_length = get_focal_length(camera)
         else:
-            raise KnownPublishError(
+            raise PublishError(
                 "Unable to find a valid camera in 'Review' container."
                 " Only native max Camera supported. "
                 f"Found objects: {nodes}"
