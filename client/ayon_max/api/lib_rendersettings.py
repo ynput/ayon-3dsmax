@@ -207,7 +207,7 @@ class RenderSettings(object):
         for i in range(render_elem_num):
             renderlayer = render_elem.GetRenderElement(i)
             if not renderlayer.enabled:
-                return
+                continue
             renderpass = renderlayer.elementname
             aov_name = f"{dir}_{renderpass}..{ext}"
             render_elem.SetRenderElementFileName(i, aov_name)
