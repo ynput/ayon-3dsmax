@@ -56,10 +56,7 @@ class CreateRender(MaxCreator):
             for sel in self.selected_nodes:
                 name = sel.name
                 selected_nodes_name.append(name)
-            output_dir = os.path.dirname(rt.rendOutputFilename)
-            render_settings.batch_render_layers_by_multi_camera(
-                output_dir, selected_nodes_name
-            )
+            render_settings.batch_render_layers_by_multi_camera(selected_nodes_name)
 
     def get_instance_attr_defs(self):
         render_target_items: dict[str, str] = {

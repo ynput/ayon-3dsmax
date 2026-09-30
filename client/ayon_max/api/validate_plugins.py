@@ -160,16 +160,7 @@ class ValidateRenderSettingsBase(object):
                 f"Filename should contain the workfile name pattern: {workfile_pattern}."
             )
             invalid.append((msg, beauty_dir))
-
         beauty_fname = os.path.basename(rt.rendOutputFilename)
-        if multicam and cameras:
-            for camera in cameras:
-                if camera not in beauty_fname:
-                    invalid.append((
-                        "Invalid render output filename",
-                        "Render output filename should contain camera name "
-                        f"{camera} when multiCamera is enabled. Found: {beauty_fname}",
-                    ))
 
         if not is_general_default_output_regex_matched(beauty_fname):
             invalid.append((
