@@ -4,7 +4,8 @@ from ayon_max.api import lib
 from ayon_max.api.lib import (
     unique_namespace,
     get_namespace,
-    object_transform_set
+    object_transform_set,
+    object_transform_restore
 )
 from ayon_max.api.pipeline import (
     containerise,
@@ -84,13 +85,7 @@ class FbxLoader(load.LoaderPlugin):
         for fbx_object in current_fbx_objects:
             fbx_object.name = f"{namespace}:{fbx_object.name}"
             fbx_objects.append(fbx_object)
-            fbx_translate = f"{fbx_object.name}.translate"
-            if fbx_translate in transform_data:
-                fbx_object.pos = transform_data[fbx_translate] or 0
-                fbx_object.rotation = transform_data[
-                    f"{fbx_object.name}.rotation"] or rt.Quat(0, 0, 0, 1)
-                fbx_object.scale = transform_data[
-                    f"{fbx_object.name}.scale"] or rt.Point3(1, 1, 1)
+            object_transform_restore(fbx_object, transform_data)
 
         update_custom_attribute_data(node, fbx_objects)
         lib.imprint(container["instance_node"], {

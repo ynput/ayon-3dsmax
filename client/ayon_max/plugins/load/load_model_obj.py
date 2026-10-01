@@ -5,7 +5,8 @@ from ayon_max.api.lib import (
     unique_namespace,
     get_namespace,
     maintained_selection,
-    object_transform_set
+    object_transform_set,
+    object_transform_restore
 )
 from ayon_max.api.pipeline import (
     containerise,
@@ -72,13 +73,7 @@ class ObjLoader(load.LoaderPlugin):
         selections = rt.GetCurrentSelection()
         for selection in selections:
             selection.name = f"{namespace}:{selection.name}"
-            selection_translate = f"{selection}.translate"
-            if selection_translate in transform_data:
-                selection.pos = transform_data[selection_translate] or 0
-                selection.rotation = transform_data[
-                    f"{selection}.rotation"] or rt.Quat(0, 0, 0, 1)
-                selection.scale = transform_data[
-                    f"{selection}.scale"] or rt.Point3(1, 1, 1)
+            object_transform_restore(selection, transform_data)
         update_custom_attribute_data(node, selections)
         with maintained_selection():
             rt.Select(node)
