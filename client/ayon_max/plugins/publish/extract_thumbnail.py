@@ -47,7 +47,7 @@ class ExtractThumbnail(publish.Extractor):
         representation = {
             "name": "thumbnail",
             "ext": ext,
-            "files": thumbnail,
+            "files": [thumbnail],
             "stagingDir": staging_dir,
             "thumbnail": True
         }
