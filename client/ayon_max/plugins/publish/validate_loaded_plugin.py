@@ -73,9 +73,12 @@ class ValidateLoadedPlugin(OptionalPyblishPluginMixin,
             return []
 
         # get all DLL loaded plugins in Max and their plugin index
+        # 'get_plugins' collects the names with a 1 based loop, but the
+        # plugin index used by 3ds Max is 1 based as well, so the 0 based
+        # enumerate index has to be shifted by one
         available_plugins = {
-            plugin_name.lower(): index for index, plugin_name in enumerate(
-                get_plugins())
+            plugin_name.lower(): index + 1
+            for index, plugin_name in enumerate(get_plugins())
         }
         # validate the required plug-ins
         for plugin in sorted(all_required_plugins):
@@ -117,9 +120,12 @@ class ValidateLoadedPlugin(OptionalPyblishPluginMixin,
             return
 
         # get all DLL loaded plugins in Max and their plugin index
+        # 'get_plugins' collects the names with a 1 based loop, but the
+        # plugin index used by 3ds Max is 1 based as well, so the 0 based
+        # enumerate index has to be shifted by one
         available_plugins = {
-            plugin_name.lower(): index for index, plugin_name in enumerate(
-                get_plugins())
+            plugin_name.lower(): index + 1
+            for index, plugin_name in enumerate(get_plugins())
         }
 
         for invalid_plugin, _ in invalid:
