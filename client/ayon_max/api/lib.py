@@ -464,7 +464,7 @@ def reset_frame_range(fps: bool = True):
     project_name = get_current_project_name()
     settings = get_project_settings(project_name).get("max")
     auto_key_default_key_time = settings.get(
-        "auto_key_default", {}).get("defualt_key_time")
+        "auto_key_default", {}).get("default_key_time")
     rt.maxOps.autoKeyDefaultKeyTime = auto_key_default_key_time
 
 
