@@ -6,6 +6,7 @@ from ayon_max.api.lib import (
     unique_namespace,
     get_namespace,
     object_transform_set,
+    object_transform_restore,
     is_headless,
 )
 from ayon_max.api.pipeline import (
@@ -162,19 +163,7 @@ class MaxSceneLoader(load.LoaderPlugin):
                                      current_max_object_names):
             max_obj.name = f"{namespace}:{obj_name}"
             max_objects.append(max_obj)
-            max_translate = f"{max_obj.name}.translate"
-            if max_translate in transform_data:
-                translate_data = transform_data[max_translate] or (
-                    rt.Point3(0, 0, 0)
-                )
-                rotation_data = transform_data[f"{max_obj.name}.rotation"] or (
-                    rt.Quat(0, 0, 0, 1)
-                )
-                max_obj.pos = translate_data
-                max_obj.scale = transform_data[f"{max_obj.name}.scale"] or (
-                    rt.Point3(1, 1, 1)
-                )
-                max_obj.rotation = rotation_data
+            object_transform_restore(max_obj, transform_data)
 
         update_custom_attribute_data(node, max_objects)
         lib.imprint(container["instance_node"], {
