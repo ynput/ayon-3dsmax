@@ -746,6 +746,40 @@ def object_transform_set(container_children):
     return transform_set
 
 
+def object_transform_restore(node, transform_set):
+    """Restore a transform previously stored by object_transform_set.
+
+    The keys of 'transform_set' are built from the node name, so the
+    lookup has to use the node name too. Formatting a 3ds Max node
+    itself does not give its name but something like
+        "$Box:Box001 @ [0,0,0]"
+    which never matches a stored key.
+
+    Scale and rotation are applied before the position, because setting
+    the rotation or the scale of a node also moves it in 3ds Max. Only
+    applying the position last ends up with the stored transform.
+
+    Args:
+        node: A 3ds Max node.
+        transform_set (dict): Stored transform data.
+
+    Returns:
+        bool: True when transform data was found for the node.
+    """
+    key = f"{node.name}.translate"
+    if key not in transform_set:
+        return False
+
+    node.scale = (
+        transform_set.get(f"{node.name}.scale") or rt.Point3(1, 1, 1)
+    )
+    node.rotation = (
+        transform_set.get(f"{node.name}.rotation") or rt.Quat(0, 0, 0, 1)
+    )
+    node.pos = transform_set[key] or rt.Point3(0, 0, 0)
+    return True
+
+
 def get_plugins() -> list:
     """Get all loaded plugins in 3dsMax
 
