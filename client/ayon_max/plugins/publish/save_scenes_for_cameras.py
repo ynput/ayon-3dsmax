@@ -31,8 +31,6 @@ class SaveScenesForCamera(pyblish.api.InstancePlugin):
         current_folder = rt.maxFilePath
         current_filename = rt.maxFileName
         current_filepath = os.path.join(current_folder, current_filename)
-        camera_scene_files = []
-        scripts = []
         filename, ext = os.path.splitext(current_filename)
         fmt = RenderProducts().image_format()
         cameras = instance.data.get("cameras")
@@ -41,6 +39,13 @@ class SaveScenesForCamera(pyblish.api.InstancePlugin):
         new_folder = f"{current_folder}_{filename}"
         os.makedirs(new_folder, exist_ok=True)
         render_settings = RenderSettings(data=instance.data)
+        maxbatch_exe = os.path.join(
+            os.path.dirname(sys.executable), "3dsmaxbatch")
+        maxbatch_exe = maxbatch_exe.replace("\\", "/")
+        if platform.system().lower() == "windows":
+            maxbatch_exe += ".exe"
+            maxbatch_exe = os.path.normpath(maxbatch_exe)
+        scene_filepath = current_filepath.replace("\\", "/")
         for camera in cameras:
             new_output = render_settings.get_batch_render_output(camera)       # noqa
             new_output = new_output.replace("\\", "/")
@@ -48,10 +53,8 @@ class SaveScenesForCamera(pyblish.api.InstancePlugin):
             new_filename = f"{filename}_{camera_name}{ext}"
             new_filepath = os.path.join(new_folder, new_filename)
             new_filepath = new_filepath.replace("\\", "/")
-            camera_scene_files.append(new_filepath)
             render_settings.batch_render_elements(camera)
             rt.rendOutputFilename = new_output
-            rt.saveMaxFile(current_filepath)
             script = ("""
 from pymxs import runtime as rt
 import os
@@ -87,34 +90,22 @@ if not farm:
                     camera=camera,
                     ext=fmt,
                     farm=instance.data.get("farm"))
-            scripts.append(script)
-        maxbatch_exe = os.path.join(
-            os.path.dirname(sys.executable), "3dsmaxbatch")
-        maxbatch_exe = maxbatch_exe.replace("\\", "/")
-        if platform.system().lower() == "windows":
-            maxbatch_exe += ".exe"
-            maxbatch_exe = os.path.normpath(maxbatch_exe)
-        with tempfile.TemporaryDirectory() as tmp_dir_name:
-            tmp_script_path = os.path.join(
-                tmp_dir_name, "extract_scene_files.py")
-            self.log.info("Using script file: {}".format(tmp_script_path))
-
-            with open(tmp_script_path, "wt") as tmp:
-                for script in scripts:
+            # Write and run only the current camera's script. Accumulating
+            # them made every camera re-run the previous cameras as well.
+            with tempfile.TemporaryDirectory() as tmp_dir_name:
+                tmp_script_path = os.path.join(
+                    tmp_dir_name, "extract_scene_files.py")
+                self.log.info(
+                    "Using script file: {}".format(tmp_script_path))
+                with open(tmp_script_path, "wt") as tmp:
                     tmp.write(script + "\n")
 
-            full_script = "\n".join(scripts)
-            self.log.debug(f"Failed running script {tmp_script_path}:\n{full_script}")
-            current_filepath = current_filepath.replace("\\", "/")
-            tmp_script_path = tmp_script_path.replace("\\", "/")
-            run_subprocess([maxbatch_exe, tmp_script_path,
-                            "-sceneFile", current_filepath],
-                            logger=self.log)
+                tmp_script_path = tmp_script_path.replace("\\", "/")
+                run_subprocess([maxbatch_exe, tmp_script_path,
+                                "-sceneFile", scene_filepath],
+                                logger=self.log)
 
-        for camera_scene in camera_scene_files:
-            if not os.path.exists(camera_scene):
-                full_script = "\n".join(scripts)
-                self.log.debug(f"Failed running script {tmp_script_path}:\n{full_script}")
+            if not os.path.exists(new_filepath):
                 self.log.error("Camera scene files not existed yet!")
                 raise RuntimeError("MaxBatch.exe doesn't run as expected")
-            self.log.debug(f"Found Camera scene:{camera_scene}")
+            self.log.debug(f"Found Camera scene:{new_filepath}")
