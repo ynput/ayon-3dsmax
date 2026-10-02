@@ -79,7 +79,7 @@ def get_main_window():
             and widget.metaObject().className() == name
         ):
             return widget
-    raise RuntimeError('Count not find 3dsMax main window.')
+    raise RuntimeError('Could not find 3dsMax main window.')
 
 
 def imprint(node_name: str, data: dict) -> bool:
