@@ -391,6 +391,10 @@ def _set_project():
         return
 
     workdir = os.getenv("AYON_WORKDIR")
+    if not workdir:
+        log.warning("AYON_WORKDIR is not set. "
+                    "Skipping to set the current project folder.")
+        return
     os.makedirs(workdir, exist_ok=True)
     rt.pathConfig.setCurrentProjectFolder(workdir)
 
