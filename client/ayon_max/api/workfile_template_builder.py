@@ -98,7 +98,7 @@ class MaxPlaceholderPlugin(PlaceholderPlugin):
             # Cache placeholder data to shared data
             nodes = [
                 node for node in rt.Objects
-                if rt.doesUserPropExist(node, "plugin_identifier")
+                if rt.getUserProp(node, "plugin_identifier") is not None
             ]
 
             nodes_by_identifier = {}
