@@ -622,10 +622,13 @@ def reset_colorspace():
 
 
 def check_colorspace():
-    parent = get_main_window()
-    if parent is None:
+    try:
+        parent = get_main_window()
+    except RuntimeError:
+        # get_main_window raises when 3ds Max has no main window yet
         log.info("Skipping outdated pop-up "
                  "because Max main window can't be found.")
+        return
     if int(get_max_version()) >= 2024:
         color_mgr = rt.ColorPipelineMgr
         max_config_data = colorspace.get_current_context_imageio_config_preset()
