@@ -246,9 +246,9 @@ class CollectRender(pyblish.api.InstancePlugin):
             return rt.rendOutputFilename
         elif renderer_name == "Arnold_Renderer":
             return renderer.AOVManager.outputPath
-        elif renderer_name.startswith("V-Ray"):
+        elif renderer_name.startswith("V_Ray_"):
             vr_settings = get_vray_settings(renderer_name, renderer)
-            multipass = get_multipass_setting(renderer, project_settings)
+            multipass = get_multipass_setting(renderer_name, project_settings)
             if multipass and img_format == "exr":
                 return vr_settings.output_rawfilename
             else:
