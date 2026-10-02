@@ -5,6 +5,7 @@ from pymxs import runtime as rt
 
 from ayon_max.api import maintained_selection
 from ayon_core.pipeline import publish
+from ayon_core.pipeline.publish import KnownPublishError
 
 
 class ExtractTyCache(publish.Extractor):
@@ -51,6 +52,10 @@ class ExtractTyCache(publish.Extractor):
             mesh_filename = f"{product_name}__tyMesh.tyc"
             tyc_fnames.extend(filenames)
             tyc_mesh_fnames.append(mesh_filename)
+        if not tyc_fnames or not tyc_mesh_fnames:
+            raise KnownPublishError(
+                "No tyc files were produced during extraction.")
+
         representation = {
             "name": "tyc",
             "ext": "tyc",

@@ -5,6 +5,7 @@ from pymxs import runtime as rt
 
 from ayon_max.api import maintained_selection
 from ayon_core.pipeline import publish
+from ayon_core.pipeline.publish import KnownPublishError
 
 
 class ExtractPointCloud(publish.Extractor):
@@ -68,6 +69,10 @@ class ExtractPointCloud(publish.Extractor):
 
         partition = self.partition_output_name(
             instance.data["members"])
+
+        if not filenames:
+            raise KnownPublishError(
+                "No files were produced during extraction.")
 
         representation = {
             'name': 'prt',
@@ -244,3 +249,6 @@ class ExtractPointCloud(publish.Extractor):
             start = rt.Execute(f'{operator}.PRTPartitionsFrom')
 
             return count, start
+        raise KnownPublishError(
+            "No operators found in the container to get the partition "
+            "values from.")

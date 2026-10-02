@@ -1,6 +1,7 @@
 import os
 import pyblish.api
 from ayon_core.pipeline import publish
+from ayon_core.pipeline.publish import KnownPublishError
 from pymxs import runtime as rt
 from ayon_max.api import maintained_selection
 
@@ -40,6 +41,10 @@ class ExtractRedshiftProxy(publish.Extractor):
 
         if "representations" not in instance.data:
             instance.data["representations"] = []
+
+        if not rs_filenames:
+            raise KnownPublishError(
+                "No files were produced during extraction.")
 
         representation = {
             'name': 'rs',
