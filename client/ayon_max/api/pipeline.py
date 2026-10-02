@@ -440,6 +440,10 @@ def before_save(event):
         # Saving from a new unsaved file, no need to check for changes.
         return
 
+    if not max_filename_after:
+        # The event carries no filename, nothing to compare against.
+        return
+
     if max_filename_before != max_filename_after:
         print(f"Detected scene name change from {max_filename_before} to "
               f"{max_filename_after}")
