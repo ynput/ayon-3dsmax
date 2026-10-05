@@ -53,8 +53,6 @@ class SaveScenesForCamera(pyblish.api.InstancePlugin):
             new_filename = f"{filename}_{camera_name}{ext}"
             new_filepath = os.path.join(new_folder, new_filename)
             new_filepath = new_filepath.replace("\\", "/")
-            render_settings.batch_render_elements(camera)
-            rt.rendOutputFilename = new_output
             script = ("""
 from pymxs import runtime as rt
 import os
