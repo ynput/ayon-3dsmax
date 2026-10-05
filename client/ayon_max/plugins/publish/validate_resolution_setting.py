@@ -116,11 +116,6 @@ class ValidateReviewResolutionSetting(ValidateResolutionSetting):
     optional = True
     actions = [RepairAction]
 
-    def get_current_resolution(self, instance) -> tuple[int, int]:
-        current_width = instance.data["resolutionWidth"]
-        current_height = instance.data["resolutionHeight"]
-        return current_width, current_height
-
     @classmethod
     def repair(cls, instance) -> None:
         context_width, context_height = cls.get_context_resolution(instance)
