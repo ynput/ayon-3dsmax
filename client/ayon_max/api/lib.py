@@ -81,7 +81,7 @@ def get_main_window():
             and widget.metaObject().className() == name
         ):
             return widget
-    raise RuntimeError('Count not find 3dsMax main window.')
+    raise RuntimeError('Could not find 3dsMax main window.')
 
 
 def imprint(node_name: str, data: dict) -> bool:
@@ -548,7 +548,7 @@ def convert_unit_scale():
         "kilometers": "km"
     }
     current_unit_scale = rt.Execute("units.MetricType as string")
-    return unit_scale_dict[current_unit_scale]
+    return unit_scale_dict[current_unit_scale.lower().lstrip("#")]
 
 
 def set_context_settings(resolution=True,
@@ -624,10 +624,13 @@ def reset_colorspace():
 
 
 def check_colorspace():
-    parent = get_main_window()
-    if parent is None:
+    try:
+        parent = get_main_window()
+    except RuntimeError:
+        # get_main_window raises when 3ds Max has no main window yet
         log.info("Skipping outdated pop-up "
                  "because Max main window can't be found.")
+        return
     if int(get_max_version()) >= 2024:
         color_mgr = rt.ColorPipelineMgr
         max_config_data = colorspace.get_current_context_imageio_config_preset()
@@ -746,6 +749,40 @@ def object_transform_set(container_children):
         name = f"{node.name}.translate"
         transform_set[name] = node.pos
     return transform_set
+
+
+def object_transform_restore(node, transform_set):
+    """Restore a transform previously stored by object_transform_set.
+
+    The keys of 'transform_set' are built from the node name, so the
+    lookup has to use the node name too. Formatting a 3ds Max node
+    itself does not give its name but something like
+        "$Box:Box001 @ [0,0,0]"
+    which never matches a stored key.
+
+    Scale and rotation are applied before the position, because setting
+    the rotation or the scale of a node also moves it in 3ds Max. Only
+    applying the position last ends up with the stored transform.
+
+    Args:
+        node: A 3ds Max node.
+        transform_set (dict): Stored transform data.
+
+    Returns:
+        bool: True when transform data was found for the node.
+    """
+    key = f"{node.name}.translate"
+    if key not in transform_set:
+        return False
+
+    node.scale = (
+        transform_set.get(f"{node.name}.scale") or rt.Point3(1, 1, 1)
+    )
+    node.rotation = (
+        transform_set.get(f"{node.name}.rotation") or rt.Quat(0, 0, 0, 1)
+    )
+    node.pos = transform_set[key] or rt.Point3(0, 0, 0)
+    return True
 
 
 def get_plugins() -> list:
