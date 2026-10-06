@@ -84,4 +84,4 @@ class CreateRender(MaxCreator):
         ]
 
     def get_published_families(self):
-        return ["maxrender", "custom.frame.range"]
+        return ["maxrender", "supports.customFrameRange"]
