@@ -1,3 +1,4 @@
+
 import pyblish.api
 
 from ayon_core.pipeline.farm.pyblish_functions import (
@@ -77,6 +78,10 @@ class CollectLocalRenderInstances(pyblish.api.InstancePlugin):
             )
             aov_instance.data.update(aov_instance_data)
             aov_instance.data["families"] = [f"render.{render_target}"]
+
+            # The hasExplicitFrames flag would ensure the preset frame ranges are
+            # preserved and not renumbered to consecutive frame ranges on publish.
+            aov_instance.data["hasExplicitFrames"] = True
 
             # Pass on 'review' family
             if "review" in aov_instance_data["families"]:
