@@ -31,6 +31,7 @@ from ayon_core.pipeline.farm.pyblish_functions import (
     convert_frames_str_to_list,
 )
 from ayon_core.pipeline.create import CreateContext
+from ayon_core.pipeline.publish import PublishError
 from ayon_core.style import load_stylesheet
 
 
@@ -1236,14 +1237,35 @@ def get_expected_frames(instance: pyblish.api.Instance) -> list[int]:
         instance (pyblish.api.Instance): The Pyblish instance.
 
     Returns:
-        list[int]: A list containing the expected frames.
+        list[int]: A list containing the expected frames. The list is never
+            empty, an unusable custom frame value or scene frame range raises
+            instead.
+
+    Raises:
+        PublishError: The custom frame value cannot be parsed, or the
+            scene render frame range is empty or inverted. Both used to end up
+            as a bare `ValueError`/`min()` failure in `CollectFrameRange`,
+            which then left the instance without `frameStartHandle` and
+            `frameEndHandle` and broke every downstream frame range user.
     """
-    frames_str = instance.data.get("customFrames", "")
+    frames_str = (instance.data.get("customFrames") or "").strip()
     if frames_str:
-        frames_list = convert_frames_str_to_list(frames_str.strip())
+        frames_list = convert_frames_str_to_list(frames_str)
+        if not frames_list:
+            raise PublishError(
+                f"Custom frame range '{frames_str}' does not contain any "
+                "frame."
+            )
         return frames_list
+
     frame_start = int(rt.rendStart)
     frame_end = int(rt.rendEnd)
+    if frame_end < frame_start:
+        raise PublishError(
+            f"Invalid render frame range {frame_start}-{frame_end}: the end "
+            "frame is before the start frame. Set the scene render frame "
+            "range or a custom frame range on the instance."
+        )
     return list(range(frame_start, frame_end + 1))
 
 
