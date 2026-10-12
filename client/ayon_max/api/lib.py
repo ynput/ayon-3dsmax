@@ -7,7 +7,7 @@ import json
 from functools import partial
 import pyblish.api
 import re
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 
 from ayon_core.pipeline import (
     Anatomy,
@@ -1194,12 +1194,17 @@ def set_correct_workfile_name_for_render_output(
 def build_general_output_filename(
     output_dir: str,
     filename: str,
+    image_format: Optional[str] = None,
 ) -> str:
     """Build a general output filename with the given directory, filename, and image format.
 
     Args:
         output_dir (str): The directory where the output file will be saved.
         filename (str): The base filename.
+        image_format (Optional[str]): Image format configured in the project
+            settings. When given, the extension is replaced with it and the
+            double dot naming convention is enforced, so the scene follows the
+            configured format instead of failing the validation.
 
     Returns:
         str: The full path to the output file with the general naming convention.
@@ -1213,6 +1218,14 @@ def build_general_output_filename(
         element = match.group("element")
         ext = match.group("ext")
         filename = f"{name}_{element}..{ext}"
+    if image_format and filename:
+        # Swap the extension and keep the double dot separator the
+        # validation expects, otherwise the repair can never converge:
+        # "renderMain.png" -> "renderMain..exr".
+        stem = os.path.splitext(filename)[0]
+        if not stem.endswith("."):
+            stem = f"{stem}."
+        filename = f"{stem}.{image_format}"
     return os.path.join(output_dir, filename)
 
 

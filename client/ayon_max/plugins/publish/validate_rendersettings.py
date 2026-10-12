@@ -329,6 +329,7 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
         rt.rendOutputFilename = build_general_output_filename(
             render_dir,
             filename,
+            image_format,
         )
         cls.log.info(
             "Render output filename has been repaired to %s",
@@ -350,7 +351,11 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
 
             render_element_filename = render_elem.GetRenderElementFilename(index)
             r_fname = os.path.basename(render_element_filename)
-            output_filename = build_general_output_filename(render_dir, r_fname)
+            output_filename = build_general_output_filename(
+                render_dir,
+                r_fname,
+                image_format,
+            )
             render_elem.SetRenderElementFilename(index, output_filename)
             cls.log.info(
                 "Render element output filename has been repaired to %s",
@@ -442,13 +447,9 @@ class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
             "sync_current_workfile_name",
             True,
         )
-        invalid.extend(
-            cls.get_invalid_renderoutput(
-                image_format,
-                workfile_pattern,
-                sync_current_workfile=sync_current_workfile,
-            )
-        )
+        # Arnold writes through its AOV manager driver, not through the max
+        # level `rt.rendOutputFilename`, so the max render output checks are
+        # not applied here.
         if sync_current_workfile and workfile_pattern not in output_path:
             msg = (
                 f"Invalid Arnold AOV output path {output_path}. "
@@ -493,6 +494,8 @@ class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
         if not cls._matches_renderer_name(renderer_name):
             return
 
+        # Arnold has its own output settings (AOV manager output path and
+        # driver), so only the Arnold specific repair is applied here.
         cls.repair_arnold_settings(instance, renderer, renderer_name)
 
     @classmethod
@@ -512,24 +515,31 @@ class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
         image_format = instance.data["imageFormat"]
         project_settings = instance.context.data["project_settings"]
         aov_manager = renderer.AOVManager
-        path = aov_manager.outputPath
-        # check if the beauty output path is correct if using the
-        # default native 3dsmax render
-        render_dir = os.path.dirname(path)
+        # `aov_manager.outputPath` is a directory and it is what Arnold
+        # actually writes into, so it is kept a directory here. Deriving it
+        # from `rt.rendOutputFilename` used to drop the workfile level.
+        render_dir = aov_manager.outputPath
         if instance.data.get("sync_current_workfile_name", True):
-            path = set_correct_workfile_name_for_render_output(
+            corrected_dir = set_correct_workfile_name_for_render_output(
                 instance,
-                path,
+                render_dir,
             )
-            if not path:
-                path = reset_rendersetting(instance, project_settings)
-                render_dir = os.path.dirname(path)
-        filename = os.path.basename(path)
+            if not corrected_dir:
+                corrected_dir = os.path.dirname(
+                    reset_rendersetting(instance, project_settings)
+                )
+            render_dir = corrected_dir
+        render_dir = os.path.normpath(render_dir)
+        aov_manager.outputPath = render_dir
+
+        # Keep the max level output filename in sync for the tools that
+        # still read it, built the same way render_output() builds it.
+        container = instance.data.get("instance_node") or instance.name
         rt.rendOutputFilename = build_general_output_filename(
             render_dir,
-            filename,
+            f"{container}..{image_format}",
+            image_format,
         )
-        aov_manager.outputPath = os.path.dirname(rt.rendOutputFilename)
         driver = aov_manager.drivers[0]
         driver.multipart = get_multipass_setting(
             renderer_name,
@@ -542,7 +552,8 @@ class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
                 new_driver = driver_type()
                 aov_manager.drivers[0] = new_driver
                 driver = new_driver
-                driver.filenameSuffix = f"{instance.name}."
+                # the same container name render_output() uses
+                driver.filenameSuffix = f"{container}."
                 cls.log.info(
                     "Arnold AOV driver has been repaired to %s for image format %s.",
                     new_driver,
@@ -781,6 +792,10 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
         if not cls._matches_renderer_name(renderer_name):
             return
         vr_settings = get_vray_settings(renderer_name, renderer)
+
+        # V-Ray has its own output settings (raw and split filenames plus
+        # its rendSaveFile value), so only the V-Ray specific repair is
+        # applied here.
         cls.repair_vray_settings(
             instance,
             renderer_name,
@@ -825,6 +840,7 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
             rt.rendOutputFilename = build_general_output_filename(
                 render_dir,
                 filename,
+                image_format,
             )
 
         if multipass_enabled:
