@@ -226,7 +226,11 @@ class RenderProducts(object):
             vray_settings,
         )
         if not is_save_vray_exr_rawfile and not is_render_element:
-            return ""
+            # Without the raw file V-Ray writes the beauty pass through the
+            # 3ds Max render output, so that path is the one describing the
+            # Main sequence. Returning an empty path here would drop the
+            # beauty product entirely (issue #138).
+            return rt.rendOutputFilename
         output_attr = (
             "output_rawfilename"
             if not is_render_element

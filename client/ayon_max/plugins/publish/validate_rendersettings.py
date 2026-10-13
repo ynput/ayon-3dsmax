@@ -189,6 +189,13 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
                     "EXR image format should have OutputExrMultipart enabled for AOVs.",
                 ))
 
+        if not rt.rendSaveFile:
+            invalid.append((
+                "Invalid render output save setting",
+                "Render output file saving is disabled, so the rendered "
+                "images would not be written to disk.",
+            ))
+
         multicam = instance.data.get("multiCamera", False)
         cameras = instance.data.get("cameras", [])
         sync_current_workfile = instance.data.get("sync_current_workfile_name", True)
@@ -441,6 +448,12 @@ class ValidateArnoldRenderSetting(ValidateGenericRenderSetting):
         """
         invalid = []
         aov_manager = renderer.AOVManager
+        if not rt.rendSaveFile:
+            invalid.append((
+                "Invalid render output save setting",
+                "Render output file saving is disabled, so the rendered "
+                "images would not be written to disk.",
+            ))
         output_path = aov_manager.outputPath
         image_format = instance.data["imageFormat"]
         sync_current_workfile = instance.data.get(
@@ -744,6 +757,26 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
         expected_rend_save_file = not uses_raw_exr_output
         if rt.rendSaveFile != expected_rend_save_file:
             invalid.append((
+                "Invalid V-Ray render output save setting",
+                f"Expected rendSaveFile: {expected_rend_save_file}, "
+                f"Found: {rt.rendSaveFile}",
+            ))
+
+        if (
+            image_format != "exr"
+            and getattr(vr_settings, "output_saverawfile", False)
+        ):
+            # The AYON setup only uses the V-Ray raw output for EXR, so a
+            # leftover flag keeps V-Ray writing the stale raw output.
+            invalid.append((
+                "Invalid V-Ray raw output setting",
+                "V-Ray raw file saving should be disabled for the "
+                f"{image_format} image format.",
+            ))
+
+        expected_rend_save_file = not uses_raw_exr_output
+        if rt.rendSaveFile != expected_rend_save_file:
+            invalid.append((
                 "Invalid V-Ray save-file setting",
                 f"Expected: {expected_rend_save_file}, Found: {rt.rendSaveFile}",
             ))
@@ -830,38 +863,85 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
         )
         vr_settings.output_splitgbuffer = multipass_enabled
 
-        if is_vray_exr_saverawfile(image_format, vr_settings):
+        uses_raw_exr_output = is_vray_exr_saverawfile(
+            image_format,
+            vr_settings,
+        )
+
+        if uses_raw_exr_output:
             vr_settings.output_saverawfile = True
-            split_beauty_basename = (
+            # The raw output is the beauty output for raw EXR and it can be
+            # the only configured path, so its own directory takes
+            # precedence over `rt.rendOutputFilename`, which V-Ray leaves
+            # empty when the multipass (split) output is disabled.
+            beauty_dir = (
+                os.path.dirname(vr_settings.output_rawfilename) or render_dir
+            )
+            if instance.data.get("sync_current_workfile_name", True):
+                corrected_dir = set_correct_workfile_name_for_render_output(
+                    instance,
+                    beauty_dir,
+                )
+                if corrected_dir:
+                    beauty_dir = corrected_dir
+            beauty_basename = (
                 os.path.basename(vr_settings.output_rawfilename)
                 or os.path.basename(rt.rendOutputFilename)
+                or cls._get_render_container_name(instance)
             )
             vr_settings.output_rawfilename = cls._repair_vray_output_filename(
-                split_beauty_basename,
-                render_dir,
+                beauty_basename,
+                beauty_dir,
                 image_format,
             )
         else:
-            filename = os.path.basename(rt.rendOutputFilename)
+            # Mirror `RenderSettings.render_output()` so a scene switched
+            # from raw EXR to a non-raw output stops writing the stale raw
+            # file next to the beauty output.
+            if hasattr(vr_settings, "output_saverawfile"):
+                vr_settings.output_saverawfile = False
+            if hasattr(vr_settings, "output_rawfilename"):
+                vr_settings.output_rawfilename = ""
+
+            beauty_basename = (
+                os.path.basename(rt.rendOutputFilename)
+                or cls._get_render_container_name(instance)
+            )
             rt.rendOutputFilename = build_general_output_filename(
                 render_dir,
-                filename,
+                beauty_basename,
                 image_format,
             )
+            beauty_dir = render_dir
 
         if multipass_enabled:
-            split_aov_basename =(
+            split_aov_basename = (
                 os.path.basename(vr_settings.output_splitfilename)
                 or os.path.basename(rt.rendOutputFilename)
+                or cls._get_render_container_name(instance)
             )
             vr_settings.output_splitfilename = cls._repair_vray_output_filename(
                 split_aov_basename,
-                render_dir,
+                beauty_dir,
                 image_format,
             )
-        # Save the file when it is not set to save raw EXR output
-        rt.rendSaveFile = not is_vray_exr_saverawfile(image_format, vr_settings)
+        # V-Ray only saves through the max render output when the raw EXR
+        # output is not used, otherwise the raw and split outputs are the
+        # ones being written.
+        rt.rendSaveFile = not uses_raw_exr_output
         rt.renderSceneDialog.update()
+
+    @staticmethod
+    def _get_render_container_name(instance: pyblish.api.Instance) -> str:
+        """Get the container name used to build the render output filename.
+
+        Args:
+            instance (pyblish.api.Instance): The instance to repair.
+
+        Returns:
+            str: The name of the render container.
+        """
+        return str(instance.data.get("instance_node") or instance.name)
 
     @classmethod
     def _repair_vray_output_filename(
