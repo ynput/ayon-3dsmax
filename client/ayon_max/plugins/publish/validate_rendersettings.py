@@ -741,6 +741,12 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
             ))
 
         uses_raw_exr_output = is_vray_exr_saverawfile(image_format, vr_settings)
+        expected_rend_save_file = not uses_raw_exr_output
+        if rt.rendSaveFile != expected_rend_save_file:
+            invalid.append((
+                "Invalid V-Ray save-file setting",
+                f"Expected: {expected_rend_save_file}, Found: {rt.rendSaveFile}",
+            ))
         if uses_raw_exr_output:
             invalid.extend(
                 cls._get_invalid_vray_output(
