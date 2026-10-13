@@ -4,7 +4,6 @@ import os
 import contextlib
 import logging
 import json
-from pathlib import Path
 from functools import partial
 import pyblish.api
 import re
@@ -28,6 +27,9 @@ from ayon_core.pipeline.context_tools import (
     get_current_task_entity
 )
 from ayon_core.pipeline.template_data import get_template_data_with_names
+from ayon_core.pipeline.farm.pyblish_functions import (
+    convert_frames_str_to_list,
+)
 from ayon_core.pipeline.create import CreateContext
 from ayon_core.style import load_stylesheet
 
@@ -79,7 +81,7 @@ def get_main_window():
             and widget.metaObject().className() == name
         ):
             return widget
-    raise RuntimeError('Count not find 3dsMax main window.')
+    raise RuntimeError('Could not find 3dsMax main window.')
 
 
 def imprint(node_name: str, data: dict) -> bool:
@@ -303,10 +305,10 @@ def get_default_render_folder(
     render_data["work"] = work_dir
     render_folder = project_setting["max"]["RenderSettings"]["default_render_image_folder"]
     formatted_render_folder = StringTemplate(render_folder).format(render_data)
-    normalized_render_folder = Path(formatted_render_folder)
-    if not normalized_render_folder.is_absolute():
-        normalized_render_folder = Path(work_dir) / normalized_render_folder
-    return str(normalized_render_folder)
+    if not os.path.isabs(formatted_render_folder):
+        formatted_render_folder = os.path.join(work_dir, formatted_render_folder)
+    # Normalize to forward slashes for consistency
+    return formatted_render_folder.replace("\\", "/")
 
 
 def get_vray_settings(renderer_name: str, renderer: Any) -> Any:
@@ -622,10 +624,13 @@ def reset_colorspace():
 
 
 def check_colorspace():
-    parent = get_main_window()
-    if parent is None:
+    try:
+        parent = get_main_window()
+    except RuntimeError:
+        # get_main_window raises when 3ds Max has no main window yet
         log.info("Skipping outdated pop-up "
                  "because Max main window can't be found.")
+        return
     if int(get_max_version()) >= 2024:
         color_mgr = rt.ColorPipelineMgr
         max_config_data = colorspace.get_current_context_imageio_config_preset()
@@ -744,6 +749,40 @@ def object_transform_set(container_children):
         name = f"{node.name}.translate"
         transform_set[name] = node.pos
     return transform_set
+
+
+def object_transform_restore(node, transform_set):
+    """Restore a transform previously stored by object_transform_set.
+
+    The keys of 'transform_set' are built from the node name, so the
+    lookup has to use the node name too. Formatting a 3ds Max node
+    itself does not give its name but something like
+        "$Box:Box001 @ [0,0,0]"
+    which never matches a stored key.
+
+    Scale and rotation are applied before the position, because setting
+    the rotation or the scale of a node also moves it in 3ds Max. Only
+    applying the position last ends up with the stored transform.
+
+    Args:
+        node: A 3ds Max node.
+        transform_set (dict): Stored transform data.
+
+    Returns:
+        bool: True when transform data was found for the node.
+    """
+    key = f"{node.name}.translate"
+    if key not in transform_set:
+        return False
+
+    node.scale = (
+        transform_set.get(f"{node.name}.scale") or rt.Point3(1, 1, 1)
+    )
+    node.rotation = (
+        transform_set.get(f"{node.name}.rotation") or rt.Quat(0, 0, 0, 1)
+    )
+    node.pos = transform_set[key] or rt.Point3(0, 0, 0)
+    return True
 
 
 def get_plugins() -> list:
@@ -1153,3 +1192,21 @@ def build_general_output_filename(
         ext = match.group("ext")
         filename = f"{name}_{element}..{ext}"
     return os.path.join(output_dir, filename)
+
+
+def get_expected_frames(instance: pyblish.api.Instance) -> list[int]:
+    """Get expected frames from the instance.
+
+    Args:
+        instance (pyblish.api.Instance): The Pyblish instance.
+
+    Returns:
+        list[int]: A list containing the expected frames.
+    """
+    frames_str = instance.data.get("customFrames", "")
+    if frames_str:
+        frames_list = convert_frames_str_to_list(frames_str.strip())
+        return frames_list
+    frame_start = int(rt.rendStart)
+    frame_end = int(rt.rendEnd)
+    return list(range(frame_start, frame_end + 1))

@@ -5,7 +5,8 @@ from ayon_max.api.lib import (
     unique_namespace,
     get_namespace,
     maintained_selection,
-    object_transform_set
+    object_transform_set,
+    object_transform_restore
 )
 from ayon_max.api.pipeline import (
     containerise,
@@ -47,9 +48,14 @@ class ObjLoader(load.LoaderPlugin):
         # get current selection
         for selection in selections:
             selection.name = f"{namespace}:{selection.name}"
-        return containerise(
+        container = containerise(
             name, selections, context,
             namespace, loader=self.__class__.__name__)
+        # OBJ has no hierarchy; parent the parts to the container so the
+        # product can be transformed as a whole.
+        for selection in selections:
+            selection.parent = container
+        return container
 
     def update(self, container, context):
         from pymxs import runtime as rt
@@ -72,11 +78,9 @@ class ObjLoader(load.LoaderPlugin):
         selections = rt.GetCurrentSelection()
         for selection in selections:
             selection.name = f"{namespace}:{selection.name}"
-            selection_transform = f"{selection}.transform"
-            if selection_transform in transform_data.keys():
-                selection.pos = transform_data[selection_transform] or 0
-                selection.scale = transform_data[
-                    f"{selection}.scale"] or 0
+            # keep every part under the container, see 'load'
+            selection.parent = node
+            object_transform_restore(selection, transform_data)
         update_custom_attribute_data(node, selections)
         with maintained_selection():
             rt.Select(node)

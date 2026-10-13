@@ -6,7 +6,7 @@ class SetPath(PreLaunchHook):
 
     Hook `GlobalHostDataHook` must be executed before this hook.
     """
-    app_groups = {"max"}
+    app_groups = {"3dsmax", "adsk_3dsmax"}
     launch_types = {LaunchTypes.local}
 
     def execute(self):
