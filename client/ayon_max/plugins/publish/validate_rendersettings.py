@@ -876,8 +876,7 @@ if uses_raw_exr_output:
                     instance,
                     beauty_dir,
                 )
-                if corrected_dir:
-                    beauty_dir = corrected_dir
+beauty_dir = corrected_dir or render_dir
             beauty_basename = (
                 os.path.basename(vr_settings.output_rawfilename)
                 or os.path.basename(rt.rendOutputFilename)
