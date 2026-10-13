@@ -877,7 +877,10 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
                     instance,
                     beauty_dir,
                 )
-                beauty_dir = corrected_dir or render_dir
+                # Prefer the corrected directory, then the resolved render
+                # directory, and keep the raw location as a last resort so
+                # the repaired path never becomes a relative filename.
+                beauty_dir = corrected_dir or render_dir or beauty_dir
             beauty_basename = (
                 os.path.basename(vr_settings.output_rawfilename)
                 or os.path.basename(rt.rendOutputFilename)
