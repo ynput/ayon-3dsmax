@@ -1164,9 +1164,16 @@ def set_correct_workfile_name_for_render_output(
 
     rest = match.group("rest") or ""
 
-    # update the changes in the context instances to reflect the new workfile name
-    host = registered_host()
-    create_context = CreateContext(host, discover_publish_plugins=False)
+    # update the changes in the context instances to reflect the new workfile
+    # name. Use the `CreateContext` the Publisher is already working with so
+    # its in-memory instances stay in sync, instead of a temporary context
+    # whose changes the Publisher could overwrite on its next save.
+    create_context = instance.context.data.get("create_context")
+    if create_context is None:
+        create_context = CreateContext(
+            registered_host(),
+            discover_publish_plugins=False,
+        )
     workfile_name_keys = {
         "original_workfile_pattern",
         # backward compatibility for older versions of Ayon

@@ -146,11 +146,15 @@ class RenderSettings(object):
                     vr_settings.output_saverawfile = False
                 if hasattr(vr_settings, "output_rawfilename"):
                     vr_settings.output_rawfilename = ""
-                rt.rendOutputFilename = f"{output}..{img_fmt}"
 
             if multipass_enabled:
                 rt.rendOutputFilename = output_filename
                 vr_settings.output_splitfilename = f"{output}.{img_fmt}"
+            else:
+                # Keep the scene render output in sync with the current
+                # naming even when raw EXR is the actual beauty output. It is
+                # not written while `rendSaveFile` is off.
+                rt.rendOutputFilename = f"{output}..{img_fmt}"
 
             self.render_element_layer(output, width, height, img_fmt)
         # TODO: supports multipass for different renderers

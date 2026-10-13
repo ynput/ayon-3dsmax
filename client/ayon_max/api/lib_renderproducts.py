@@ -65,7 +65,7 @@ class RenderProducts(object):
         render_dict: Dict[str, list[str]] = {}
 
         # Always add beauty pass
-        beauty_files =  self.get_expected_beauty(frames, extension)
+        beauty_files = self.get_expected_beauty(frames, extension)
         if beauty_files:
             render_dict["beauty"] = beauty_files
 

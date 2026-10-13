@@ -25,6 +25,29 @@ from ayon_max.api.lib_rendersettings import (
 )
 
 
+def _is_same_directory(path_a: str, path_b: str) -> bool:
+    """Compare two directories ignoring separators and case."""
+    return (
+        os.path.normcase(os.path.normpath(path_a))
+        == os.path.normcase(os.path.normpath(path_b))
+    )
+
+
+def _strip_legacy_tmp_suffix(filename: str) -> str:
+    """Remove the legacy `_tmp` suffix from a beauty filename.
+
+    Non-multipass V-Ray scenes used to be rendered as `<name>_tmp..<ext>`
+    while `rendSaveFile` was disabled. Repairing such a scene has to bring
+    the basename back to the current `<name>..<ext>` naming, otherwise the
+    legacy suffix ends up in the published filenames.
+    """
+    root, ext = os.path.splitext(filename)
+    if root.endswith("_tmp."):
+        root = f"{root[:-len('_tmp.')]}."
+    elif root.endswith("_tmp"):
+        root = root[: -len("_tmp")]
+    return f"{root}{ext}"
+
 
 class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
                                    ValidateRenderSettingsBase):
@@ -221,12 +244,13 @@ class ValidateGenericRenderSetting(pyblish.api.InstancePlugin,
 
             render_element_filename = render_elem.GetRenderElementFilename(index)
             render_element_dir = os.path.dirname(render_element_filename)
-            if render_element_dir != os.path.dirname(rt.rendOutputFilename):
+            render_beauty_dir = os.path.dirname(rt.rendOutputFilename)
+            if not _is_same_directory(render_element_dir, render_beauty_dir):
                 invalid.append((
                     "Invalid render element output directory",
                     f"Render element output directory {render_element_dir} "
                     f"does not match the beauty output directory "
-                    f"{os.path.dirname(rt.rendOutputFilename)}.",
+                    f"{render_beauty_dir}.",
                 ))
 
             invalid.extend(
@@ -806,7 +830,7 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
             )
             render_element_dir = os.path.dirname(vr_settings.output_splitfilename)
 
-            if beauty_dir != render_element_dir:
+            if not _is_same_directory(beauty_dir, render_element_dir):
                 invalid.append((
                     "Invalid V-Ray render element output directory",
                     f"Render element output directory {render_element_dir} "
@@ -864,7 +888,6 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
         )
 
         if uses_raw_exr_output:
-            vr_settings.output_saverawfile = True
             # The raw output is the beauty output for raw EXR and it can be
             # the only configured path, so its own directory takes
             # precedence over `rt.rendOutputFilename`, which V-Ray leaves
@@ -883,7 +906,9 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
                 beauty_dir = corrected_dir or render_dir or beauty_dir
             beauty_basename = (
                 os.path.basename(vr_settings.output_rawfilename)
-                or os.path.basename(rt.rendOutputFilename)
+                or _strip_legacy_tmp_suffix(
+                    os.path.basename(rt.rendOutputFilename)
+                )
                 or cls._get_render_container_name(instance)
             )
             vr_settings.output_rawfilename = cls._repair_vray_output_filename(
@@ -901,7 +926,9 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
                 vr_settings.output_rawfilename = ""
 
             beauty_basename = (
-                os.path.basename(rt.rendOutputFilename)
+                _strip_legacy_tmp_suffix(
+                    os.path.basename(rt.rendOutputFilename)
+                )
                 or cls._get_render_container_name(instance)
             )
             rt.rendOutputFilename = build_general_output_filename(
@@ -960,6 +987,7 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
         name = os.path.splitext(filename)[0].strip(".")
         output_filename = f"{name}.{image_format}"
         return os.path.join(render_dir, output_filename)
+
 
 def reset_rendersetting(instance: pyblish.api.Instance, project_settings: dict) -> str:
     """Reset the render settings for the given instance based on project settings.
