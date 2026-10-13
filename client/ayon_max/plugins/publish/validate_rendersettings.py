@@ -774,7 +774,7 @@ class ValidateVrayRenderSetting(ValidateGenericRenderSetting):
                 f"{image_format} image format.",
             ))
 
-if uses_raw_exr_output:
+        if uses_raw_exr_output:
             invalid.extend(
                 cls._get_invalid_vray_output(
                     vr_settings.output_rawfilename,
@@ -784,6 +784,7 @@ if uses_raw_exr_output:
                 )
             )
             beauty_dir = os.path.dirname(vr_settings.output_rawfilename)
+
         else:
             invalid.extend(
                 cls.get_invalid_renderoutput(
@@ -876,7 +877,7 @@ if uses_raw_exr_output:
                     instance,
                     beauty_dir,
                 )
-beauty_dir = corrected_dir or render_dir
+                beauty_dir = corrected_dir or render_dir
             beauty_basename = (
                 os.path.basename(vr_settings.output_rawfilename)
                 or os.path.basename(rt.rendOutputFilename)
