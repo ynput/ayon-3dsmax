@@ -41,8 +41,9 @@ class ExtractModelObj(publish.Extractor, OptionalPyblishPluginMixin):
                 )
         if not os.path.exists(filepath):
             raise KnownPublishError(
-                "File {} wasn't produced by 3ds max, please check the "
-                "logs.".format(filepath))
+                f"File {filepath} wasn't produced by 3ds max, "
+                "please check the logs."
+            )
 
         if "representations" not in instance.data:
             instance.data["representations"] = []
