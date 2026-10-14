@@ -30,7 +30,7 @@ class ExtractLastPublished(publish.Extractor):
     order = pyblish.api.ExtractorOrder - 0.1
     label = "Extract Last Published"
     targets = ["local"]  # Same target as `CollectFramesFixDef`
-    families = ["maxrender"]
+    families = ["render.local"]
 
     def process(self, instance):
         frames_to_fix = instance.data.get("frames_to_fix")
@@ -55,6 +55,11 @@ class ExtractLastPublished(publish.Extractor):
             return
 
         expected_filepaths = self.get_expected_files_and_staging_dir(instance)
+        if not expected_filepaths:
+            self.log.debug(
+                "Skipping, no expected files found for the instance."
+            )
+            return
 
         # We assume all outputs of this one instance end up in one folder, and
         # hence there being just one 'staging dir'. We will take the first
@@ -97,7 +102,9 @@ class ExtractLastPublished(publish.Extractor):
     def get_expected_files_and_staging_dir(self, instance):
         """Get expected file names or frames.
 
-        This method includes 3dsMax specific code.
+        This method includes 3dsMax specific code. The render instances which
+        get integrated keep their files in `representations`, so those are used
+        to know where the reused frames have to end up.
 
         Args:
             instance (pyblish.api.Instance): The instance to publish.
@@ -107,10 +114,13 @@ class ExtractLastPublished(publish.Extractor):
                 instance.
         """
         expected_filepaths: list[str] = []
-        expected_files = instance.data.get("expectedFiles", [])
-
-        for expected in expected_files:
-            # expected.values() is a list of lists
-            expected_filepaths.extend(sum(expected.values(), []))
+        for representation in instance.data.get("representations", []):
+            staging_dir = representation.get("stagingDir") or ""
+            files = representation.get("files") or []
+            if isinstance(files, str):
+                files = [files]
+            expected_filepaths.extend(
+                os.path.join(staging_dir, filename) for filename in files
+            )
 
         return expected_filepaths

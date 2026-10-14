@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import os
+
+import clique
+
 from ayon_core.pipeline import publish
 from ayon_core.pipeline.publish import KnownPublishError
 
@@ -43,7 +46,32 @@ class ExtractLocalRender(publish.Extractor):
                 "cancelled": pymxs.byref(None),
                 "vfb": False,
             }
-            for frame in instance.data["expectedFrameRange"]:
+
+            frames_to_render = instance.data["expectedFrameRange"]
+            frames_to_fix = instance.data.get("frames_to_fix")
+            if (
+                frames_to_fix
+                and instance.data.get("last_version_published_files")
+            ):
+                # Render only the frames which are being fixed, all other
+                # frames are copied from the previous published version by
+                # `ExtractLastPublished`.
+                frames_to_fix = clique.parse(frames_to_fix, "{ranges}")
+                frames_to_fix = set(frames_to_fix.indexes)
+                frames_to_render = [
+                    frame for frame in frames_to_render
+                    if frame in frames_to_fix
+                ]
+                self.log.info(
+                    "Frames to fix, rendering only: %s", frames_to_render
+                )
+                if not frames_to_render:
+                    self.log.warning(
+                        "None of the frames to fix are within the instance "
+                        "frame range %s.", instance.data["expectedFrameRange"]
+                    )
+
+            for frame in frames_to_render:
                 if instance.data["renderer"].startswith("Arnold"):
                     filename, ext = os.path.splitext(rt.rendOutputFilename)
                     new_output = f"{filename}{frame:04d}{ext}"

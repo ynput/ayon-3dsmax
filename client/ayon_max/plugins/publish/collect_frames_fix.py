@@ -40,14 +40,6 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
         self.log.info(f"Frames to fix: {frames_to_fix}")
         instance.data["frames_to_fix"] = frames_to_fix
 
-        # Skip instances that are set to not be integrated so we ignore
-        # the original `render` instance from which local AOV instances are
-        # spawned off.
-        if not instance.data.get("integrate", True):
-            self.log.debug("Skipping collecting frames to fix data for "
-                           "instance because instance is set to not integrate")
-            return
-
         product_name: str = instance.data["productName"]
         folder_entity: dict = instance.data["folderEntity"]
         project_entity: dict = instance.data["projectEntity"]
@@ -100,6 +92,28 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
 
         instance.data["last_version_published_files"] = published_files
         self.log.debug(f"last_version_published_files: {published_files}")
+
+        # `CollectLocalRenderInstances` spawns the render instances which get
+        # integrated and disables `integrate` on this one, because this
+        # instance only triggers the render. The reused frames have to be
+        # copied into those instances, so pass the frame fix data on to them.
+        for render_instance in instance.context:
+
+            render_families = set(render_instance.data.get("families") or [])
+            if "render.local" not in render_families:
+                continue
+            if not render_instance.data.get("integrate", True):
+                continue
+            if (
+                render_instance.data.get("instance_node")
+                != instance.data.get("instance_node")
+            ):
+                continue
+
+            render_instance.data["frames_to_fix"] = frames_to_fix
+            render_instance.data["last_version_published_files"] = (
+                published_files
+            )
 
         if rewrite_version:
             instance.data["version"] = version_entity["version"]
