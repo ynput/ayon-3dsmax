@@ -2,7 +2,6 @@ import clique
 
 import pyblish.api
 from ayon_core.pipeline import PublishValidationError
-from ayon_max.api.action import SelectInvalidAction
 
 
 class ValidateFrameRangeFramesToFix(pyblish.api.InstancePlugin):
@@ -15,7 +14,6 @@ class ValidateFrameRangeFramesToFix(pyblish.api.InstancePlugin):
 
     order = pyblish.api.ValidatorOrder
     label = "Validate Frame Range Frames to Fix"
-    actions = [SelectInvalidAction]
 
     def process(self, instance):
         frames_to_fix: str = instance.data.get("frames_to_fix", "")
@@ -28,9 +26,6 @@ class ValidateFrameRangeFramesToFix(pyblish.api.InstancePlugin):
         # spawned off.
         if not instance.data.get("integrate", True):
             return
-
-        frame_start = instance.data["frameStartHandle"]
-        frame_end = instance.data["frameEndHandle"]
 
         # Get the frame range from 'frames to fix'
         try:
@@ -50,36 +45,26 @@ class ValidateFrameRangeFramesToFix(pyblish.api.InstancePlugin):
             )
 
         fix_frames: "list[int]" = list(collection)
-        fix_frame_start = int(fix_frames[0])
-        fix_frame_end = int(fix_frames[-1])
-
-        # Check if ROP frame range covers the frames to fix.
-        # Title and message are the same for the next two checks.
-        invalid_range = False
-        if frame_start > fix_frame_start:
-            self.log.error(
-                "Start frame should be smaller than or equal to the first "
-                "frame to fix. Set the start frame to the first frame to fix: "
-                f"{fix_frame_start}."
-            )
-            invalid_range = True
-
-        if frame_end < fix_frame_end:
-            self.log.error(
-                "End frame should be greater than or equal to the last frame "
-                "to fix. Set the end frame to the last frame to fix: "
-                f"{fix_frame_end}."
-            )
-            invalid_range = True
-
-        if invalid_range:
+        if not fix_frames:
             raise PublishValidationError(
-                "Invalid Rop Frame Range",
+                f"Frames to fix '{frames_to_fix}' does not contain any frame.",
                 description=(
-                    "## Invalid Rop Frame Range\n"
-                    "Invalid frame range because the instance frame range "
-                    "[{0[frameStart]} - {0[frameEnd]}] doesn't cover "
-                    "the frames to fix [{0[frames_to_fix]}]."
-                    .format(instance.data)
-                )
+                    "## No frames to fix\n"
+                    "The frames to fix value does not contain any frame. Use a "
+                    "value like `5,10-15` and make sure a range's start frame is "
+                    "lower than its end frame."
+                ),
+            )
+
+        expected_frames = set(instance.data.get("expectedFrameRange") or [])
+        missing_frames = sorted(set(fix_frames) - expected_frames)
+        if missing_frames:
+            raise PublishValidationError(
+                f"Frames to fix {missing_frames} are not rendered by this "
+                "instance.",
+                description=(
+                    "## Frames to fix outside the instance frame range\n"
+                    f"The instance renders {sorted(expected_frames)} but these "
+                    f"frames to fix would not be rendered: {missing_frames}."
+                ),
             )
