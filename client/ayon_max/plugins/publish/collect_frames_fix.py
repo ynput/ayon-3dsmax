@@ -119,12 +119,15 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
                 instance_product_base_type
                 and product_base_type != instance_product_base_type
             ):
-                self.log.error(
+                self.log.warning(
                     f"Existing product '{product_name}' product base type "
                     f"'{product_base_type}' is not the same as instance "
                     "product base type "
-                    f"'{instance_product_base_type}'. Re-render may have "
-                    "unintended side effects.")
+                    f"'{instance_product_base_type}'. Re-render is not "
+                    "possible, so the frames are rendered instead."
+                )
+                frames_to_render |= reuse_frames
+                continue
 
             version_entity = ayon_api.get_last_version_by_product_id(
                 project_name,
