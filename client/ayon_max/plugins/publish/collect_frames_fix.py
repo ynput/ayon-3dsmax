@@ -21,13 +21,13 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
     families = ["maxrender"]
     settings_category = "max"
 
-    rewrite_version_enable = False
+    rewrite_version = False
 
     def process(self, instance):
         attribute_values = self.get_attr_values_from_data(instance.data)
         frames_to_fix: str = attribute_values.get("frames_to_fix", "")
         rewrite_version: bool = (
-            self.rewrite_version_enable
+            self.rewrite_version
             and attribute_values.get("rewrite_version", False)
         )
         if not frames_to_fix:
@@ -124,7 +124,7 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
                     ))
         ]
 
-        if cls.rewrite_version_enable:
+        if cls.rewrite_version:
             attributes.append(
                 BoolDef(
                     "rewrite_version",
