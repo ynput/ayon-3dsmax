@@ -5,7 +5,9 @@ import platform
 import tempfile
 
 
+import clique
 from pymxs import runtime as rt
+
 from ayon_core.lib import run_subprocess
 from ayon_max.api.lib_rendersettings import RenderSettings
 from ayon_max.api.lib_renderproducts import RenderProducts
@@ -41,6 +43,32 @@ class SaveScenesForCamera(pyblish.api.InstancePlugin):
         new_folder = f"{current_folder}_{filename}"
         os.makedirs(new_folder, exist_ok=True)
         render_settings = RenderSettings(data=instance.data)
+
+        # Only (re)render the frames which are being fixed, the remaining frames
+        # are copied from the previous published version by
+        # `ExtractLastPublished`. The frames are embedded into the batch script
+        # below because it is executed in a separate 3dsmaxbatch process.
+        frames_to_fix = instance.data.get("frames_to_fix")
+        if frames_to_fix and instance.data.get("last_version_published_files"):
+            fix_frames = set(clique.parse(frames_to_fix, "{ranges}").indexes)
+            render_frames = [
+                frame for frame in instance.data.get("expectedFrameRange", [])
+                if frame in fix_frames
+            ]
+            self.log.info(
+                "Multi camera render, rendering only the frames to fix: %s",
+                render_frames
+            )
+            if not render_frames:
+                self.log.warning(
+                    "None of the frames to fix are within the instance frame "
+                    "range %s.", instance.data.get("expectedFrameRange")
+                )
+            frames_expression = str(render_frames)
+        else:
+            frames_expression = (
+                "range(int(rt.rendStart), int(rt.rendEnd) + 1)")
+
         for camera in cameras:
             new_output = render_settings.get_batch_render_output(camera)       # noqa
             new_output = new_output.replace("\\", "/")
@@ -79,14 +107,15 @@ if render_elem_num > 0:
         render_elem.SetRenderElementFileName(i, aov_name)
 rt.saveMaxFile(new_filepath)
 if not farm:
-    for frame in range(int(rt.rendStart), int(rt.rendEnd) + 1):
+    for frame in {render_frames}:
         rt.render(outputFile=rt.rendOutputFilename, frame=frame, vfb=False)
         """).format(filename=instance.name,
                     new_filepath=new_filepath,
                     new_output=new_output,
                     camera=camera,
                     ext=fmt,
-                    farm=instance.data.get("farm"))
+                    farm=instance.data.get("farm"),
+                    render_frames=frames_expression)
             scripts.append(script)
         maxbatch_exe = os.path.join(
             os.path.dirname(sys.executable), "3dsmaxbatch")
