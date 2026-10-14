@@ -57,6 +57,9 @@ class ValidateFrameRangeFramesToFix(pyblish.api.InstancePlugin):
             )
 
         expected_frames = set(instance.data.get("expectedFrameRange") or [])
+        if not expected_frames:
+            self.log.debug("No expected frame range collected, skipping.")
+            return
         missing_frames = sorted(set(fix_frames) - expected_frames)
         if missing_frames:
             raise PublishValidationError(
