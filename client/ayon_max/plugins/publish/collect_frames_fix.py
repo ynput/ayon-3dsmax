@@ -147,9 +147,14 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
                 for file_info in repre.get("files"):
                     published_files.append(file_info["path"])
 
+            # The output format may have changed since the previous version, in
+            # which case the old files cannot be used for the current
+            # representations.
+            published_files = self._get_compatible_files(
+                published_files, render_instance)
             if not published_files:
                 self.log.warning(
-                    f"No published files found for '{product_name}', "
+                    f"No reusable published files found for '{product_name}', "
                     "re-render not possible, the frames are rendered instead."
                 )
                 frames_to_render |= reuse_frames
@@ -201,6 +206,43 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
             render_instance.data["last_version_published_files"] = (
                 published_files
             )
+
+    @staticmethod
+    def _get_compatible_files(published_files, render_instance):
+        """Filter previous version files to the current output format.
+
+        The image format may have changed since the previous version, e.g. from
+        EXR to PNG. Only files with the extension of one of the current
+        representations can be reused, otherwise their content would end up in
+        files of another format.
+
+        Args:
+            published_files (list[str]): Files of the previous version.
+            render_instance (pyblish.api.Instance): The render instance which is
+                integrated and holds the current representations.
+
+        Returns:
+            list[str]: Published files matching the current output format.
+
+        """
+        current_extensions: "set[str]" = set()
+        for representation in render_instance.data.get("representations", []):
+            files = representation.get("files") or []
+            if isinstance(files, str):
+                files = [files]
+            for file_name in files:
+                extension = os.path.splitext(file_name)[1].lower()
+                if extension:
+                    current_extensions.add(extension)
+
+        if not current_extensions:
+            # nothing to compare the files against
+            return list(published_files)
+
+        return [
+            file_path for file_path in published_files
+            if os.path.splitext(file_path)[1].lower() in current_extensions
+        ]
 
     @staticmethod
     def _get_reusable_frames(published_files, anatomy):
