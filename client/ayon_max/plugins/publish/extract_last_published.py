@@ -19,7 +19,7 @@ class ExtractLastPublished(publish.Extractor):
 
     NOTE:
         This plugin is closely taken from ayon-nuke.
-        It contains some Houdini addon specific logic as various addons may
+        It contains some 3dsMax addon specific logic as various addons may
           have unique methods for managing `staging_dir`, `expectedFiles`
           and `frames`.
     TODO:
@@ -97,7 +97,7 @@ class ExtractLastPublished(publish.Extractor):
     def get_expected_files_and_staging_dir(self, instance):
         """Get expected file names or frames.
 
-        This method includes Houdini specific code.
+        This method includes 3dsMax specific code.
 
         Args:
             instance (pyblish.api.Instance): The instance to publish.
