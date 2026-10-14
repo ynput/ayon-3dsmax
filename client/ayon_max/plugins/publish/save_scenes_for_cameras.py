@@ -5,7 +5,6 @@ import platform
 import tempfile
 
 
-import clique
 from pymxs import runtime as rt
 
 from ayon_core.lib import run_subprocess
@@ -44,27 +43,17 @@ class SaveScenesForCamera(pyblish.api.InstancePlugin):
         os.makedirs(new_folder, exist_ok=True)
         render_settings = RenderSettings(data=instance.data)
 
-        # Only (re)render the frames which are being fixed, the remaining frames
-        # are copied from the previous published version by
-        # `ExtractLastPublished`. The frames are embedded into the batch script
-        # below because it is executed in a separate 3dsmaxbatch process.
-        frames_to_fix = instance.data.get("frames_to_fix")
-        if frames_to_fix and instance.data.get("last_version_published_files"):
-            fix_frames = set(clique.parse(frames_to_fix, "{ranges}").indexes)
-            render_frames = [
-                frame for frame in instance.data.get("expectedFrameRange", [])
-                if frame in fix_frames
-            ]
+        # `CollectFramesFixDefMax` decides which frames have to be rendered when
+        # frames to fix are used; the remaining frames are copied from the
+        # previous published version by `ExtractLastPublished`. The frames are
+        # embedded into the batch script below because it is executed in a
+        # separate 3dsmaxbatch process.
+        frames_to_render = instance.data.get("frames_to_render")
+        if frames_to_render:
             self.log.info(
-                "Multi camera render, rendering only the frames to fix: %s",
-                render_frames
+                "Multi camera render, rendering only: %s", frames_to_render
             )
-            if not render_frames:
-                self.log.warning(
-                    "None of the frames to fix are within the instance frame "
-                    "range %s.", instance.data.get("expectedFrameRange")
-                )
-            frames_expression = str(render_frames)
+            frames_expression = str(list(frames_to_render))
         else:
             frames_expression = (
                 "range(int(rt.rendStart), int(rt.rendEnd) + 1)")

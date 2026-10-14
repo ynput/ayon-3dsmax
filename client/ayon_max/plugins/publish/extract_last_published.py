@@ -33,9 +33,12 @@ class ExtractLastPublished(publish.Extractor):
     families = ["render.local"]
 
     def process(self, instance):
+        # `frames_to_render` is provided by `CollectFramesFixDefMax`, it lists
+        # every frame which is rendered. `frames_to_fix` is used as a fallback.
+        frames_to_render = instance.data.get("frames_to_render")
         frames_to_fix = instance.data.get("frames_to_fix")
-        if not frames_to_fix:
-            self.log.debug("Skipping, No frames to fix.")
+        if not frames_to_render and not frames_to_fix:
+            self.log.debug("Skipping, No frames to fix or render found.")
             return
 
         if not instance.data.get("integrate", True):
@@ -69,35 +72,61 @@ class ExtractLastPublished(publish.Extractor):
 
         expected_and_frames = collect_frames(expected_filepaths)
         frames_and_expected = {v: k for k, v in expected_and_frames.items()}
-        frames_to_fix = clique.parse(frames_to_fix, "{ranges}")
+
+        # `CollectFramesFixDefMax` already decided which frames are rendered;
+        # fall back to the frames to fix when it did not provide them.
+        frames_to_render = instance.data.get("frames_to_render")
+        if frames_to_render:
+            frames_to_render = {int(frame) for frame in frames_to_render}
+        else:
+            frames_to_render = set(
+                clique.parse(frames_to_fix, "{ranges}").indexes)
 
         anatomy = instance.context.data["anatomy"]
 
-        # TODO: This currently copies ALL frames from the last version instead
-        #  of only those within the frame range we're currently looking to
-        #  publish. It should instead, iterate over all expected frames for
-        #  current instance, exclude all "to fix" frames and copy the
-        #  other existing ones.
+        # Copy every expected frame which is not rendered, so the published
+        # version is complete.
+        missing_files: "list[str]" = []
         for file_path, frame in last_published_and_frames.items():
             if frame is None:
-                continue
-
-            # Last published filepath
-            file_path = anatomy.fill_root(file_path)
-            if not os.path.exists(file_path):
                 continue
 
             # Expected filepath for this render for that frame
             target_filepath: str = frames_and_expected.get(frame)
             if not target_filepath:
+                # the frame is not part of this render
                 continue
 
-            # Copy only the frames that we won't render.
-            if frame in frames_to_fix:
+            # Skip the frames that we will render.
+            if int(frame) in frames_to_render:
+                continue
+
+            # Last published filepath
+            file_path = anatomy.fill_root(file_path)
+            if not os.path.exists(file_path):
+                missing_files.append(file_path)
                 continue
 
             self.log.debug(f"Copying '{file_path}' -> '{target_filepath}'")
             shutil.copy(file_path, target_filepath)
+
+        if missing_files:
+            # These frames are not rendered and cannot be copied either, so the
+            # published version would silently miss them.
+            raise publish.PublishError(
+                message=(
+                    "Missing previous version files for frames which are not "
+                    "re-rendered."
+                ),
+                title="Missing previous version files",
+                description=(
+                    "## Missing previous version files\n"
+                    "These frames are neither re-rendered nor available to "
+                    "copy, so they would be missing in the published "
+                    "version:\n\n"
+                    + "\n".join(f"- `{path}`" for path in missing_files)
+                ),
+            )
 
     def get_expected_files_and_staging_dir(self, instance):
         """Get expected file names or frames.

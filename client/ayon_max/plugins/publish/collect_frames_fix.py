@@ -1,9 +1,14 @@
+import os
+
+import clique
 import pyblish.api
 import ayon_api
 
-from ayon_core.lib import TextDef, BoolDef
-from ayon_core.pipeline.publish import AYONPyblishPluginMixin
-
+from ayon_core.lib import TextDef, BoolDef, collect_frames
+from ayon_core.pipeline.publish import (
+    AYONPyblishPluginMixin,
+    PublishError,
+)
 
 
 class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
@@ -40,15 +45,42 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
         self.log.info(f"Frames to fix: {frames_to_fix}")
         instance.data["frames_to_fix"] = frames_to_fix
 
+        # The frames which are not re-rendered have to be copied from the
+        # previous published version. Any frame which cannot be copied has to be
+        # rendered as well, otherwise it would be missing in the new version.
+        expected_frames = set(instance.data.get("expectedFrameRange") or [])
+        if not expected_frames:
+            self.log.debug(
+                "No expected frame range collected, skipping frames to fix."
+            )
+            return
+
+        try:
+            fix_frames = set(clique.parse(frames_to_fix, "{ranges}").indexes)
+        except ValueError as exc:
+            raise PublishError(
+                f"Invalid frames to fix value '{frames_to_fix}': {exc}. "
+                "Use a value like '1-10' or '1,3,5-12'."
+            ) from exc
+
+        if not fix_frames:
+            raise PublishError(
+                f"Frames to fix '{frames_to_fix}' does not contain any frame."
+            )
+
+        reuse_frames = expected_frames - fix_frames
+        frames_to_render = fix_frames & expected_frames
+
         folder_entity: dict = instance.data["folderEntity"]
         project_entity: dict = instance.data["projectEntity"]
         project_name: str = project_entity["name"]
+        anatomy = instance.context.data.get("anatomy")
 
         # NOTE: This instance only triggers the render and it has `integrate`
         # disabled by `CollectLocalRenderInstances`. The products which are
         # published are the render instances spawned from it, so the previous
         # version has to be resolved for each of them separately.
-        reused_files: "list[str]" = []
+        candidates: "list[tuple]" = []
         for render_instance in instance.context:
             if render_instance is instance:
                 continue
@@ -72,8 +104,9 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
             if not product_entity:
                 self.log.warning(
                     f"No existing product found for '{product_name}'. "
-                    "Re-render not possible."
+                    "Re-render not possible, the frames are rendered instead."
                 )
+                frames_to_render |= reuse_frames
                 continue
 
             product_base_type = (
@@ -100,8 +133,9 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
             if not version_entity:
                 self.log.warning(
                     f"No last version found for product '{product_name}', "
-                    "re-render not possible."
+                    "re-render not possible, the frames are rendered instead."
                 )
+                frames_to_render |= reuse_frames
                 continue
 
             # Get all published files for the representation of this product
@@ -114,30 +148,83 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
                     published_files.append(file_info["path"])
 
             if not published_files:
-                self.log.debug(
-                    f"No published files found for '{product_name}'."
+                self.log.warning(
+                    f"No published files found for '{product_name}', "
+                    "re-render not possible, the frames are rendered instead."
                 )
+                frames_to_render |= reuse_frames
                 continue
+
+            reusable_frames = self._get_reusable_frames(
+                published_files, anatomy)
+            not_reusable_frames = reuse_frames - reusable_frames
+            if not_reusable_frames:
+                self.log.warning(
+                    f"These frames cannot be reused from the previous version "
+                    f"of '{product_name}' and are rendered too: "
+                    f"{sorted(not_reusable_frames)}"
+                )
+                frames_to_render |= not_reusable_frames
 
             self.log.debug(
                 f"last_version_published_files of '{product_name}': "
                 f"{published_files}"
             )
-            render_instance.data["frames_to_fix"] = frames_to_fix
-            render_instance.data["last_version_published_files"] = (
-                published_files
-            )
-            reused_files.extend(published_files)
+            candidates.append((
+                render_instance, version_entity, published_files,
+                reusable_frames
+            ))
 
+        frames_to_render = sorted(frames_to_render)
+        self.log.info(
+            "Frames to fix: %s, frames to render: %s",
+            frames_to_fix, frames_to_render
+        )
+        # Both local render paths, `ExtractLocalRender` and the multi camera
+        # batch script, render exactly these frames.
+        instance.data["frames_to_render"] = frames_to_render
+
+        for render_instance, version_entity, published_files, reusable in (
+            candidates
+        ):
             if rewrite_version:
                 render_instance.data["version"] = version_entity["version"]
                 # limits triggering version validator
                 render_instance.data.pop("latestVersion", None)
 
-        # The trigger instance does not publish a product itself, but the local
-        # render is only limited to the frames to fix when a previous version
-        # is available, so keep that signal on it as well.
-        instance.data["last_version_published_files"] = reused_files
+            # Only the frames which are not rendered have to be copied.
+            if not reusable.difference(frames_to_render):
+                continue
+
+            render_instance.data["frames_to_fix"] = frames_to_fix
+            render_instance.data["frames_to_render"] = frames_to_render
+            render_instance.data["last_version_published_files"] = (
+                published_files
+            )
+
+    @staticmethod
+    def _get_reusable_frames(published_files, anatomy):
+        """Get the frames of a previous version which can really be copied.
+
+        Args:
+            published_files (list[str]): Files of the previous version.
+            anatomy (Anatomy): Anatomy used to resolve the root of the paths.
+
+        Returns:
+            set[int]: Frames whose file exists and can be copied.
+
+        """
+        reusable_frames: "set[int]" = set()
+        for file_path, frame in collect_frames(published_files).items():
+            if frame is None:
+                continue
+            if anatomy is not None and not os.path.exists(
+                anatomy.fill_root(file_path)
+            ):
+                continue
+            reusable_frames.add(int(frame))
+
+        return reusable_frames
 
     @classmethod
     def get_attribute_defs(cls):

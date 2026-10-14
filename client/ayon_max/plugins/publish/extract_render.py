@@ -2,10 +2,8 @@ from __future__ import annotations
 
 import os
 
-import clique
-
 from ayon_core.pipeline import publish
-from ayon_core.pipeline.publish import KnownPublishError
+from ayon_core.pipeline.publish import PublishError
 
 
 try:
@@ -47,29 +45,14 @@ class ExtractLocalRender(publish.Extractor):
                 "vfb": False,
             }
 
-            frames_to_render = instance.data["expectedFrameRange"]
-            frames_to_fix = instance.data.get("frames_to_fix")
-            if (
-                frames_to_fix
-                and instance.data.get("last_version_published_files")
-            ):
-                # Render only the frames which are being fixed, all other
-                # frames are copied from the previous published version by
-                # `ExtractLastPublished`.
-                frames_to_fix = clique.parse(frames_to_fix, "{ranges}")
-                frames_to_fix = set(frames_to_fix.indexes)
-                frames_to_render = [
-                    frame for frame in frames_to_render
-                    if frame in frames_to_fix
-                ]
-                self.log.info(
-                    "Frames to fix, rendering only: %s", frames_to_render
-                )
-                if not frames_to_render:
-                    self.log.warning(
-                        "None of the frames to fix are within the instance "
-                        "frame range %s.", instance.data["expectedFrameRange"]
-                    )
+            # `CollectFramesFixDefMax` decides which frames have to be rendered
+            # when frames to fix are used; the remaining frames are copied from
+            # the previous published version by `ExtractLastPublished`.
+            frames_to_render = instance.data.get("frames_to_render")
+            if frames_to_render:
+                self.log.info("Rendering only: %s", frames_to_render)
+            else:
+                frames_to_render = instance.data["expectedFrameRange"]
 
             for frame in frames_to_render:
                 if instance.data["renderer"].startswith("Arnold"):
@@ -81,7 +64,7 @@ class ExtractLocalRender(publish.Extractor):
                     **kwargs
                 )
                 if cancelled:
-                    raise KnownPublishError(f"Render cancelled at frame {frame}.")
+                    raise PublishError(f"Render cancelled at frame {frame}.")
             self.log.debug("Local render extraction completed.")
         else:
             self.log.debug(
