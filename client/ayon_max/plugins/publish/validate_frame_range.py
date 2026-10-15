@@ -88,7 +88,10 @@ class ValidateFrameRange(pyblish.api.InstancePlugin,
             raise PublishValidationError(report, title="Frame Range incorrect")
 
     @classmethod
-    def get_invalid(cls, instance, frameStart, frameEnd):
+    def get_invalid(cls, instance):
+        frame_range = get_frame_range(instance.data["taskEntity"])
+        frame_start_handle = frame_range["frameStartHandle"]
+        frame_end_handle = frame_range["frameEndHandle"]
         inst_frame_start = instance.data.get("frameStartHandle")
         inst_frame_end = instance.data.get("frameEndHandle")
         if inst_frame_start is None or inst_frame_end is None:
@@ -97,14 +100,14 @@ class ValidateFrameRange(pyblish.api.InstancePlugin,
                 "instance to to validate."
             )
         invalid = []
-        if frameStart != inst_frame_start:
+        if frame_start_handle != inst_frame_start:
             invalid.append(
                 f"Start frame ({inst_frame_start}) on instance does not match " # noqa
-                f"with the start frame ({frameStart}) set on the asset data. ")    # noqa
-        if frameEnd != inst_frame_end:
+                f"with the start frame ({frame_start_handle}) set on the asset data. ")    # noqa
+        if frame_end_handle != inst_frame_end:
             invalid.append(
                 f"End frame ({inst_frame_end}) on instance does not match "
-                f"with the end frame ({frameEnd}) "
+                f"with the end frame ({frame_end_handle}) "
                 "from the asset data. ")
         return invalid
 
