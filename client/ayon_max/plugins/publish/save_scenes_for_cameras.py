@@ -1,6 +1,5 @@
 import pyblish.api
 import os
-import sys
 import platform
 import tempfile
 
@@ -155,7 +154,4 @@ if not farm:
         executable = os.path.join(max_root, executable)
         if os.path.exists(executable):
             return os.path.normpath(executable)
-        raise PublishError(
-            f"Could not find the '{executable}' executable, tried:\n"
-            + "\n".join(f"- {candidate}" for candidate in candidates)
-        )
+        raise PublishError(f"Could not find the '{executable}' executable.")
