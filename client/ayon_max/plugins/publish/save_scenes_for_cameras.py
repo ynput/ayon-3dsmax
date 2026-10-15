@@ -8,7 +8,7 @@ import tempfile
 from pymxs import runtime as rt
 
 from ayon_core.lib import run_subprocess
-from ayon_core.pipeline.publish import KnownPublishError
+from ayon_core.pipeline.publish import PublishError
 from ayon_max.api.lib_rendersettings import RenderSettings
 from ayon_max.api.lib_renderproducts import RenderProducts
 
@@ -145,7 +145,7 @@ if not farm:
             str: Full path to the 3dsmaxbatch executable.
 
         Raises:
-            KnownPublishError: When the executable cannot be found.
+            PublishError: When the executable cannot be found.
 
         """
         executable = "3dsmaxbatch"
@@ -153,27 +153,11 @@ if not farm:
             executable += ".exe"
 
         candidates = []
-        try:
-            max_root = rt.getdir(rt.Name("maxroot"))
-        except (AttributeError, RuntimeError):
-            max_root = None
-        if max_root:
-            candidates.append(os.path.join(max_root, executable))
-
-        # Walk up from the interpreter, e.g. <max>/Python/python.exe
-        current_dir = os.path.dirname(sys.executable)
-        for _index in range(3):
-            candidates.append(os.path.join(current_dir, executable))
-            parent_dir = os.path.dirname(current_dir)
-            if parent_dir == current_dir:
-                break
-            current_dir = parent_dir
-
-        for candidate in candidates:
-            if os.path.exists(candidate):
-                return os.path.normpath(candidate)
-
-        raise KnownPublishError(
+        max_root = rt.getdir(rt.Name("maxroot"))
+        executable = os.path.join(max_root, executable)
+        if os.path.exists(executable):
+            return os.path.normpath(executable)
+        raise PublishError(
             f"Could not find the '{executable}' executable, tried:\n"
             + "\n".join(f"- {candidate}" for candidate in candidates)
         )
