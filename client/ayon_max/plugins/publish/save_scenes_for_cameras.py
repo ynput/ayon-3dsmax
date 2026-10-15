@@ -8,6 +8,7 @@ import tempfile
 from pymxs import runtime as rt
 
 from ayon_core.lib import run_subprocess
+from ayon_core.pipeline.publish import KnownPublishError
 from ayon_max.api.lib_rendersettings import RenderSettings
 from ayon_max.api.lib_renderproducts import RenderProducts
 
@@ -106,12 +107,7 @@ if not farm:
                     farm=instance.data.get("farm"),
                     render_frames=frames_expression)
             scripts.append(script)
-        maxbatch_exe = os.path.join(
-            os.path.dirname(sys.executable), "3dsmaxbatch")
-        maxbatch_exe = maxbatch_exe.replace("\\", "/")
-        if platform.system().lower() == "windows":
-            maxbatch_exe += ".exe"
-            maxbatch_exe = os.path.normpath(maxbatch_exe)
+        maxbatch_exe = self.get_maxbatch_executable()
         with tempfile.TemporaryDirectory() as tmp_dir_name:
             tmp_script_path = os.path.join(
                 tmp_dir_name, "extract_scene_files.py")
@@ -136,3 +132,48 @@ if not farm:
                 self.log.error("Camera scene files not existed yet!")
                 raise RuntimeError("MaxBatch.exe doesn't run as expected")
             self.log.debug(f"Found Camera scene:{camera_scene}")
+
+    @staticmethod
+    def get_maxbatch_executable():
+        """Get the path of the 3dsmaxbatch executable.
+
+        3dsmaxbatch is not necessarily next to `sys.executable`: the Python
+        embedded in 3ds Max lives in a subfolder of the installation, which does
+        not contain the executable.
+
+        Returns:
+            str: Full path to the 3dsmaxbatch executable.
+
+        Raises:
+            KnownPublishError: When the executable cannot be found.
+
+        """
+        executable = "3dsmaxbatch"
+        if platform.system().lower() == "windows":
+            executable += ".exe"
+
+        candidates = []
+        try:
+            max_root = rt.getdir(rt.Name("maxroot"))
+        except (AttributeError, RuntimeError):
+            max_root = None
+        if max_root:
+            candidates.append(os.path.join(max_root, executable))
+
+        # Walk up from the interpreter, e.g. <max>/Python/python.exe
+        current_dir = os.path.dirname(sys.executable)
+        for _index in range(3):
+            candidates.append(os.path.join(current_dir, executable))
+            parent_dir = os.path.dirname(current_dir)
+            if parent_dir == current_dir:
+                break
+            current_dir = parent_dir
+
+        for candidate in candidates:
+            if os.path.exists(candidate):
+                return os.path.normpath(candidate)
+
+        raise KnownPublishError(
+            f"Could not find the '{executable}' executable, tried:\n"
+            + "\n".join(f"- {candidate}" for candidate in candidates)
+        )
