@@ -151,8 +151,6 @@ if not farm:
         executable = "3dsmaxbatch"
         if platform.system().lower() == "windows":
             executable += ".exe"
-
-        candidates = []
         max_root = rt.getdir(rt.Name("maxroot"))
         executable = os.path.join(max_root, executable)
         if os.path.exists(executable):
