@@ -1,12 +1,13 @@
 import pyblish.api
 import os
-import sys
 import platform
 import tempfile
 
 
 from pymxs import runtime as rt
+
 from ayon_core.lib import run_subprocess
+from ayon_core.pipeline.publish import PublishError
 from ayon_max.api.lib_rendersettings import RenderSettings
 from ayon_max.api.lib_renderproducts import RenderProducts
 
@@ -41,6 +42,22 @@ class SaveScenesForCamera(pyblish.api.InstancePlugin):
         new_folder = f"{current_folder}_{filename}"
         os.makedirs(new_folder, exist_ok=True)
         render_settings = RenderSettings(data=instance.data)
+
+        # `CollectFramesFixDefMax` decides which frames have to be rendered when
+        # frames to fix are used; the remaining frames are copied from the
+        # previous published version by `ExtractLastPublished`. The frames are
+        # embedded into the batch script below because it is executed in a
+        # separate 3dsmaxbatch process.
+        frames_to_render = instance.data.get("frames_to_render")
+        if frames_to_render:
+            self.log.info(
+                "Multi camera render, rendering only: %s", frames_to_render
+            )
+            frames_expression = str(list(frames_to_render))
+        else:
+            frames_expression = (
+                "range(int(rt.rendStart), int(rt.rendEnd) + 1)")
+
         for camera in cameras:
             new_output = render_settings.get_batch_render_output(camera)       # noqa
             new_output = new_output.replace("\\", "/")
@@ -79,21 +96,17 @@ if render_elem_num > 0:
         render_elem.SetRenderElementFileName(i, aov_name)
 rt.saveMaxFile(new_filepath)
 if not farm:
-    for frame in range(int(rt.rendStart), int(rt.rendEnd) + 1):
+    for frame in {render_frames}:
         rt.render(outputFile=rt.rendOutputFilename, frame=frame, vfb=False)
         """).format(filename=instance.name,
                     new_filepath=new_filepath,
                     new_output=new_output,
                     camera=camera,
                     ext=fmt,
-                    farm=instance.data.get("farm"))
+                    farm=instance.data.get("farm"),
+                    render_frames=frames_expression)
             scripts.append(script)
-        maxbatch_exe = os.path.join(
-            os.path.dirname(sys.executable), "3dsmaxbatch")
-        maxbatch_exe = maxbatch_exe.replace("\\", "/")
-        if platform.system().lower() == "windows":
-            maxbatch_exe += ".exe"
-            maxbatch_exe = os.path.normpath(maxbatch_exe)
+        maxbatch_exe = self.get_maxbatch_executable()
         with tempfile.TemporaryDirectory() as tmp_dir_name:
             tmp_script_path = os.path.join(
                 tmp_dir_name, "extract_scene_files.py")
@@ -118,3 +131,27 @@ if not farm:
                 self.log.error("Camera scene files not existed yet!")
                 raise RuntimeError("MaxBatch.exe doesn't run as expected")
             self.log.debug(f"Found Camera scene:{camera_scene}")
+
+    @staticmethod
+    def get_maxbatch_executable():
+        """Get the path of the 3dsmaxbatch executable.
+
+        3dsmaxbatch is not necessarily next to `sys.executable`: the Python
+        embedded in 3ds Max lives in a subfolder of the installation, which does
+        not contain the executable.
+
+        Returns:
+            str: Full path to the 3dsmaxbatch executable.
+
+        Raises:
+            PublishError: When the executable cannot be found.
+
+        """
+        executable = "3dsmaxbatch"
+        if platform.system().lower() == "windows":
+            executable += ".exe"
+        max_root = rt.getdir(rt.Name("maxroot"))
+        executable = os.path.join(max_root, executable)
+        if os.path.exists(executable):
+            return os.path.normpath(executable)
+        raise PublishError(f"Could not find the '{executable}' executable.")
