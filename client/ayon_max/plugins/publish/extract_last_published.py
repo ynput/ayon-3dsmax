@@ -86,7 +86,7 @@ class ExtractLastPublished(publish.Extractor):
 
         # Copy every expected frame which is not rendered, so the published
         # version is complete.
-        missing_files: "list[str]" = []
+        missing_files: list[str] = []
         for file_path, frame in last_published_and_frames.items():
             if frame is None:
                 continue
