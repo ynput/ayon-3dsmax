@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 
 import clique
@@ -80,7 +82,7 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
         # disabled by `CollectLocalRenderInstances`. The products which are
         # published are the render instances spawned from it, so the previous
         # version has to be resolved for each of them separately.
-        candidates: "list[tuple]" = []
+        candidates: list[tuple] = []
         for render_instance in instance.context:
             if render_instance is instance:
                 continue
@@ -96,7 +98,7 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
             ):
                 continue
 
-            product_name: str = render_instance.data.get("productName") or ""
+            product_name: str = render_instance.data.get("productName")
             product_entity = ayon_api.get_product_by_name(
                 project_name,
                 product_name,
@@ -142,7 +144,7 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
                 continue
 
             # Get all published files for the representation of this product
-            published_files: "list[str]" = []
+            published_files: list[str] = []
             representations = ayon_api.get_representations(
                 project_name, version_ids={version_entity["id"]}
             )
@@ -228,7 +230,7 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
             list[str]: Published files matching the current output format.
 
         """
-        current_extensions: "set[str]" = set()
+        current_extensions: set[str] = set()
         for representation in render_instance.data.get("representations", []):
             files = representation.get("files") or []
             if isinstance(files, str):
@@ -259,7 +261,7 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
             set[int]: Frames whose file exists and can be copied.
 
         """
-        reusable_frames: "set[int]" = set()
+        reusable_frames: set[int] = set()
         for file_path, frame in collect_frames(published_files).items():
             if frame is None:
                 continue
