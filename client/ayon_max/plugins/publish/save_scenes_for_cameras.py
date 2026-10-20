@@ -97,7 +97,7 @@ if render_elem_num > 0:
 rt.saveMaxFile(new_filepath)
 if not farm:
     for frame in {render_frames}:
-        rt.render(outputFile=rt.rendOutputFilename, frame=frame, vfb=False)
+        rt.render(outputFile=rt.rendOutputFilename, camera=target_camera_node,frame=frame, vfb=False)
         """).format(filename=instance.name,
                     new_filepath=new_filepath,
                     new_output=new_output,
