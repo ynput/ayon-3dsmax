@@ -192,7 +192,11 @@ class RenderProducts(object):
             return self.get_arnold_render_output(renderer, image_format)
 
         elif is_supported_renderer(renderer_name):
-            return render_elem.GetRenderElementFilename(index)
+            # An undefined render element filename would otherwise travel as
+            # the string "None" into the expected files and the Deadline
+            # submission, so treat it as a missing filename instead.
+            filename = render_elem.GetRenderElementFilename(index)
+            return filename or ""
 
         else:
             raise RuntimeError(
