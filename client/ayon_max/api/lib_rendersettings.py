@@ -155,6 +155,11 @@ class RenderSettings(object):
                 # naming even when raw EXR is the actual beauty output. It is
                 # not written while `rendSaveFile` is off.
                 rt.rendOutputFilename = f"{output}..{img_fmt}"
+                # Do not keep a split filename from a previous publish. A
+                # stale value would wrongly make the beauty pass look like it
+                # is not written (issue #138).
+                if hasattr(vr_settings, "output_splitfilename"):
+                    vr_settings.output_splitfilename = ""
 
             self.render_element_layer(output, width, height, img_fmt)
         # TODO: supports multipass for different renderers

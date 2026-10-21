@@ -227,9 +227,17 @@ class RenderProducts(object):
         )
         if not is_save_vray_exr_rawfile and not is_render_element:
             # Without the raw file V-Ray writes the beauty pass through the
-            # 3ds Max render output, so that path is the one describing the
-            # Main sequence. Returning an empty path here would drop the
-            # beauty product entirely (issue #138).
+            # 3ds Max render output, unless the render channels are split.
+            # With separate render channels only the split channel files are
+            # written and there is no beauty pass (issue #138). The split
+            # toggle is checked as well so a stale split filename does not
+            # wrongly drop the beauty product.
+            split_channels = (
+                getattr(vray_settings, "output_splitgbuffer", False)
+                and getattr(vray_settings, "output_splitfilename", "")
+            )
+            if split_channels:
+                return ""
             return rt.rendOutputFilename
         output_attr = (
             "output_rawfilename"
