@@ -120,9 +120,14 @@ if not farm:
             self.log.debug(f"Failed running script {tmp_script_path}:\n{full_script}")
             current_filepath = current_filepath.replace("\\", "/")
             tmp_script_path = tmp_script_path.replace("\\", "/")
+            env = os.environ.copy()
+            for key in ("PYTHONPATH", "PYTHONHOME"):
+                env.pop(key, None)
+
             run_subprocess([maxbatch_exe, tmp_script_path,
                             "-sceneFile", current_filepath],
-                            logger=self.log)
+                            logger=self.log,
+                            env=env)
 
         for camera_scene in camera_scene_files:
             if not os.path.exists(camera_scene):
