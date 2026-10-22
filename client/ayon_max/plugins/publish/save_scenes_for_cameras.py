@@ -111,23 +111,15 @@ if not farm:
             tmp_script_path = os.path.join(
                 tmp_dir_name, "extract_scene_files.py")
             self.log.info("Using script file: {}".format(tmp_script_path))
-
-            with open(tmp_script_path, "wt") as tmp:
+            with open(tmp_script_path, "wt", encoding="utf-8") as tmp:
                 for script in scripts:
                     tmp.write(script + "\n")
 
             full_script = "\n".join(scripts)
-            self.log.debug(f"Failed running script {tmp_script_path}:\n{full_script}")
             current_filepath = current_filepath.replace("\\", "/")
             tmp_script_path = tmp_script_path.replace("\\", "/")
-            env = os.environ.copy()
-            for key in ("PYTHONPATH", "PYTHONHOME"):
-                env.pop(key, None)
-
             run_subprocess([maxbatch_exe, tmp_script_path,
-                            "-sceneFile", current_filepath],
-                            logger=self.log,
-                            env=env)
+                            "-sceneFile", current_filepath])
 
         for camera_scene in camera_scene_files:
             if not os.path.exists(camera_scene):
