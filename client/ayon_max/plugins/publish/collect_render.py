@@ -14,7 +14,7 @@ from ayon_max.api.lib import (
     get_max_version,
     get_current_renderer,
     get_vray_settings,
-    get_multipass_setting,
+    is_vray_exr_saverawfile,
 )
 from ayon_max.api.lib_rendersettings import RenderSettings
 from ayon_max.api.lib_renderproducts import RenderProducts
@@ -249,11 +249,12 @@ class CollectRender(pyblish.api.InstancePlugin):
             return renderer.AOVManager.outputPath
         elif renderer_name.startswith("V_Ray_"):
             vr_settings = get_vray_settings(renderer_name, renderer)
-            multipass = get_multipass_setting(renderer_name, project_settings)
-            if multipass and img_format == "exr":
-                return vr_settings.output_rawfilename
-            else:
-                return vr_settings.output_splitfilename
+            if is_vray_exr_saverawfile(img_format, vr_settings):
+                # Raw EXR writes the beauty pass through the raw output.
+                return vr_settings.output_rawfilename or rt.rendOutputFilename
+            # Without the raw output V-Ray writes the beauty pass through
+            # the max render output instead of the split output.
+            return rt.rendOutputFilename
         return rt.rendOutputFilename
 
     def _precollect_required_data(self, instance: pyblish.api.Instance) -> None:
