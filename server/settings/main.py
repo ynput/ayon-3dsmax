@@ -42,7 +42,7 @@ class UnitScaleSettings(BaseSettingsModel):
 
 
 class AutoKeyValueSettings(BaseSettingsModel):
-    defualt_key_time: int = SettingsField(
+    default_key_time: int = SettingsField(
         0, title="Auto Key Default Frame")
 
 
@@ -129,7 +129,7 @@ DEFAULT_VALUES = {
         "mxp_workspace_script": DEFAULT_MXP_WORKSPACE_SETTINGS
     },
     "auto_key_default":{
-        "defualt_key_time": 0
+        "default_key_time": 0
     },
     "templated_workfile_build": {
         "profiles": []
