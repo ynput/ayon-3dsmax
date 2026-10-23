@@ -18,6 +18,7 @@ from ayon_max.api.lib import (
     get_current_renderer,
     get_multipass_setting,
     reformat_filename,
+    is_vray_exr_saverawfile,
 )
 from ayon_core.pipeline import get_current_project_name
 from ayon_core.settings import get_project_settings
@@ -64,7 +65,9 @@ class RenderProducts(object):
         render_dict: Dict[str, list[str]] = {}
 
         # Always add beauty pass
-        render_dict["beauty"] = self.get_expected_beauty(frames, extension)
+        beauty_files = self.get_expected_beauty(frames, extension)
+        if beauty_files:
+            render_dict["beauty"] = beauty_files
 
         # Optionally add AOVs
         renderer = get_current_renderer()
@@ -189,7 +192,11 @@ class RenderProducts(object):
             return self.get_arnold_render_output(renderer, image_format)
 
         elif is_supported_renderer(renderer_name):
-            return render_elem.GetRenderElementFilename(index)
+            # An undefined render element filename would otherwise travel as
+            # the string "None" into the expected files and the Deadline
+            # submission, so treat it as a missing filename instead.
+            filename = render_elem.GetRenderElementFilename(index)
+            return filename or ""
 
         else:
             raise RuntimeError(
@@ -218,19 +225,35 @@ class RenderProducts(object):
             if "GPU" in str(vr_renderer)
             else vr_renderer
         )
-        if (
-            not is_render_element
-            and image_format == "exr"
-            and not vray_settings.output_rawfilename
-        ):
-            return getattr(vray_settings, "output_splitfilename", "") or rt.rendOutputFilename
+        is_save_vray_exr_rawfile = is_vray_exr_saverawfile(
+            image_format,
+            vray_settings,
+        )
+        if not is_save_vray_exr_rawfile and not is_render_element:
+            # Without the raw file V-Ray writes the beauty pass through the
+            # 3ds Max render output, unless the render channels are split.
+            # With separate render channels only the split channel files are
+            # written and there is no beauty pass (issue #138). The split
+            # toggle is checked as well so a stale split filename does not
+            # wrongly drop the beauty product.
+            split_channels = (
+                getattr(vray_settings, "output_splitgbuffer", False)
+                and getattr(vray_settings, "output_splitfilename", "")
+            )
+            if split_channels:
+                return ""
+            return rt.rendOutputFilename
         output_attr = (
             "output_rawfilename"
-            if not is_render_element and image_format == "exr"
+            if not is_render_element
+            and is_save_vray_exr_rawfile
             else "output_splitfilename"
         )
-        render_output = getattr(vray_settings, output_attr)
-        return render_output if render_output else rt.rendOutputFilename
+        render_output = getattr(vray_settings, output_attr, "")
+        if not render_output:
+            return rt.rendOutputFilename
+
+        return render_output
 
     def get_arnold_render_output(self, arnold_renderer: Any, extension: str) -> str:
         """Get the Arnold render output filename.
