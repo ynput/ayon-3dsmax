@@ -17,6 +17,7 @@ except ImportError:
 from ayon_max.api.lib import (
     get_current_renderer,
     get_multipass_setting,
+    get_vray_settings,
     reformat_filename,
     is_vray_exr_saverawfile,
 )
@@ -84,8 +85,94 @@ class RenderProducts(object):
                 render_dict[aov_name] = aov_expected_files
         return render_dict
 
+    def get_multiple_camera_outputs(
+            self, output: str, camera: str, image_format: str = None
+    ) -> Dict[str, str]:
+        """Get the render output paths of one camera for the batch script.
+
+        The camera batch script writes the outputs into a separate camera scene,
+        so the renderer specific outputs have to be resolved per camera. V-Ray
+        writes the beauty pass either through the raw output (EXR with the raw
+        file enabled) or through the max render output; with split render
+        channels no beauty file is written at all.
+
+        Args:
+            output (str): Batch render output path of the camera.
+            camera (str): Camera name.
+            image_format (str): Image format of the render output.
+
+        Returns:
+            dict[str, str]: Paths for "beauty", "raw", "split" and "arnold".
+                Empty strings mean the output is not used for the camera.
+
+        """
+        image_format = image_format or self.image_format()
+        renderer = get_current_renderer()
+        renderer_name = str(renderer).split(":")[0]
+        output_stem, output_ext = os.path.splitext(output)
+        output_stem = output_stem.rstrip(".")
+        ext = output_ext.lstrip(".")
+        camera_outputs = {
+            "beauty": "",
+            "raw": "",
+            "split": "",
+            "arnold": "",
+        }
+
+        if renderer_name.startswith("V_Ray_"):
+            vray_settings = get_vray_settings(renderer_name, renderer)
+            if is_vray_exr_saverawfile(image_format, vray_settings):
+                # The beauty pass is written through the raw output file.
+                raw_output = f"{output_stem}_raw..{ext}"
+                camera_outputs["raw"] = raw_output
+                camera_outputs["beauty"] = raw_output
+            elif (
+                getattr(vray_settings, "output_splitgbuffer", False)
+                and getattr(vray_settings, "output_splitfilename", "")
+            ):
+                # Only the split render channels are written, no beauty pass.
+                camera_outputs["split"] = f"{output_stem}_split..{ext}"
+            else:
+                camera_outputs["beauty"] = output
+        elif renderer_name.startswith("Arnold"):
+            arnold_output = f"{output_stem}_arnold..{ext}"
+            camera_outputs["arnold"] = arnold_output
+            camera_outputs["beauty"] = arnold_output
+        else:
+            camera_outputs["beauty"] = output
+
+        return camera_outputs
+
+    def get_multiple_camera_beauty(
+            self, output: str, camera: str, frames: list[int],
+            image_format: str = None
+    ) -> list[str]:
+        """Get the expected beauty files of one camera.
+
+        Args:
+            output (str): Batch render output path of the camera.
+            camera (str): Camera name.
+            frames (list[int]): Frames of the render.
+            image_format (str): Image format of the render output.
+
+        Returns:
+            list[str]: Expected beauty files, empty when no beauty pass is
+                written for this camera (V-Ray split render channels).
+
+        """
+        camera_outputs = self.get_multiple_camera_outputs(
+            output, camera, image_format)
+        beauty_output = camera_outputs["beauty"]
+        if not beauty_output:
+            return []
+        renderer = get_current_renderer()
+        renderer_name = str(renderer).split(":")[0]
+        return self.get_expected_files(
+            beauty_output, frames, "", renderer_name)
+
     def get_multiple_render_products(
-            self, outputs: list[str], cameras: list[str], frames: list[int]
+            self, outputs: list[str], cameras: list[str], frames: list[int],
+            image_format: str = None
     ) -> Dict[str, list[str]]:
         """Get render output file paths for multiple cameras.
 
@@ -98,11 +185,13 @@ class RenderProducts(object):
             cameras (list[str]): A list of camera names.
             frames (list[int]): A list of frames to generate expected
                 output file paths for.
+            image_format (str): Image format of the render output.
 
         Returns:
             Dict[str, list[str]]: A dictionary containing render output file
                 paths for each camera (e.g., "camera01_beauty", "camera01_Cryptomatte").
         """
+        image_format = image_format or self.image_format()
         renderer = get_current_renderer()
         renderer_name = str(renderer).split(":")[0]
         render_output_frames: Dict[str, list[str]] = {}
@@ -115,19 +204,41 @@ class RenderProducts(object):
             output_stem = output_stem.rstrip(".")
             ext = output_ext.lstrip(".")
 
-            # The beauty pass is written to this camera's batch render output,
-            # so the expected files have to be derived from it instead of the
-            # current scene output. Otherwise every camera would list the same
-            # files and the products would end up with the same images.
-            beauty_files = self.get_expected_files(
-                output, frames, "", renderer_name
-            )
-            render_output_frames[f"{camera}_beauty"] = beauty_files
+            camera_outputs = self.get_multiple_camera_outputs(
+                output, camera, image_format)
 
-            # Add AOVs, named the same way the camera batch script writes them:
-            # "<output stem>_<render element>..<ext>".
+            # The beauty pass depends on the renderer: V-Ray writes it through
+            # the raw output or the max render output, with split render
+            # channels there is no beauty pass at all. The expected files have
+            # to be derived from the camera specific output, otherwise every
+            # camera would list the same files and the products would end up
+            # with the same images.
+            beauty_files = self.get_multiple_camera_beauty(
+                output, camera, frames, image_format)
+            if beauty_files:
+                render_output_frames[f"{camera}_beauty"] = beauty_files
+
             render_elements = self.get_render_element_and_filepath(ext)
-            if render_elements and not self.is_arnold_exr(renderer, ext):
+            if not render_elements or self.is_arnold_exr(renderer, ext):
+                continue
+
+            if renderer_name.startswith("V_Ray_") and camera_outputs["split"]:
+                # V-Ray writes the render elements and the additional channels
+                # through the split output file of the camera, the channel
+                # naming is preserved by `get_expected_files`.
+                for aov_name, _aov_filepath in render_elements:
+                    render_output_frames[f"{camera}_{aov_name}"] = (
+                        self.get_expected_files(
+                            camera_outputs["split"],
+                            frames,
+                            aov_name,
+                            renderer_name
+                        )
+                    )
+            else:
+                # Other renderers write the render elements into separate
+                # files, named the same way the camera batch script writes them:
+                # "<output stem>_<render element>..<ext>".
                 for aov_name, _aov_filepath in render_elements:
                     aov_output = f"{output_stem}_{aov_name}..{ext}"
                     aov_expected_files = self.get_expected_files(
@@ -136,7 +247,9 @@ class RenderProducts(object):
                         "",
                         renderer_name
                     )
-                    render_output_frames[f"{camera}_{aov_name}"] = aov_expected_files
+                    render_output_frames[f"{camera}_{aov_name}"] = (
+                        aov_expected_files
+                    )
 
         return render_output_frames
 
