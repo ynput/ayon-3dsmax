@@ -193,6 +193,15 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
                 reusable_frames
             ))
 
+        # A farm render instance is integrated in the farm publish job and has
+        # no spawned `render.local` instances, so the reusable frames were not
+        # verified above. Frames which cannot be copied from the previous
+        # version have to be rendered as well, otherwise they would be missing
+        # in the new published version.
+        if instance.data.get("farm"):
+            frames_to_render |= self._get_not_reusable_frames(
+                instance, project_name, folder_entity, anatomy, reuse_frames)
+
         frames_to_render = sorted(frames_to_render)
         self.log.info(
             "Frames to fix: %s, frames to render: %s",
@@ -305,6 +314,75 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
             reusable_frames.add(int(frame))
 
         return reusable_frames
+
+    def _get_not_reusable_frames(
+            self, instance, project_name, folder_entity, anatomy,
+            reuse_frames):
+        """Get the frames which cannot be copied from the previous version.
+
+        A farm render instance is not integrated through spawned
+        `render.local` instances, so this check has to run for the instance
+        itself before the render job is restricted to the frames to fix.
+
+        Args:
+            instance (pyblish.api.Instance): The render instance.
+            project_name (str): Current project name.
+            folder_entity (dict): Folder entity of the instance.
+            anatomy (Anatomy): Anatomy used to resolve the root of the paths.
+            reuse_frames (set[int]): Frames which are not re-rendered.
+
+        Returns:
+            set[int]: Frames which cannot be reused and have to be rendered.
+
+        """
+        product_name = instance.data.get("productName")
+        if not product_name:
+            return set(reuse_frames)
+
+        product_entity = ayon_api.get_product_by_name(
+            project_name,
+            product_name,
+            folder_id=folder_entity["id"])
+        if not product_entity:
+            self.log.warning(
+                f"No existing product found for '{product_name}'. Re-render "
+                "not possible, the frames are rendered instead."
+            )
+            return set(reuse_frames)
+
+        version_entity = ayon_api.get_last_version_by_product_id(
+            project_name, product_id=product_entity["id"])
+        if not version_entity:
+            self.log.warning(
+                f"No last version found for product '{product_name}', "
+                "re-render not possible, the frames are rendered instead."
+            )
+            return set(reuse_frames)
+
+        published_files: list[str] = []
+        for representation in ayon_api.get_representations(
+                project_name, version_ids={version_entity["id"]}):
+            for file_info in representation.get("files") or []:
+                published_files.append(file_info["path"])
+
+        published_files = self._get_compatible_files(
+            published_files, instance)
+        if not published_files:
+            self.log.warning(
+                f"No reusable published files found for '{product_name}', "
+                "re-render not possible, the frames are rendered instead."
+            )
+            return set(reuse_frames)
+
+        not_reusable_frames = set(reuse_frames) - self._get_reusable_frames(
+            published_files, anatomy)
+        if not_reusable_frames:
+            self.log.warning(
+                f"These frames cannot be reused from the previous version of "
+                f"'{product_name}' and are rendered too: "
+                f"{sorted(not_reusable_frames)}"
+            )
+        return not_reusable_frames
 
     @classmethod
     def get_attribute_defs(cls):
