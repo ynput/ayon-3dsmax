@@ -35,7 +35,8 @@ class SaveScenesForCamera(pyblish.api.InstancePlugin):
         camera_scene_files = []
         scripts = []
         filename, ext = os.path.splitext(current_filename)
-        fmt = RenderProducts().image_format()
+        render_products = RenderProducts()
+        fmt = render_products.image_format()
         cameras = instance.data.get("cameras")
         if not cameras:
             return
@@ -58,6 +59,27 @@ class SaveScenesForCamera(pyblish.api.InstancePlugin):
             frames_expression = (
                 "range(int(rt.rendStart), int(rt.rendEnd) + 1)")
 
+        # V-Ray and Arnold write the render elements through their own output
+        # settings (raw/split file or AOV manager), only the other renderers use
+        # the render element filenames of the scene.
+        renderer_name = str(rt.renderers.production).split(":")[0]
+        if renderer_name.startswith(("V_Ray_", "Arnold")):
+            element_block = ""
+        else:
+            element_block = (
+                'render_elem = rt.maxOps.GetCurRenderElementMgr()\n'
+                'render_elem_num = render_elem.NumRenderElements()\n'
+                'if render_elem_num > 0:\n'
+                '    ext = "{ext}"\n'
+                '    aov_base = os.path.splitext(new_output)[0].rstrip(".")\n'
+                '    for i in range(render_elem_num):\n'
+                '        renderlayer_name = render_elem.GetRenderElement(i)\n'
+                '        target, renderpass = '
+                'str(renderlayer_name).split(":")\n'
+                '        aov_name = f"{{aov_base}}_{{renderpass}}..{ext}"\n'
+                '        render_elem.SetRenderElementFileName(i, aov_name)\n'
+            ).format(ext=fmt)
+
         for camera in cameras:
             new_output = render_settings.get_batch_render_output(camera)       # noqa
             new_output = new_output.replace("\\", "/")
@@ -69,6 +91,12 @@ class SaveScenesForCamera(pyblish.api.InstancePlugin):
             render_settings.batch_render_elements(camera)
             rt.rendOutputFilename = new_output
             rt.saveMaxFile(current_filepath)
+            # The renderer specific outputs of the camera. V-Ray needs the raw
+            # or split filename per camera, otherwise every camera writes into
+            # the same file; the expected files are derived from the same paths
+            # by `RenderProducts.get_multiple_camera_outputs`.
+            camera_outputs = render_products.get_multiple_camera_outputs(
+                new_output, camera_name, fmt)
             # The render output of a new version does not exist before the
             # integration, create it (also on the farm submission path) so the
             # render task does not fail with a missing directory.
@@ -84,24 +112,34 @@ target_camera_node = rt.getNodeByName(camera)
 rt.viewport.setCamera(target_camera_node)
 rt.rendOutputFilename = new_output
 os.makedirs(os.path.dirname(new_output), exist_ok=True)
-render_elem = rt.maxOps.GetCurRenderElementMgr()
-render_elem_num = render_elem.NumRenderElements()
-if render_elem_num > 0:
-    ext = "{ext}"
-    aov_base = os.path.splitext(new_output)[0].rstrip(".")
-    for i in range(render_elem_num):
-        renderlayer_name = render_elem.GetRenderElement(i)
-        target, renderpass = str(renderlayer_name).split(":")
-        aov_name = f"{{aov_base}}_{{renderpass}}..{ext}"
-        render_elem.SetRenderElementFileName(i, aov_name)
-rt.saveMaxFile(new_filepath)
+renderer_name = str(rt.renderers.production).split(":")[0]
+raw_output = "{raw_output}"
+split_output = "{split_output}"
+arnold_output = "{arnold_output}"
+if renderer_name.startswith("V_Ray_"):
+    vr_settings = rt.renderers.production
+    if "GPU" in renderer_name:
+        vr_settings = rt.renderers.production.V_Ray_settings
+    if raw_output:
+        vr_settings.output_saverawfile = True
+        vr_settings.output_rawfilename = raw_output
+    if split_output:
+        vr_settings.output_splitgbuffer = True
+        vr_settings.output_splitfilename = split_output
+elif renderer_name.startswith("Arnold"):
+    if arnold_output:
+        rt.renderers.production.AOVManager.outputPath = arnold_output
+{element_block}rt.saveMaxFile(new_filepath)
 if not farm:
     for frame in {render_frames}:
         rt.render(outputFile=rt.rendOutputFilename, camera=target_camera_node,frame=frame, vfb=False)
         """).format(new_filepath=new_filepath,
                     new_output=new_output,
                     camera=camera,
-                    ext=fmt,
+                    raw_output=camera_outputs["raw"],
+                    split_output=camera_outputs["split"],
+                    arnold_output=camera_outputs["arnold"],
+                    element_block=element_block,
                     farm=instance.data.get("farm"),
                     render_frames=frames_expression)
             scripts.append(script)
