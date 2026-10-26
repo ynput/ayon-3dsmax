@@ -46,6 +46,14 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
 
         self.log.info(f"Frames to fix: {frames_to_fix}")
         instance.data["frames_to_fix"] = frames_to_fix
+        # The frames which are not re-rendered are copied to the frame numbers
+        # they had in the previous version, so the published version must not
+        # renumber them to consecutive frames.
+        instance.data["hasExplicitFrames"] = True
+        # The validators need to know whether the last version is rewritten, the
+        # attribute value itself is stored in the publish attributes of this
+        # plugin and is not available to them.
+        instance.data["rewrite_version"] = rewrite_version
 
         # The frames which are not re-rendered have to be copied from the
         # previous published version. Any frame which cannot be copied has to be
