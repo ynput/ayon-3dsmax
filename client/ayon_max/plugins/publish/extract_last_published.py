@@ -114,9 +114,11 @@ class ExtractLastPublished(publish.Extractor):
         last_published_and_frames = (
             collect_frames(last_published) if last_published else {}
         )
-        if not last_published_and_frames or not all(
-            last_published_and_frames.values()
-        ):
+        last_published_and_frames = {
+            path: frame for path, frame in last_published_and_frames.items()
+            if frame is not None
+        }
+        if not last_published_and_frames:
             raise PublishError(
                 "No previous version found for the frames which are not "
                 "re-rendered."
