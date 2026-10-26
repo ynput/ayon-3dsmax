@@ -109,22 +109,31 @@ class RenderProducts(object):
 
         for output, camera in zip(outputs, cameras):
             camera = camera.replace(":", "_")
-            filename, ext = os.path.splitext(output)
-            filename = filename.replace(".", "")
-            ext = ext.replace(".", "")
+            # `output` is the batch render output of this camera, e.g.
+            # "<render dir>/maxrenderMain_PhysCamera001..exr".
+            output_stem, output_ext = os.path.splitext(output)
+            output_stem = output_stem.rstrip(".")
+            ext = output_ext.lstrip(".")
 
-            # Always add beauty pass
-            beauty_files = self.get_expected_beauty(frames, ext)
+            # The beauty pass is written to this camera's batch render output,
+            # so the expected files have to be derived from it instead of the
+            # current scene output. Otherwise every camera would list the same
+            # files and the products would end up with the same images.
+            beauty_files = self.get_expected_files(
+                output, frames, "", renderer_name
+            )
             render_output_frames[f"{camera}_beauty"] = beauty_files
 
-            # Add AOVs
+            # Add AOVs, named the same way the camera batch script writes them:
+            # "<output stem>_<render element>..<ext>".
             render_elements = self.get_render_element_and_filepath(ext)
             if render_elements and not self.is_arnold_exr(renderer, ext):
-                for aov_name, aov_filepath in render_elements:
+                for aov_name, _aov_filepath in render_elements:
+                    aov_output = f"{output_stem}_{aov_name}..{ext}"
                     aov_expected_files = self.get_expected_files(
-                        aov_filepath,
+                        aov_output,
                         frames,
-                        aov_name,
+                        "",
                         renderer_name
                     )
                     render_output_frames[f"{camera}_{aov_name}"] = aov_expected_files

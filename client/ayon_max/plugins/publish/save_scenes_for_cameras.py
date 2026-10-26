@@ -69,37 +69,36 @@ class SaveScenesForCamera(pyblish.api.InstancePlugin):
             render_settings.batch_render_elements(camera)
             rt.rendOutputFilename = new_output
             rt.saveMaxFile(current_filepath)
+            # The render output of a new version does not exist before the
+            # integration, create it (also on the farm submission path) so the
+            # render task does not fail with a missing directory.
+            os.makedirs(os.path.dirname(new_output), exist_ok=True)
             script = ("""
 from pymxs import runtime as rt
 import os
-filename = "{filename}"
 new_filepath = "{new_filepath}"
 new_output = "{new_output}"
 camera = "{camera}"
 farm = {farm}
-camera_name = camera.replace(":", "_")
 target_camera_node = rt.getNodeByName(camera)
 rt.viewport.setCamera(target_camera_node)
 rt.rendOutputFilename = new_output
-directory = os.path.dirname(rt.rendOutputFilename)
-directory = os.path.join(directory, filename)
-if not os.path.exists(directory):
-    os.mkdir(directory)
+os.makedirs(os.path.dirname(new_output), exist_ok=True)
 render_elem = rt.maxOps.GetCurRenderElementMgr()
 render_elem_num = render_elem.NumRenderElements()
 if render_elem_num > 0:
     ext = "{ext}"
+    aov_base = os.path.splitext(new_output)[0].rstrip(".")
     for i in range(render_elem_num):
         renderlayer_name = render_elem.GetRenderElement(i)
         target, renderpass = str(renderlayer_name).split(":")
-        aov_name =  f"{{directory}}_{{camera_name}}_{{renderpass}}..{ext}"
+        aov_name = f"{{aov_base}}_{{renderpass}}..{ext}"
         render_elem.SetRenderElementFileName(i, aov_name)
 rt.saveMaxFile(new_filepath)
 if not farm:
     for frame in {render_frames}:
         rt.render(outputFile=rt.rendOutputFilename, camera=target_camera_node,frame=frame, vfb=False)
-        """).format(filename=instance.name,
-                    new_filepath=new_filepath,
+        """).format(new_filepath=new_filepath,
                     new_output=new_output,
                     camera=camera,
                     ext=fmt,
