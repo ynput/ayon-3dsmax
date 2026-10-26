@@ -202,6 +202,31 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
         # batch script, render exactly these frames.
         instance.data["frames_to_render"] = frames_to_render
 
+        # A farm render instance is integrated in the farm publish job, so the
+        # rewrite has to be applied to the instance itself. It must happen in
+        # the collector: `ValidateVersion` rejects publishing into an existing
+        # version while `latestVersion` is still present.
+        if (rewrite_version and instance.data.get("farm")
+                and not instance.data.get("version")):
+            product_entity = ayon_api.get_product_by_name(
+                project_name,
+                instance.data.get("productName"),
+                folder_id=folder_entity["id"])
+            version_entity = (
+                ayon_api.get_last_version_by_product_id(
+                    project_name, product_id=product_entity["id"])
+                if product_entity else None)
+            if version_entity:
+                instance.data["version"] = version_entity["version"]
+                instance.data.pop("latestVersion", None)
+                self.log.info(
+                    "Rewrite latest version: publishing into version %s",
+                    version_entity["version"])
+            else:
+                self.log.warning(
+                    "Rewrite latest version is enabled but no previous version"
+                    " exists, a new version is published.")
+
         for render_instance, version_entity, published_files, reusable in (
             candidates
         ):
