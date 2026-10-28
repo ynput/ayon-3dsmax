@@ -84,20 +84,48 @@ target_camera_node = rt.getNodeByName(camera)
 rt.viewport.setCamera(target_camera_node)
 rt.rendOutputFilename = new_output
 os.makedirs(os.path.dirname(new_output), exist_ok=True)
-render_elem = rt.maxOps.GetCurRenderElementMgr()
-render_elem_num = render_elem.NumRenderElements()
-if render_elem_num > 0:
-    ext = "{ext}"
-    aov_base = os.path.splitext(new_output)[0].rstrip(".")
-    for i in range(render_elem_num):
-        renderlayer_name = render_elem.GetRenderElement(i)
-        target, renderpass = str(renderlayer_name).split(":")
-        aov_name = f"{{aov_base}}_{{renderpass}}..{ext}"
-        render_elem.SetRenderElementFileName(i, aov_name)
+current_renderer = rt.renderers.production
+renderer_name = str(current_renderer).split(":")[0]
+if renderer_name.startswith("V_Ray_"):
+    if "GPU" in renderer_name:
+        vray_settings = current_renderer.V_Ray_settings
+    else:
+        vray_settings = current_renderer
+    if hasattr(vray_settings, "output_saverawfile") and vray_settings.output_saverawfile:
+        output_file, ext = os.path.splitext(new_output)
+        render_output = f"{{output_file}}{{ext.strip('.')}}"
+        vray_settings.output_rawfilename = render_output
+    elif hasattr(vray_settings, "output_splitgbuffer") and vray_settings.output_splitgbuffer:
+        output_file, ext = os.path.splitext(new_output)
+        render_output = f"{{output_file}}{{ext.strip('.')}}"
+        vray_settings.output_splitfilename = render_output
+
+elif renderer_name.startswith("Arnold"):
+    # Handle Arnold specific render element file naming if needed
+    aovmgr = getattr(current_renderer, "AOVManager", None)
+    if aovmgr is not None:
+        aovmgr.outputPath = os.path.dirname(new_output)
+        suffix = os.path.splitext(os.path.basename(new_output))[0].rstrip(".")
+        for driver in aovmgr.drivers or []:
+            driver.filenameSuffix = suffix
+
+else:
+    render_elem = rt.maxOps.GetCurRenderElementMgr()
+    render_elem_num = render_elem.NumRenderElements()
+    if render_elem_num > 0:
+        ext = "{ext}"
+        aov_base = os.path.splitext(new_output)[0].rstrip(".")
+        for i in range(render_elem_num):
+            renderlayer_name = render_elem.GetRenderElement(i)
+            target, renderpass = str(renderlayer_name).split(":")
+            aov_name = f"{{aov_base}}_{{renderpass}}..{ext}"
+            render_elem.SetRenderElementFileName(i, aov_name)
 rt.saveMaxFile(new_filepath)
+base, extension = os.path.splitext(new_output)
 if not farm:
     for frame in {render_frames}:
-        rt.render(outputFile=rt.rendOutputFilename, camera=target_camera_node,frame=frame, vfb=False)
+        output_file = f"{{base}}.{{frame:04d}}{{extension}}"
+        rt.render(outputFile=output_file, camera=target_camera_node,frame=frame, vfb=False)
         """).format(new_filepath=new_filepath,
                     new_output=new_output,
                     camera=camera,
