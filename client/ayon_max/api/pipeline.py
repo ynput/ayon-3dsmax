@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Pipeline tools for AYON 3ds max integration."""
+from functools import partial
 import os
 import logging
 from operator import attrgetter
@@ -55,6 +56,7 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         super(MaxHost, self).__init__()
         self._op_events = {}
         self._has_been_setup = False
+        self._node_event_callback = None
 
     def get_app_information(self):
         from ayon_core.host import ApplicationInformation
@@ -94,9 +96,14 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         register_event_callback("workfile.open.before", on_before_open)
         register_event_callback("workfile.open.after", on_after_open)
         register_event_callback("before.save", before_save)
+        register_event_callback("save", on_save)
         register_event_callback("taskChanged", self.on_task_changed)
         self._has_been_setup = True
         self._register_callbacks()
+
+    def uninstall(self):
+        rt.callbacks.removeScripts(id=rt.Name("AyonCallbacks"))
+        self._node_event_callback = None
 
     def workfile_has_unsaved_changes(self):
         return rt.getSaveRequired()
@@ -124,39 +131,57 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         return ls()
 
     def _register_callbacks(self):
-        rt.callbacks.removeScripts(id=rt.name("AyonCallbacks"))
+        if lib.is_headless():
+            log.debug("Headless mode, skipping callback registration.")
+            return
+        ayon_id = rt.name("AyonCallbacks")
+        rt.callbacks.removeScripts(id=ayon_id)
         rt.callbacks.addScript(
             rt.Name('welcomeScreenDone'),
-            self.on_init, id=rt.name("AyonCallbacks")
+            self.on_init,
+            id=ayon_id
         )
         rt.callbacks.addScript(
             rt.Name('systemPostNew'),
-            _on_scene_new,
-            id=rt.name("AyonCallbacks")
+            partial(emit_event_notification_param, "new"),
+            id=ayon_id
+        )
+        rt.callbacks.addScript(
+            rt.Name('filePreSave'),
+            partial(emit_event_notification_param, "before.save"),
+            id=ayon_id
         )
         rt.callbacks.addScript(
             rt.Name('filePostSave'),
-            _on_scene_save,
-            id=rt.name("AyonCallbacks")
+            self.emit_save_events,
+            id=ayon_id
+        )
+        rt.callbacks.addScript(
+            rt.Name('filePreOpen'),
+            partial(emit_event_notification_param, "before.file.open"),
+            id=ayon_id
         )
         rt.callbacks.addScript(
             rt.Name('filePostOpen'),
-            _on_scene_open,
-            id=rt.name("AyonCallbacks")
+            self.emit_open_event,
+            id=ayon_id
         )
         if lib.get_max_version() < 2026:
             rt.callbacks.addScript(
                 rt.Name('postWorkspaceChange'),
                 self._deferred_menu_creation,
-                id=rt.name("AyonCallbacks"))
-
-        rt.NodeEventCallback(
-            nameChanged=lib.update_modifier_node_names)
+                id=ayon_id)
+        if self._node_event_callback is None:
+            self._node_event_callback = (
+                rt.NodeEventCallback(
+                    nameChanged=lib.update_modifier_node_names
+                )
+            )
 
     def on_init(self):
         if not self.menu:
             self._deferred_menu_creation()
-        _on_scene_init()
+        emit_event_notification_param("init")
 
     def _deferred_menu_creation(self):
         self.log.info("Building menu ...")
@@ -223,21 +248,15 @@ attributes "AYONContext"
         context_label = lib.get_context_label()
         context_action.setText(f"{context_label}")
 
+    def emit_save_events(self) -> None:
+        """Emit save and after.save events with notification parameter."""
+        emit_event_notification_param("save")
+        emit_event_notification_param("after.save")
 
-def _on_scene_init(*args):
-    emit_event("init")
-
-
-def _on_scene_new(*args):
-    emit_event("new")
-
-
-def _on_scene_save(*args):
-    emit_event("save")
-
-
-def _on_scene_open(*args):
-    emit_event("open")
+    def emit_open_event(self) -> None:
+        current_file = self.get_current_workfile()
+        data = {"filename": current_file} if current_file else None
+        emit_event_notification_param("open", data=data)
 
 
 def parse_container(container):
@@ -557,3 +576,21 @@ def remove_container_data(container_node: str):
 
     rt.Delete(container_node)
     rt.redrawViews()
+
+
+def emit_event_notification_param(event, data=None) -> None:
+    """Emit an event with a notification parameter.
+
+    Args:
+        event (str): The event name to emit.
+    """
+    try:
+        notification = rt.callbacks.notificationParam()
+    except Exception:  # noqa: BLE001
+        log.warning("Could not read max notification parameter", exc_info=True)
+        notification = None
+    if data is None and notification is not None:
+        data = {"notificationParam": notification}
+        if isinstance(notification, str):
+            data["filename"] = notification
+    emit_event(event, data)
