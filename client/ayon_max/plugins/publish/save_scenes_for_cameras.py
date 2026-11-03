@@ -105,7 +105,7 @@ elif renderer_name.startswith("Arnold"):
     aovmgr = getattr(current_renderer, "AOVManager", None)
     if aovmgr is not None:
         aovmgr.outputPath = os.path.dirname(new_output)
-        suffix = os.path.splitext(os.path.basename(new_output))[0].rstrip(".")
+        suffix = os.path.splitext(os.path.basename(new_output))[0].strip(".")
         for driver in aovmgr.drivers or []:
             driver.filenameSuffix = suffix
 
@@ -122,6 +122,8 @@ else:
             render_elem.SetRenderElementFileName(i, aov_name)
 rt.saveMaxFile(new_filepath)
 base, extension = os.path.splitext(new_output)
+if renderer_name.startswith("Arnold"):
+    base = base.strip(".")
 if not farm:
     for frame in {render_frames}:
         output_file = f"{{base}}.{{frame:04d}}{{extension}}"
