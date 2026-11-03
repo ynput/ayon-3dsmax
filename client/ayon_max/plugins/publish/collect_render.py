@@ -107,7 +107,7 @@ class CollectRender(pyblish.api.InstancePlugin):
             instance.data["cameras"] = sel_cam
 
             files_by_aov = renderproducts.get_multiple_render_products(
-                outputs, sel_cam, expected_frames, img_format
+                outputs, sel_cam, expected_frames
             )
 
         if "expectedFiles" not in instance.data:
