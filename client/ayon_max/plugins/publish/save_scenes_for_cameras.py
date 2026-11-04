@@ -86,21 +86,7 @@ rt.rendOutputFilename = new_output
 os.makedirs(os.path.dirname(new_output), exist_ok=True)
 current_renderer = rt.renderers.production
 renderer_name = str(current_renderer).split(":")[0]
-if renderer_name.startswith("V_Ray_"):
-    if "GPU" in renderer_name:
-        vray_settings = current_renderer.V_Ray_settings
-    else:
-        vray_settings = current_renderer
-    if hasattr(vray_settings, "output_saverawfile") and vray_settings.output_saverawfile:
-        output_file, ext = os.path.splitext(new_output)
-        render_output = f"{{output_file}}{{ext.strip('.')}}"
-        vray_settings.output_rawfilename = render_output
-    elif hasattr(vray_settings, "output_splitgbuffer") and vray_settings.output_splitgbuffer:
-        output_file, ext = os.path.splitext(new_output)
-        render_output = f"{{output_file}}{{ext.strip('.')}}"
-        vray_settings.output_splitfilename = render_output
-
-elif renderer_name.startswith("Arnold"):
+if renderer_name.startswith("Arnold"):
     # Handle Arnold specific render element file naming if needed
     aovmgr = getattr(current_renderer, "AOVManager", None)
     if aovmgr is not None:
@@ -120,6 +106,21 @@ else:
             target, renderpass = str(renderlayer_name).split(":")
             aov_name = f"{{aov_base}}_{{renderpass}}..{ext}"
             render_elem.SetRenderElementFileName(i, aov_name)
+
+if renderer_name.startswith("V_Ray_"):
+    if "GPU" in renderer_name:
+        vray_settings = current_renderer.V_Ray_settings
+    else:
+        vray_settings = current_renderer
+    if hasattr(vray_settings, "output_saverawfile") and vray_settings.output_saverawfile:
+        output_file, ext = os.path.splitext(new_output)
+        render_output = f"{{output_file}}{{ext.strip('.')}}"
+        vray_settings.output_rawfilename = render_output
+    elif hasattr(vray_settings, "output_splitgbuffer") and vray_settings.output_splitgbuffer:
+        output_file, ext = os.path.splitext(new_output)
+        render_output = f"{{output_file}}{{ext.strip('.')}}"
+        vray_settings.output_splitfilename = render_output
+
 rt.saveMaxFile(new_filepath)
 base, extension = os.path.splitext(new_output)
 if renderer_name.startswith("Arnold"):
