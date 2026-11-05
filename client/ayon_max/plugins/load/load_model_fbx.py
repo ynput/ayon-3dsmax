@@ -9,7 +9,8 @@ from ayon_max.api import lib
 from ayon_max.api.lib import (
     unique_namespace,
     get_namespace,
-    object_transform_set
+    object_transform_set,
+    object_transform_restore
 )
 from ayon_max.api.lib import maintained_selection
 
@@ -81,11 +82,7 @@ class FbxModelLoader(load.LoaderPlugin):
         for fbx_object in current_fbx_objects:
             fbx_object.name = f"{namespace}:{fbx_object.name}"
             fbx_objects.append(fbx_object)
-            fbx_transform = f"{fbx_object}.transform"
-            if fbx_transform in transform_data.keys():
-                fbx_object.pos = transform_data[fbx_transform] or 0
-                fbx_object.scale = transform_data[
-                    f"{fbx_object}.scale"] or 0
+            object_transform_restore(fbx_object, transform_data)
 
         with maintained_selection():
             rt.Select(node)

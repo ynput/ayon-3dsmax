@@ -4,11 +4,10 @@ import os
 import contextlib
 import logging
 import json
-from pathlib import Path
 from functools import partial
 import pyblish.api
 import re
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 
 from ayon_core.pipeline import (
     Anatomy,
@@ -28,7 +27,11 @@ from ayon_core.pipeline.context_tools import (
     get_current_task_entity
 )
 from ayon_core.pipeline.template_data import get_template_data_with_names
+from ayon_core.pipeline.farm.pyblish_functions import (
+    convert_frames_str_to_list,
+)
 from ayon_core.pipeline.create import CreateContext
+from ayon_core.pipeline.publish import PublishError
 from ayon_core.style import load_stylesheet
 
 
@@ -79,7 +82,7 @@ def get_main_window():
             and widget.metaObject().className() == name
         ):
             return widget
-    raise RuntimeError('Count not find 3dsMax main window.')
+    raise RuntimeError('Could not find 3dsMax main window.')
 
 
 def imprint(node_name: str, data: dict) -> bool:
@@ -303,10 +306,10 @@ def get_default_render_folder(
     render_data["work"] = work_dir
     render_folder = project_setting["max"]["RenderSettings"]["default_render_image_folder"]
     formatted_render_folder = StringTemplate(render_folder).format(render_data)
-    normalized_render_folder = Path(formatted_render_folder)
-    if not normalized_render_folder.is_absolute():
-        normalized_render_folder = Path(work_dir) / normalized_render_folder
-    return str(normalized_render_folder)
+    if not os.path.isabs(formatted_render_folder):
+        formatted_render_folder = os.path.join(work_dir, formatted_render_folder)
+    # Normalize to forward slashes for consistency
+    return formatted_render_folder.replace("\\", "/")
 
 
 def get_vray_settings(renderer_name: str, renderer: Any) -> Any:
@@ -622,10 +625,13 @@ def reset_colorspace():
 
 
 def check_colorspace():
-    parent = get_main_window()
-    if parent is None:
+    try:
+        parent = get_main_window()
+    except RuntimeError:
+        # get_main_window raises when 3ds Max has no main window yet
         log.info("Skipping outdated pop-up "
                  "because Max main window can't be found.")
+        return
     if int(get_max_version()) >= 2024:
         color_mgr = rt.ColorPipelineMgr
         max_config_data = colorspace.get_current_context_imageio_config_preset()
@@ -744,6 +750,40 @@ def object_transform_set(container_children):
         name = f"{node.name}.translate"
         transform_set[name] = node.pos
     return transform_set
+
+
+def object_transform_restore(node, transform_set):
+    """Restore a transform previously stored by object_transform_set.
+
+    The keys of 'transform_set' are built from the node name, so the
+    lookup has to use the node name too. Formatting a 3ds Max node
+    itself does not give its name but something like
+        "$Box:Box001 @ [0,0,0]"
+    which never matches a stored key.
+
+    Scale and rotation are applied before the position, because setting
+    the rotation or the scale of a node also moves it in 3ds Max. Only
+    applying the position last ends up with the stored transform.
+
+    Args:
+        node: A 3ds Max node.
+        transform_set (dict): Stored transform data.
+
+    Returns:
+        bool: True when transform data was found for the node.
+    """
+    key = f"{node.name}.translate"
+    if key not in transform_set:
+        return False
+
+    node.scale = (
+        transform_set.get(f"{node.name}.scale") or rt.Point3(1, 1, 1)
+    )
+    node.rotation = (
+        transform_set.get(f"{node.name}.rotation") or rt.Quat(0, 0, 0, 1)
+    )
+    node.pos = transform_set[key] or rt.Point3(0, 0, 0)
+    return True
 
 
 def get_plugins() -> list:
@@ -1123,6 +1163,35 @@ def set_correct_workfile_name_for_render_output(
         return filepath
 
     rest = match.group("rest") or ""
+
+    # update the changes in the context instances to reflect the new workfile
+    # name. Use the `CreateContext` the Publisher is already working with so
+    # its in-memory instances stay in sync, instead of a temporary context
+    # whose changes the Publisher could overwrite on its next save.
+    create_context = instance.context.data.get("create_context")
+    if create_context is None:
+        create_context = CreateContext(
+            registered_host(),
+            discover_publish_plugins=False,
+        )
+    workfile_name_keys = {
+        "original_workfile_pattern",
+        # backward compatibility for older versions of Ayon
+        "AssetName"
+    }
+
+    has_changes = False
+    for created_instance in create_context.instances:
+        for key in workfile_name_keys:
+            if key not in created_instance:
+                continue
+            if created_instance[key] != render_workfile_name:
+                continue
+            created_instance[key] = current_workfile_filename
+            has_changes = True
+
+    if has_changes:
+        create_context.save_changes()
     return os.path.join(
         render_root,
         current_workfile_filename,
@@ -1133,12 +1202,17 @@ def set_correct_workfile_name_for_render_output(
 def build_general_output_filename(
     output_dir: str,
     filename: str,
+    image_format: Optional[str] = None,
 ) -> str:
     """Build a general output filename with the given directory, filename, and image format.
 
     Args:
         output_dir (str): The directory where the output file will be saved.
         filename (str): The base filename.
+        image_format (Optional[str]): Image format configured in the project
+            settings. When given, the extension is replaced with it and the
+            double dot naming convention is enforced, so the scene follows the
+            configured format instead of failing the validation.
 
     Returns:
         str: The full path to the output file with the general naming convention.
@@ -1152,4 +1226,70 @@ def build_general_output_filename(
         element = match.group("element")
         ext = match.group("ext")
         filename = f"{name}_{element}..{ext}"
+    if image_format and filename:
+        # Swap the extension and keep the double dot separator the
+        # validation expects, otherwise the repair can never converge:
+        # "renderMain.png" -> "renderMain..exr".
+        stem = os.path.splitext(filename)[0]
+        if not stem.endswith("."):
+            stem = f"{stem}."
+        filename = f"{stem}.{image_format}"
     return os.path.join(output_dir, filename)
+
+
+def get_expected_frames(instance: pyblish.api.Instance) -> list[int]:
+    """Get expected frames from the instance.
+
+    Args:
+        instance (pyblish.api.Instance): The Pyblish instance.
+
+    Returns:
+        list[int]: A list containing the expected frames. The list is never
+            empty, an unusable custom frame value or scene frame range raises
+            instead.
+
+    Raises:
+        PublishError: The custom frame value cannot be parsed, or the
+            scene render frame range is empty or inverted. Both used to end up
+            as a bare `ValueError`/`min()` failure in `CollectFrameRange`,
+            which then left the instance without `frameStartHandle` and
+            `frameEndHandle` and broke every downstream frame range user.
+    """
+    frames_str = (instance.data.get("customFrames") or "").strip()
+    if frames_str:
+        frames_list = convert_frames_str_to_list(frames_str)
+        if not frames_list:
+            raise PublishError(
+                f"Custom frame range '{frames_str}' does not contain any "
+                "frame."
+            )
+        return frames_list
+
+    frame_start = int(rt.rendStart)
+    frame_end = int(rt.rendEnd)
+    if frame_end < frame_start:
+        raise PublishError(
+            f"Invalid render frame range {frame_start}-{frame_end}: the end "
+            "frame is before the start frame. Set the scene render frame "
+            "range or a custom frame range on the instance."
+        )
+    return list(range(frame_start, frame_end + 1))
+
+
+def is_vray_exr_saverawfile(image_format: str, vr_settings: Any) -> bool:
+    """Check if V-Ray renderer is set to output raw files in EXR format.
+
+    Args:
+        image_format (str): The image format being used for rendering.
+        vr_settings (Any): The V-Ray settings object
+
+    Returns:
+        bool: True if the image format is EXR and V-Ray is set to save
+            raw files, False otherwise.
+    """
+    return (
+        image_format == "exr"
+        # safe check
+        and hasattr(vr_settings, "output_saverawfile")
+        and vr_settings.output_saverawfile
+    )

@@ -93,7 +93,12 @@ class CreateMatlib(MaxCreator):
         Returns:
             str: File path for the material library.
         """
-        matlib_directory = os.path.join(os.getenv("AYON_WORKDIR"), "matlib")
+        workdir = os.getenv("AYON_WORKDIR")
+        if not workdir:
+            raise CreatorError(
+                "AYON_WORKDIR is not set. Cannot create the material "
+                "library file.")
+        matlib_directory = os.path.join(workdir, "matlib")
         os.makedirs(matlib_directory, exist_ok=True)
         matlib_filepath = os.path.join(matlib_directory, f"{product_name}.mat")
         # If the file exists, uses the existing one,
