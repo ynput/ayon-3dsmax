@@ -96,15 +96,13 @@ class MaxPlaceholderPlugin(PlaceholderPlugin):
         )
         if nodes_by_identifier is None:
             # Cache placeholder data to shared data
-            nodes = [
-                node for node in rt.Objects
-                if rt.doesUserPropExist(node, "plugin_identifier")
-            ]
-
             nodes_by_identifier = {}
-            for node in nodes:
+            for node in rt.Objects:
                 identifier = rt.getUserProp(node, "plugin_identifier")
-                nodes_by_identifier.setdefault(identifier, []).append(node.name)
+                if identifier is not None:
+                    nodes_by_identifier.setdefault(
+                        identifier, []
+                    ).append(node.name)
 
             # Set the cache
             self.builder.set_shared_populate_data(
