@@ -70,7 +70,6 @@ class TyCacheLoader(load.LoaderPlugin):
         from pymxs import runtime as rt
         node = rt.GetNodeByName(container["instance_node"])
         remove_container_data(node)
-        rt.Delete(node)
 
 
 class TySplineCacheLoader(TyCacheLoader):
