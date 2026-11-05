@@ -199,7 +199,7 @@ def _render_preview_animation_max_pre_2024(
     res_width = width * percent
     res_height = height * percent
     frame_template = "{}.{{:04}}.{}".format(filepath, ext)
-    frame_template.replace("\\", "/")
+    frame_template = frame_template.replace("\\", "/")
     files = []
     user_cancelled = False
     for frame in range(startFrame, endFrame + 1):
