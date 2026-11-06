@@ -18,6 +18,7 @@ from ayon_max.api.workfile_template_builder import (
 class MaxPlaceholderLoadPlugin(MaxPlaceholderPlugin, PlaceholderLoadMixin):
     identifier = "max.load"
     label = "Max load"
+    icon = {"type": "material-symbols", "name": "download"}
 
     item_class = LoadPlaceholderItem
 
