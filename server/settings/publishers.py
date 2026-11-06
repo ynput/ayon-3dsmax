@@ -5,6 +5,11 @@ from ayon_server.settings import BaseSettingsModel, SettingsField
 from ayon_server.exceptions import BadRequestException
 
 
+class CollectFramesFixModel(BaseSettingsModel):
+    enabled: bool = SettingsField(title="Enabled")
+    rewrite_version: bool = SettingsField(title="Rewrite Version")
+
+
 class CollectRenderModel(BaseSettingsModel):
     sync_workfile_version: bool = SettingsField(
         title="Sync render version with workfile"
@@ -88,10 +93,14 @@ class BasicValidateModel(BaseSettingsModel):
 
 
 class PublishersModel(BaseSettingsModel):
+    CollectFramesFixDefMax: CollectFramesFixModel = SettingsField(
+        default_factory=CollectFramesFixModel,
+        title="Collect Frames Fix",
+        section="Collectors"
+    )
     CollectRender: CollectRenderModel = SettingsField(
         default_factory=CollectRenderModel,
-        title="Collect Render",
-        section="Collectors"
+        title="Collect Render"
     )
     ValidateInstanceInContext: BasicValidateModel = SettingsField(
         default_factory=BasicValidateModel,
@@ -166,6 +175,10 @@ class PublishersModel(BaseSettingsModel):
 
 
 DEFAULT_PUBLISH_SETTINGS = {
+    "CollectFramesFixDefMax": {
+        "enabled": False,
+        "rewrite_version": False,
+    },
     "CollectRender": {
         "sync_workfile_version": False,
         "sync_current_workfile_name": True
