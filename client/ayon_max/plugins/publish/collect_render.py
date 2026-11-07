@@ -1,14 +1,43 @@
 # -*- coding: utf-8 -*-
 """Collect Render"""
+from __future__ import annotations
 import os
 import pyblish.api
+import ayon_api
+from typing import Dict, Any
 
+import pymxs
 from pymxs import runtime as rt
 from ayon_core.pipeline.publish import KnownPublishError
 from ayon_max.api import colorspace
-from ayon_max.api.lib import get_max_version, get_current_renderer
+from ayon_max.api.lib import (
+    get_max_version,
+    get_current_renderer,
+    get_vray_settings,
+    is_vray_exr_saverawfile,
+)
 from ayon_max.api.lib_rendersettings import RenderSettings
 from ayon_max.api.lib_renderproducts import RenderProducts
+
+
+def get_cameras_from_node(members) -> list:
+    """Get camera from instance members.
+
+    Args:
+        members (list): The list of instance members.
+
+    Returns:
+        list: A list of camera objects.
+    """
+    cameras = []
+    for member in members:
+        if rt.classOf(member) in rt.Camera.classes:
+            cameras.append(member)
+        if hasattr(member, "children"):
+            for child in member.children:
+                if rt.classOf(child) in rt.Camera.classes:
+                    cameras.append(child)
+    return cameras
 
 
 class CollectRender(pyblish.api.InstancePlugin):
@@ -16,27 +45,42 @@ class CollectRender(pyblish.api.InstancePlugin):
 
     order = pyblish.api.CollectorOrder + 0.02
     label = "Collect 3dsmax Render Layers"
-    hosts = ['max']
+    hosts = ["max"]
     families = ["maxrender"]
+    settings_category = "max"
+
+    # Settings
+    sync_workfile_version = False
+    sync_current_workfile_name = True
 
     def process(self, instance):
         context = instance.context
-        folder = rt.maxFilePath
-        file = rt.maxFileName
-        current_file = os.path.join(folder, file)
-        filepath = current_file.replace("\\", "/")
-        context.data['currentFile'] = current_file
 
-        files_by_aov = RenderProducts().get_beauty(instance.name)
-        aovs = RenderProducts().get_aovs(instance.name)
-        files_by_aov.update(aovs)
+        filepath = context.data["currentFile"]
+
+        if self.sync_current_workfile_name:
+            filename = os.path.basename(filepath)
+            filename_pattern = os.path.splitext(filename)[0].strip(".")
+            instance.data["original_workfile_pattern"] = filename_pattern
+        else:
+            # Backwards compatibility for render pre-create settings.
+            filename_pattern = (
+                instance.data.get("original_workfile_pattern")
+                or instance.data.get("AssetName", "").strip(".")
+            )
+            instance.data["original_workfile_pattern"] = filename_pattern
+        renderer = get_current_renderer()
+        renderer_name = str(renderer).split(":")[0]
+        renderproducts = RenderProducts(context.data["project_settings"])
+        img_format = renderproducts.image_format()
+        expected_frames = instance.data.get("expectedFrameRange")
+        files_by_aov: Dict[str, list[str]] = renderproducts.get_render_products(expected_frames)
+
 
         camera = rt.viewport.GetCamera()
-        if instance.data.get("members"):
-            camera_list = [member for member in instance.data["members"]
-                           if rt.ClassOf(member) == rt.Camera.Classes]
-            if camera_list:
-                camera = camera_list[-1]
+        camera_list = get_cameras_from_node(instance.data.get("members"))
+        if camera_list:
+            camera = camera_list[-1]
 
         instance.data["cameras"] = [camera.name] if camera else None        # noqa
 
@@ -45,77 +89,204 @@ class CollectRender(pyblish.api.InstancePlugin):
             if not cameras:
                 raise KnownPublishError("There should be at least"
                                         " one renderable camera in container")
-            sel_cam = [
-                c.name for c in cameras
-                if rt.classOf(c) in rt.Camera.classes]
-            container_name = instance.data.get("instance_node")
-            render_dir = os.path.dirname(rt.rendOutputFilename)
-            outputs = RenderSettings().batch_render_layer(
-                container_name, render_dir, sel_cam
+
+            sel_cam = [camera.name for camera in get_cameras_from_node(cameras)]
+
+            render_output = self.get_render_output(
+                renderer,
+                renderer_name,
+                img_format,
+                context.data["project_settings"]
+            )
+            render_dir = os.path.dirname(render_output)
+            render_settings = RenderSettings(data=instance.data)
+            outputs = render_settings.batch_render_layers_by_multi_camera(
+                render_dir, sel_cam
             )
 
             instance.data["cameras"] = sel_cam
 
-            files_by_aov = RenderProducts().get_multiple_beauty(
-                outputs, sel_cam)
-            aovs = RenderProducts().get_multiple_aovs(
-                outputs, sel_cam)
-            files_by_aov.update(aovs)
+            files_by_aov = renderproducts.get_multiple_render_products(
+                outputs, sel_cam, expected_frames
+            )
 
         if "expectedFiles" not in instance.data:
             instance.data["expectedFiles"] = list()
             instance.data["files"] = list()
             instance.data["expectedFiles"].append(files_by_aov)
             instance.data["files"].append(files_by_aov)
-        img_format = RenderProducts().image_format()
         # OCIO config not support in
         # most of the 3dsmax renderers
         # so this is currently hard coded
-        # TODO: add options for redshift/vray ocio config
-        instance.data["colorspaceConfig"] = ""
-        instance.data["colorspaceDisplay"] = "sRGB"
-        instance.data["colorspaceView"] = "ACES 1.0 SDR-video"
+        colorspace_data = self.get_colorspace_data() or {}
+        self.log.debug(f"Collected colorspace data: {colorspace_data}")
+        if colorspace_data:
+            instance.data.update(colorspace_data)
 
-        if int(get_max_version()) >= 2024:
-            colorspace_mgr = rt.ColorPipelineMgr      # noqa
-            display = next(
-                (display for display in colorspace_mgr.GetDisplayList()))
-            view_transform = next(
-                (view for view in colorspace_mgr.GetViewList(display)))
-            instance.data["colorspaceConfig"] = colorspace_mgr.OCIOConfigPath
-            instance.data["colorspaceDisplay"] = display
-            instance.data["colorspaceView"] = view_transform
-
-        instance.data["renderProducts"] = colorspace.ARenderProduct()
         instance.data["publishJobState"] = "Suspended"
         instance.data["attachTo"] = []
-        renderer_class = get_current_renderer()
-        renderer = str(renderer_class).split(":")[0]
-        product_type = "maxrender"
-        # also need to get the render dir for conversion
+
+        product_base_type = "maxrender"
+
+        # Keep custom product type only if is not the same
+        #   as product base type
+        product_type = instance.data["productType"]
+        if product_type == instance.data["productBaseType"]:
+            product_type = product_base_type
+
+        creator_attribute = instance.data.get("creator_attributes", {})
+        farm_render: bool = (
+            creator_attribute.get("render_target", "farm") == "farm"
+        )
+        self._precollect_required_data(instance)
+
+        # set the colorspace data for each AOV in the instance data
+        colorspace_product = colorspace.ARenderProduct(
+            instance.data["frameStartHandle"],
+            instance.data["frameEndHandle"]
+        )
+        if colorspace_data:
+            for aov_name in files_by_aov.keys():
+                colorspace_product.add_colorspace_data(
+                    product_name=aov_name,
+                    colorspace=colorspace_data["colorspace"],
+                    view=colorspace_data["sceneView"],
+                    display=colorspace_data["sceneDisplay"]
+                )
+
+        instance.data["renderProducts"] = colorspace_product
+
         data = {
             "folderPath": instance.data["folderPath"],
             "productName": str(instance.name),
             "publish": True,
             "maxversion": str(get_max_version()),
             "imageFormat": img_format,
+            "productBaseType": product_base_type,
             "productType": product_type,
-            "family": product_type,
-            "families": [product_type],
-            "renderer": renderer,
+            "family": product_base_type,
+            "families": [product_base_type],
+            "renderer": renderer_name,
             "source": filepath,
             "plugin": "3dsmax",
             "frameStart": instance.data["frameStartHandle"],
             "frameEnd": instance.data["frameEndHandle"],
-            "farm": True
+            "resolutionWidth": rt.renderWidth,
+            "resolutionHeight": rt.renderHeight,
+            "farm": farm_render,
+            "sync_current_workfile_name": self.sync_current_workfile_name,
         }
-        instance.data.update(data)
 
+        # sync workfile version
+        if self.sync_workfile_version:
+            data["version"] = context.data["version"]
+            for _instance in context:
+                if _instance.data["productBaseType"] == "workfile":
+                    _instance.data["version"] = context.data["version"]
+
+        instance.data.update(data)
         # TODO: this should be unified with maya and its "multipart" flag
         #       on instance.
-        if renderer == "Redshift_Renderer":
+        if renderer_name == "Redshift_Renderer":
             instance.data.update(
                 {"separateAovFiles": rt.Execute(
                     "renderers.current.separateAovFiles")})
 
         self.log.info("data: {0}".format(data))
+
+    def get_colorspace_data(self) -> Dict[str, str]:
+        """Get colorspace data from the ColorPipelineMgr.
+
+        Returns:
+            Dict[str, str]: A dictionary containing colorspace data. Empty dict
+                is returned when colorspace data is not available.
+        """
+        if int(get_max_version()) < 2024:
+            return {}
+
+        colorspace_mgr = rt.ColorPipelineMgr
+        ocio_path: str = colorspace_mgr.OCIOConfigPath
+        if not ocio_path:
+            return {}
+        display_ref = pymxs.byref("")
+        view_ref = pymxs.byref("")
+        _, display, view =colorspace_mgr.GetDefaultDisplayViewTransform(
+            rt.Name("Global"),
+            False,
+            display_ref,
+            view_ref
+        )
+
+        return {
+            "colorspaceConfig": ocio_path,
+            "sceneDisplay": display,
+            "sceneView": view,
+            "colorspace": colorspace_mgr.RenderingColorSpace
+        }
+
+    def get_render_output(
+            self,
+            renderer: Any,
+            renderer_name: str,
+            img_format: str,
+            project_settings: Dict
+        ) -> str:
+        """Get render output path for the given renderer and instance.
+
+        Args:
+            renderer (Any, rt.Renderers.current): The renderer to get the
+                output path from.
+            renderer_name (str): The name of the renderer.
+            img_format (str): The image format.
+            project_settings (Dict): The project settings.
+
+        Returns:
+            str: The render output path.
+        """
+        if renderer_name == "Redshift_Renderer":
+            return rt.rendOutputFilename
+        elif renderer_name == "Arnold_Renderer":
+            return renderer.AOVManager.outputPath
+        elif renderer_name.startswith("V_Ray_"):
+            vr_settings = get_vray_settings(renderer_name, renderer)
+            if is_vray_exr_saverawfile(img_format, vr_settings):
+                # Raw EXR writes the beauty pass through the raw output.
+                return vr_settings.output_rawfilename or rt.rendOutputFilename
+            # Without the raw output V-Ray writes the beauty pass through
+            # the max render output instead of the split output.
+            return rt.rendOutputFilename
+        return rt.rendOutputFilename
+
+    def _precollect_required_data(self, instance: pyblish.api.Instance) -> None:
+        """Ensure required data is present.
+
+        Some data may not exist yet in the instance at this point, so we need
+        to ensure it is there for certain function calls, like
+        `create_instances_for_aov` requiring `taskEntity` in instance data
+        if setting `use_legacy_product_names_for_renders` is disabled which is
+        usually collected at a later order by `CollectAnatomyInstanceData`.
+
+        Args:
+            instance (pyblish.api.Instance): The instance to ensure data for.
+        """
+
+        project_name: str = instance.context.data["projectName"]
+
+        # Add folderEntity
+        if "folderEntity" not in instance.data:
+            self.log.debug("Collecting folder entity for instance...")
+            instance.data["folderEntity"] = ayon_api.get_folder_by_path(
+                project_name=project_name,
+                folder_path=instance.data["folderPath"],
+            )
+        folder_entity = instance.data["folderEntity"]
+
+        # Add taskEntity
+        if "taskEntity" not in instance.data:
+            self.log.debug("Collecting task entity for instance...")
+            project_name: str = instance.context.data["projectName"]
+            instance.data["taskEntity"] = ayon_api.get_task_by_name(
+                project_name=project_name,
+                task_name=instance.data["task"],
+                folder_id=folder_entity["id"],
+            )

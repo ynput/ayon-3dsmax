@@ -12,6 +12,7 @@ from ayon_max.api.lib import (
     unique_namespace,
     get_namespace,
     object_transform_set,
+    object_transform_restore,
     get_plugins
 )
 from ayon_max.api import lib
@@ -21,9 +22,11 @@ from pymxs import runtime as rt
 class OxAbcLoader(load.LoaderPlugin):
     """Ornatrix Alembic loader."""
 
-    product_types = {"camera", "animation", "pointcache"}
+    product_base_types = {"camera", "animation", "pointcache"}
+    product_types = product_base_types
     label = "Load Alembic with Ornatrix"
-    representations = {"abc"}
+    representations = {"*"}
+    extensions = {"abc"}
     order = -10
     icon = "code-fork"
     color = "orange"
@@ -48,8 +51,10 @@ class OxAbcLoader(load.LoaderPlugin):
             if str(obj_type).startswith("Ox_"):
                 scene_object.append(obj)
 
+        folder_name = context["folder"]["name"]
         namespace = unique_namespace(
             name + "_",
+            prefix=f"{folder_name}_",
             suffix="_",
         )
         abc_container = []
@@ -92,10 +97,7 @@ class OxAbcLoader(load.LoaderPlugin):
             abc.Parent = container
             abc.name = f"{namespace}:{abc.name}"
             ox_abc_objects.append(abc)
-            ox_transform = f"{abc}.transform"
-            if ox_transform in transform_data.keys():
-                abc.pos = transform_data[ox_transform] or 0
-                abc.scale = transform_data[f"{abc}.scale"] or 0
+            object_transform_restore(abc, transform_data)
         update_custom_attribute_data(node, ox_abc_objects)
         lib.imprint(container["instance_node"], {
             "representation": repre_entity["id"],

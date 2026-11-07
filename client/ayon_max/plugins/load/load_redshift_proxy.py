@@ -21,8 +21,10 @@ class RedshiftProxyLoader(load.LoaderPlugin):
     """Load rs files with Redshift Proxy"""
 
     label = "Load Redshift Proxy"
-    product_types = {"redshiftproxy"}
-    representations = {"rs"}
+    product_base_types = {"redshiftproxy"}
+    product_types = product_base_types
+    representations = {"*"}
+    extensions = {"rs"}
     order = -9
     icon = "code-fork"
     color = "white"
@@ -35,8 +37,10 @@ class RedshiftProxyLoader(load.LoaderPlugin):
         rs_obj = self._get_redshift_object_type()
         rs_obj.file = filepath
 
+        folder_name = context["folder"]["name"]
         namespace = unique_namespace(
             name + "_",
+            prefix=f"{folder_name}_",
             suffix="_",
         )
         rs_obj.name = f"{namespace}:{rs_obj.name}"
@@ -76,8 +80,10 @@ class RedshiftVolumeLoader(RedshiftProxyLoader):
     """Load vdb files with Redshift Volume Grid"""
 
     label = "Load VDB"
-    product_types = {"vdbcache"}
-    representations = {"vdb"}
+    product_base_types = {"vdbcache"}
+    product_types = product_base_types
+    representations = {"*"}
+    extensions = {"vdb"}
     order = -9
     icon = "code-fork"
     color = "orange"

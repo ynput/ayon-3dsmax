@@ -1,6 +1,7 @@
 import os
 import pyblish.api
 from ayon_core.pipeline import publish
+from ayon_max.api.lib import set_viewport_type
 from ayon_max.api.preview_animation import (
     render_preview_animation
 )
@@ -17,6 +18,14 @@ class ExtractReviewAnimation(publish.Extractor):
     families = ["review"]
 
     def process(self, instance):
+        if (
+            "render.local" in instance.data["families"] or
+            "render.local_no_render" in instance.data["families"]
+        ):
+            self.log.debug(
+                f"The instance {instance.name} is rendering locally, "
+                "skipping thumbnail extraction.")
+            return
         staging_dir = self.staging_dir(instance)
         ext = instance.data.get("imageFormat")
         start = int(instance.data["frameStart"])
@@ -27,16 +36,17 @@ class ExtractReviewAnimation(publish.Extractor):
 
         review_camera = instance.data["review_camera"]
         viewport_options = instance.data.get("viewport_options", {})
-        files = render_preview_animation(
-            filepath,
-            ext,
-            review_camera,
-            start,
-            end,
-            percentSize=instance.data["percentSize"],
-            width=instance.data["resolutionWidth"],
-            height=instance.data["resolutionHeight"],
-            viewport_options=viewport_options)
+        with set_viewport_type():
+            files = render_preview_animation(
+                filepath,
+                ext,
+                review_camera,
+                start,
+                end,
+                percentSize=instance.data["percentSize"],
+                width=instance.data["resolutionWidth"],
+                height=instance.data["resolutionHeight"],
+                viewport_options=viewport_options)
 
         filenames = [os.path.basename(path) for path in files]
 

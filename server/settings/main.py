@@ -3,12 +3,15 @@ from .imageio import ImageIOSettings
 from .render_settings import (
     RenderSettingsModel, DEFAULT_RENDER_SETTINGS
 )
+from .create import CreateModel
 from .create_review_settings import (
-    CreateReviewModel, DEFAULT_CREATE_REVIEW_SETTINGS
+    CreateReviewModel,
+    DEFAULT_CREATE_REVIEW_SETTINGS,
 )
 from .publishers import (
     PublishersModel, DEFAULT_PUBLISH_SETTINGS
 )
+from .templated_workfile_build import TemplatedWorkfileBuildModel
 
 
 def unit_scale_enum():
@@ -71,6 +74,11 @@ class MaxSettings(BaseSettingsModel):
         default_factory=ImageIOSettings,
         title="Color Management (ImageIO)"
     )
+    templated_workfile_build: TemplatedWorkfileBuildModel = SettingsField(
+        title="Templated Workfile Build",
+        default_factory=TemplatedWorkfileBuildModel
+    )
+
     RenderSettings: RenderSettingsModel = SettingsField(
         default_factory=RenderSettingsModel,
         title="Render Settings"
@@ -82,6 +90,10 @@ class MaxSettings(BaseSettingsModel):
     PointCloud: PointCloudSettings = SettingsField(
         default_factory=PointCloudSettings,
         title="Point Cloud"
+    )
+    create: CreateModel = SettingsField(
+        default_factory=CreateModel,
+        title="Create Plugins"
     )
     publish: PublishersModel = SettingsField(
         default_factory=PublishersModel,
@@ -118,6 +130,9 @@ DEFAULT_VALUES = {
     },
     "auto_key_default":{
         "defualt_key_time": 0
+    },
+    "templated_workfile_build": {
+        "profiles": []
     },
     "RenderSettings": DEFAULT_RENDER_SETTINGS,
     "CreateReview": DEFAULT_CREATE_REVIEW_SETTINGS,

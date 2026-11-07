@@ -1,28 +1,74 @@
 # -*- coding: utf-8 -*-
 """Library of functions useful for 3dsmax pipeline."""
+import os
 import contextlib
 import logging
 import json
 from functools import partial
-from typing import Any, Dict, Union
+import pyblish.api
+import re
+from typing import Any, Dict, Optional, Union
 
 from ayon_core.pipeline import (
+    Anatomy,
     get_current_project_name,
     get_current_folder_path,
     get_current_task_name,
+    get_current_host_name,
     colorspace,
+    registered_host,
+    AYON_INSTANCE_ID,
+    AVALON_INSTANCE_ID,
 )
+from ayon_core.lib import StringTemplate, get_version_from_path
 from ayon_core.tools.utils import SimplePopup
 from ayon_core.settings import get_project_settings
 from ayon_core.pipeline.context_tools import (
     get_current_task_entity
 )
+from ayon_core.pipeline.template_data import get_template_data_with_names
+from ayon_core.pipeline.farm.pyblish_functions import (
+    convert_frames_str_to_list,
+)
+from ayon_core.pipeline.create import CreateContext
+from ayon_core.pipeline.publish import PublishError
 from ayon_core.style import load_stylesheet
-from pymxs import runtime as rt
+
+
+try:
+    from pymxs import runtime as rt
+
+except ImportError:
+    rt = None
 
 
 JSON_PREFIX = "JSON::"
 log = logging.getLogger("ayon_max")
+
+
+def _sanitize_template_data(value: Any) -> Any:
+    """Function to sanitize template data to avoid
+    pickle issue from QMainWindow or Max Objects
+
+    Args:
+        value (Any): Any type of value to sanitize
+
+    Returns:
+        Any: Sanitized value
+    """
+    if isinstance(value, dict):
+        return {
+            key: _sanitize_template_data(sub_value)
+            for key, sub_value in value.items()
+        }
+
+    if isinstance(value, (list, tuple, set)):
+        return [_sanitize_template_data(item) for item in value]
+
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+
+    return str(value)
 
 
 def get_main_window():
@@ -36,7 +82,7 @@ def get_main_window():
             and widget.metaObject().className() == name
         ):
             return widget
-    raise RuntimeError('Count not find 3dsMax main window.')
+    raise RuntimeError('Could not find 3dsMax main window.')
 
 
 def imprint(node_name: str, data: dict) -> bool:
@@ -95,7 +141,7 @@ def read(container) -> dict:
 
     for line in props.split("\r\n"):
         try:
-            key, value = line.split("=")
+            key, value = line.split("=", 1)
         except ValueError:
             # if the line cannot be split we can't really parse it
             continue
@@ -130,6 +176,28 @@ def maintained_selection():
             rt.Select(previous_selection)
         else:
             rt.Select()
+
+
+@contextlib.contextmanager
+def maintained_sme_view_nodes_selection(current_sme_view, texture_node):
+    """Maintain selection of nodes in SME view during context
+
+    Args:
+        view_node_name (IFP_NodeViewImp): SNE View Node Object
+        texture_node (Node): Texture Node Object
+    """
+    previous_selection = [
+        node.reference for node in current_sme_view.GetSelectedNodes()
+        if node.reference != texture_node
+    ]
+    try:
+        current_sme_view.SelectNone()
+        current_sme_view.setSelectedNodes([texture_node])
+        yield
+
+    finally:
+        if previous_selection:
+            current_sme_view.setSelectedNodes(previous_selection)
 
 
 def get_all_children(parent, node_type=None):
@@ -167,10 +235,96 @@ def get_current_renderer():
     return rt.renderers.production
 
 
-def get_default_render_folder(project_setting=None):
-    return (project_setting["max"]
-                           ["RenderSettings"]
-                           ["default_render_image_folder"])
+def get_work_default_directory_and_data(data: Dict) -> tuple[str, Dict]:
+    """Helping function for formatting of anatomy paths
+
+    Arguments:
+        data (Dict): dictionary with attributes used for formatting
+
+    Returns:
+        tuple[str, Dict]:
+            - Path to the default work directory for current context.
+            - Sanitized template data used for formatting.
+    """
+
+    project_name = get_current_project_name()
+    anatomy = Anatomy(project_name)
+
+    data = _sanitize_template_data(dict(data))
+
+    version = data.get("version")
+    if version is None:
+        project_filename = rt.maxFileName
+        data["version"] = get_version_from_path(project_filename)
+
+    folder_path = data["folderPath"]
+    task_name = data["task"]
+    host_name = get_current_host_name()
+
+    context_data = get_template_data_with_names(
+        project_name, folder_path, task_name, host_name
+    )
+    data.update(context_data)
+    product_type = data["productType"]
+    product_base_type = data.get("productBaseType")
+    if not product_base_type:
+        product_base_type = product_type
+
+    data.update({
+        "root": anatomy.roots,
+        "subset": data["productName"],
+        "family": product_base_type,
+        "product": {
+            "name": data["productName"],
+            "type": product_type,
+            "basetype": product_base_type,
+        },
+    })
+    work_default_dir_template = anatomy.get_template_item("work", "default", "directory")
+    normalized_dir = work_default_dir_template.format_strict(data).normalized()
+    return str(normalized_dir), data
+
+def get_default_render_folder(
+    data: Dict,
+    project_setting: Dict = None,
+) -> str:
+    """Get the default render folder path for current context based on project settings
+
+    Args:
+        data (Dict): template data
+        project_setting (Dict, optional): project settings. Defaults to None.
+
+    Returns:
+        str: The default render folder path.
+    """
+    render_data = _sanitize_template_data(dict(data))
+    if project_setting is None:
+        project_name = get_current_project_name()
+        project_setting = get_project_settings(project_name)
+
+    work_dir, render_data = get_work_default_directory_and_data(render_data)
+    render_data["work"] = work_dir
+    render_folder = project_setting["max"]["RenderSettings"]["default_render_image_folder"]
+    formatted_render_folder = StringTemplate(render_folder).format(render_data)
+    if not os.path.isabs(formatted_render_folder):
+        formatted_render_folder = os.path.join(work_dir, formatted_render_folder)
+    # Normalize to forward slashes for consistency
+    return formatted_render_folder.replace("\\", "/")
+
+
+def get_vray_settings(renderer_name: str, renderer: Any) -> Any:
+    """Get V-Ray specific settings from the renderer.
+
+    Args:
+        renderer_name (str): The name of the renderer.
+        renderer (Any): The renderer object.
+
+    Returns:
+        Any: The V-Ray settings object.
+    """
+    if "GPU" in renderer_name:
+        return renderer.V_Ray_settings
+    return renderer
 
 
 def set_render_frame_range(start_frame, end_frame):
@@ -191,10 +345,35 @@ def set_render_frame_range(start_frame, end_frame):
         rt.rendEnd = int(end_frame)
 
 
-def get_multipass_setting(project_setting=None):
-    return (project_setting["max"]
-                           ["RenderSettings"]
-                           ["multipass"])
+def get_multipass_setting(renderer, project_setting=None):
+    """Get the multipass setting for the given renderer.
+
+    Args:
+        renderer (str): The name of the renderer.
+        project_setting (dict, optional): The project settings. Defaults to None.
+
+    Returns:
+        bool: True if multipass is enabled, False otherwise.
+    """
+    if project_setting is None:
+        project_setting = get_project_settings(
+            get_current_project_name()
+        )
+    render_settings = (
+        project_setting["max"]["RenderSettings"]
+    )
+    if renderer.startswith("V_Ray_"):
+        vray_render_setting = render_settings.get("vray_render_settings", {})
+        return (
+            vray_render_setting.get("separate_render_channels", False)
+        )
+    elif renderer == "Redshift_Renderer":
+        redshift_render_setting = render_settings.get("redshift_render_settings", {})
+        return (
+            redshift_render_setting.get("separate_aov_files", False)
+        )
+
+    return False
 
 
 def set_scene_resolution(width: int, height: int):
@@ -339,15 +518,21 @@ def validate_unit_scale(project_settings=None):
     dialog.show()
 
 
-def set_unit_scale(project_settings=None):
+def set_unit_scale(project_settings=None, scene_units=False):
     """Function to set unit scale in Metric
+    Args:
+        project_settings (dict, optional): project settings.
+        scene_units (bool, optional): whether to set scene units.
     """
     if project_settings is None:
         project_name = get_current_project_name()
         project_settings = get_project_settings(project_name).get("max")
-    scene_scale = project_settings["unit_scale_settings"]["scene_unit_scale"]
-    rt.units.DisplayType = rt.Name("Metric")
-    rt.units.MetricType = rt.Name(scene_scale)
+    scale_settings = project_settings["unit_scale_settings"]
+    scene_scale_enabled = scale_settings.get("enabled", False)
+    if scene_scale_enabled or scene_units:
+        scene_scale = scale_settings["scene_unit_scale"]
+        rt.units.DisplayType = rt.Name("Metric")
+        rt.units.MetricType = rt.Name(scene_scale)
 
 
 def convert_unit_scale():
@@ -364,10 +549,13 @@ def convert_unit_scale():
         "kilometers": "km"
     }
     current_unit_scale = rt.Execute("units.MetricType as string")
-    return unit_scale_dict[current_unit_scale]
+    return unit_scale_dict[current_unit_scale.lower().lstrip("#")]
 
 
-def set_context_setting():
+def set_context_settings(resolution=True,
+                         frame_range=True,
+                         scene_units=False,
+                         colorspace=True):
     """Apply the project settings from the project definition
 
     Settings can be overwritten by an folder if the folder.attrib contains
@@ -380,10 +568,14 @@ def set_context_setting():
     Returns:
         None
     """
-    reset_scene_resolution()
-    reset_frame_range()
-    validate_unit_scale()
-    reset_colorspace()
+    if resolution:
+        reset_scene_resolution()
+    if frame_range:
+        reset_frame_range()
+    if scene_units:
+        set_unit_scale(scene_units=scene_units)
+    if colorspace:
+        reset_colorspace()
 
 
 def get_max_version():
@@ -421,20 +613,25 @@ def reset_colorspace():
     """
     if int(get_max_version()) < 2024:
         return
-
-    max_config_data = colorspace.get_current_context_imageio_config_preset()
-    if max_config_data:
-        ocio_config_path = max_config_data["path"]
-        colorspace_mgr = rt.ColorPipelineMgr
-        colorspace_mgr.Mode = rt.Name("OCIO_Custom")
-        colorspace_mgr.OCIOConfigPath = ocio_config_path
+    colorspace_mgr = rt.ColorPipelineMgr
+    ocio_config_path = os.getenv("OCIO")
+    colorspace_mgr.Mode = rt.Name("OCIO_EnvVar")
+    if not ocio_config_path:
+        max_config_data = colorspace.get_current_context_imageio_config_preset()
+        if max_config_data:
+            ocio_config_path = max_config_data["path"]
+            colorspace_mgr.Mode = rt.Name("OCIO_Custom")
+            colorspace_mgr.OCIOConfigPath = ocio_config_path
 
 
 def check_colorspace():
-    parent = get_main_window()
-    if parent is None:
+    try:
+        parent = get_main_window()
+    except RuntimeError:
+        # get_main_window raises when 3ds Max has no main window yet
         log.info("Skipping outdated pop-up "
                  "because Max main window can't be found.")
+        return
     if int(get_max_version()) >= 2024:
         color_mgr = rt.ColorPipelineMgr
         max_config_data = colorspace.get_current_context_imageio_config_preset()
@@ -544,12 +741,49 @@ def object_transform_set(container_children):
         the previous loaded object(s)
     """
     transform_set = {}
+
     for node in container_children:
-        name = f"{node}.transform"
-        transform_set[name] = node.pos
-        name = f"{node}.scale"
+        name = f"{node.name}.rotation"
+        transform_set[name] = node.rotation
+        name = f"{node.name}.scale"
         transform_set[name] = node.scale
+        name = f"{node.name}.translate"
+        transform_set[name] = node.pos
     return transform_set
+
+
+def object_transform_restore(node, transform_set):
+    """Restore a transform previously stored by object_transform_set.
+
+    The keys of 'transform_set' are built from the node name, so the
+    lookup has to use the node name too. Formatting a 3ds Max node
+    itself does not give its name but something like
+        "$Box:Box001 @ [0,0,0]"
+    which never matches a stored key.
+
+    Scale and rotation are applied before the position, because setting
+    the rotation or the scale of a node also moves it in 3ds Max. Only
+    applying the position last ends up with the stored transform.
+
+    Args:
+        node: A 3ds Max node.
+        transform_set (dict): Stored transform data.
+
+    Returns:
+        bool: True when transform data was found for the node.
+    """
+    key = f"{node.name}.translate"
+    if key not in transform_set:
+        return False
+
+    node.scale = (
+        transform_set.get(f"{node.name}.scale") or rt.Point3(1, 1, 1)
+    )
+    node.rotation = (
+        transform_set.get(f"{node.name}.rotation") or rt.Quat(0, 0, 0, 1)
+    )
+    node.pos = transform_set[key] or rt.Point3(0, 0, 0)
+    return True
 
 
 def get_plugins() -> list:
@@ -568,6 +802,20 @@ def get_plugins() -> list:
     return plugin_info_list
 
 
+def find_plugins(search_string: str) -> bool:
+    """Find if a plugin is loaded in 3dsMax
+
+    Args:
+        search_string (str): string to search for
+
+    Returns:
+        bool: True if found, False otherwise
+    """
+    if any(search_string in plugin for plugin in get_plugins()):
+        return True
+    return False
+
+
 def update_modifier_node_names(event, node):
     """Update the name of the nodes after renaming
 
@@ -578,23 +826,32 @@ def update_modifier_node_names(event, node):
             Mandatory argument for rt.NodeEventCallback)
 
     """
-    containers = [
-        obj
-        for obj in rt.Objects
-        if (
-            rt.ClassOf(obj) == rt.Container
-            and rt.getUserProp(obj, "id") == "pyblish.avalon.instance"
-            and rt.getUserProp(obj, "productType") not in {
-                "workfile", "tyflow"
-            }
-        )
-    ]
+    containers = []
+    for obj in rt.Objects:
+        if rt.ClassOf(obj) != rt.Container:
+            continue
+
+        if rt.getUserProp(obj, "id") in {
+            AVALON_INSTANCE_ID,
+            AYON_INSTANCE_ID
+        }:
+            continue
+
+        product_base_type = rt.getUserProp(obj, "productBaseType")
+        if not product_base_type:
+            product_base_type = rt.getUserProp(obj, "productType")
+
+        if product_base_type in {"workfile", "tyflow"}:
+            containers.append(obj)
+
     if not containers:
         return
     for container in containers:
-        ayon_data = container.modifiers[0].openPypeData
-        updated_node_names = [str(node.node) for node
-                              in ayon_data.all_handles]
+        modifier = container.modifiers[0]
+        ayon_data = get_ayon_data(modifier)
+        updated_node_names = [
+            str(node.node) for node in ayon_data.all_handles
+        ]
         rt.setProperty(ayon_data, "sel_list", updated_node_names)
 
 
@@ -645,6 +902,63 @@ def get_tyflow_export_operators(operator_type="exportParticle"):
     return operators
 
 
+def get_view_node_from_sme_view(sme_view, view_node_name):
+    """Get view node from SME view
+
+    Args:
+        sme_view (rt.IFP_NodeViewImp): Target SME View
+        view_node_name (str): view node name
+    Returns:
+        IObject: view node object
+    """
+    for i in range(sme_view.GetNumNodes() + 1):
+        node = sme_view.GetNode(i)
+        if node is None:
+            continue
+        if node.name == view_node_name:
+            return node
+    raise ValueError(f"View node {view_node_name} not found in SME view.")
+
+
+def get_target_sme_view(target_view: int):
+    """Return a Slate Material Editor view by index.
+
+    Args:
+        target_view (int): Active SME view index.
+
+    Returns:
+        IObject: The requested SME view object.
+    """
+    return rt.sme.GetView(target_view)
+
+
+@contextlib.contextmanager
+def ensure_sme_editor_active():
+    """Ensure that Slate Material Editor is active during context
+    """
+    was_open = rt.sme.isOpen()
+    try:
+        if not was_open:
+            rt.sme.open()
+        yield
+    finally:
+        if not was_open:
+            rt.sme.close()
+
+
+@contextlib.contextmanager
+def set_viewport_type(viewport_type=None):
+    """Set viewport type during context"""
+    if viewport_type is None:
+        viewport_type = rt.Name("view_camera")
+    previous_viewport_type = rt.viewport.getType()
+    rt.viewport.setType(viewport_type)
+    try:
+        yield
+    finally:
+        rt.viewport.setType(previous_viewport_type)
+
+
 @contextlib.contextmanager
 def suspended_refresh():
     """Suspended refresh for scene and modify panel redraw.
@@ -692,3 +1006,326 @@ def animation_range_without_loop(frameStart, frameEnd):
         )
         rt.currentTime.frame = previous_current_frame
         rt.animationRange = previous_animation_range
+
+
+def reset_render_outputs(max_filename_before, max_filename_after):
+    render_output_before = rt.rendOutputFilename
+    rt.rendOutputFilename = render_output_before.replace(
+        max_filename_before, max_filename_after
+    )
+    render_elem = rt.maxOps.GetCurRenderElementMgr()
+    render_elem_num = render_elem.NumRenderElements()
+    if render_elem_num <= 0:
+        return
+
+    for i in range(render_elem_num):
+        render_element_filepath = render_elem.GetRenderElementFilename(i)
+        new_render_element_filepath = render_element_filepath.replace(
+            max_filename_before, max_filename_after)
+        render_elem.SetRenderElementFileName(
+            i, new_render_element_filepath)
+
+    renderer = get_current_renderer()
+    if str(renderer).startswith("V_Ray_"):
+        if "GPU" in renderer:
+            vr_settings = renderer.V_Ray_settings
+        else:
+            vr_settings = renderer
+
+        if vr_settings.output_saverawfile:
+            vr_settings.output_rawfilename = rt.rendOutputFilename
+
+        if vr_settings.output_splitgbuffer:
+            vr_settings.output_splitfilename = rt.rendOutputFilename
+
+
+def get_ayon_data(container_modifier):
+    """Get the AYON custom attribute data from container modifier
+
+    Args:
+        container_modifier: container modifier
+
+    Returns:
+        Property: AYONData custom attribute data
+    """
+    if rt.isProperty(container_modifier, "AYONData"):
+        return container_modifier.AYONData
+    else:
+        return container_modifier.openPypeData
+
+
+def update_content_on_context_change():
+    """
+    This will update scene content to match new folder on context change
+    """
+
+    host = registered_host()
+    create_context = CreateContext(host, discover_publish_plugins=False)
+    task_entity = create_context.get_current_task_entity()
+
+    instance_values = {
+        "folderPath": create_context.get_current_folder_path(),
+        "task": task_entity["name"],
+    }
+    creator_attribute_values = {
+        "frameStart": float(task_entity["attrib"]["frameStart"]),
+        "frameEnd": float(task_entity["attrib"]["frameEnd"]),
+        "handleStart": float(task_entity["attrib"]["handleStart"]),
+        "handleEnd": float(task_entity["attrib"]["handleEnd"]),
+    }
+
+    has_changes = False
+    for instance in create_context.instances:
+        for key, value in instance_values.items():
+            if key not in instance or instance[key] == value:
+                continue
+
+            # Update instance value
+            print(f"Updating {instance.product_name} {key} to: {value}")
+            instance[key] = value
+            has_changes = True
+
+        creator_attributes = instance.creator_attributes
+        for key, value in creator_attribute_values.items():
+            if (
+                    key not in creator_attributes
+                    or creator_attributes[key] == value
+            ):
+                continue
+
+            # Update instance creator attribute value
+            print(f"Updating {instance.product_name} {key} to: {value}")
+            creator_attributes[key] = value
+            has_changes = True
+
+    if has_changes:
+        create_context.save_changes()
+
+
+def is_general_default_output_regex_matched(filename) -> bool:
+    """Check if the filename matches the general default render output pattern.
+
+    The general default output pattern expects a double-dot separator before
+    the file extension: `<name>..<extension>` (e.g., `John_Doe..exr`).
+    This is the standard naming convention for render outputs when configured
+    through the create render instance settings.
+
+    Args:
+        filename (str): The filename to check.
+
+    Returns:
+        bool: True if the filename matches the pattern (name..extension),
+            False otherwise.
+    """
+    pattern = r".*\.{2}[a-zA-Z0-9]+$"
+    return re.match(pattern, filename) is not None
+
+
+def reformat_filename(filename: str) -> str:
+    """Reformat render output filename to standardized pattern.
+
+    Converts filenames from two non-standard render patterns(One from Redshift render elements,
+    another Vray render elements with the edge case of not using vray-style output.) to a unified
+    format: `<name>.<frame>.<extension>`. This handles both Redshift
+    render element naming and general render output naming conventions.
+
+    Conversion patterns:
+        - Redshift: `Main._Cryptomatte.1001.exr` → `Main.Cryptomatte.1001.exr`
+        - Vray (edge case): `Main_tmp..Cryptomatte.1001.exr` → `Main_tmp.Cryptomatte.1001.exr`
+
+    Args:
+        filename (str): The filename to reformat.
+
+    Returns:
+        str: The reformatted filename in name.frame.extension format.
+    """
+    # Match: base name, underscore part, extension
+    redshift_pattern = (
+        r"^(?P<name>.+)\._(?P<element>[^.]+)\.(?P<frame>[^.]+)\.(?P<ext>[a-zA-Z0-9]+)$"
+    )
+    match = re.match(redshift_pattern, filename)
+    vray_pattern = r"^(?P<name>.+)\.\.(?P<frame>[^.]+)\.(?P<ext>[a-zA-Z0-9]+)$"
+    match_vray = re.match(vray_pattern, filename)
+    if match:
+        name = match.group("name")
+        element = match.group("element")
+        frame = match.group("frame")
+        ext = match.group("ext")
+        return f"{name}.{element}.{frame}.{ext}"
+    elif match_vray:
+        name = match_vray.group("name")
+        frame = match_vray.group("frame")
+        ext = match_vray.group("ext")
+        return f"{name}.{frame}.{ext}"
+    else:
+        # fallback if pattern doesn't match
+        return filename
+
+
+def set_correct_workfile_name_for_render_output(
+    instance: pyblish.api.Instance,
+    filepath: str,
+) -> str:
+    """Replace the original workfile token with the current scene name.
+
+    Args:
+        instance (pyblish.api.Instance): The Pyblish instance.
+        filepath (str): The file path to update.
+
+    Returns:
+        str: The updated file path with the current workfile name.
+
+    """
+    project_settings = instance.context.data["project_settings"]
+    render_root = os.path.normpath(
+        get_default_render_folder(instance.data, project_settings)
+    )
+    normalized_path = os.path.normpath(filepath)
+
+    current_file = os.path.basename(instance.context.data["currentFile"])
+    current_workfile_filename = os.path.splitext(current_file)[0].strip(".")
+
+    pattern = (
+        rf"^{re.escape(render_root)}"
+        rf"[\\/](?P<workfile>[^\\/]+)"
+        rf"(?P<rest>(?:[\\/].*)?)$"
+    )
+    match = re.match(pattern, normalized_path)
+    if not match:
+        return ""
+
+    render_workfile_name = match.group("workfile")
+    if render_workfile_name == current_workfile_filename:
+        return filepath
+
+    rest = match.group("rest") or ""
+
+    # update the changes in the context instances to reflect the new workfile
+    # name. Use the `CreateContext` the Publisher is already working with so
+    # its in-memory instances stay in sync, instead of a temporary context
+    # whose changes the Publisher could overwrite on its next save.
+    create_context = instance.context.data.get("create_context")
+    if create_context is None:
+        create_context = CreateContext(
+            registered_host(),
+            discover_publish_plugins=False,
+        )
+    workfile_name_keys = {
+        "original_workfile_pattern",
+        # backward compatibility for older versions of Ayon
+        "AssetName"
+    }
+
+    has_changes = False
+    for created_instance in create_context.instances:
+        for key in workfile_name_keys:
+            if key not in created_instance:
+                continue
+            if created_instance[key] != render_workfile_name:
+                continue
+            created_instance[key] = current_workfile_filename
+            has_changes = True
+
+    if has_changes:
+        create_context.save_changes()
+    return os.path.join(
+        render_root,
+        current_workfile_filename,
+        rest.lstrip("\\/"),
+    )
+
+
+def build_general_output_filename(
+    output_dir: str,
+    filename: str,
+    image_format: Optional[str] = None,
+) -> str:
+    """Build a general output filename with the given directory, filename, and image format.
+
+    Args:
+        output_dir (str): The directory where the output file will be saved.
+        filename (str): The base filename.
+        image_format (Optional[str]): Image format configured in the project
+            settings. When given, the extension is replaced with it and the
+            double dot naming convention is enforced, so the scene follows the
+            configured format instead of failing the validation.
+
+    Returns:
+        str: The full path to the output file with the general naming convention.
+    """
+    generic_pattern = (
+        r"^(?P<name>.+)\._(?P<element>[^.]+)\.(?P<ext>[a-zA-Z0-9]+)$"
+    )
+    match = re.match(generic_pattern, filename)
+    if match:
+        name = match.group("name")
+        element = match.group("element")
+        ext = match.group("ext")
+        filename = f"{name}_{element}..{ext}"
+    if image_format and filename:
+        # Swap the extension and keep the double dot separator the
+        # validation expects, otherwise the repair can never converge:
+        # "renderMain.png" -> "renderMain..exr".
+        stem = os.path.splitext(filename)[0]
+        if not stem.endswith("."):
+            stem = f"{stem}."
+        filename = f"{stem}.{image_format}"
+    return os.path.join(output_dir, filename)
+
+
+def get_expected_frames(instance: pyblish.api.Instance) -> list[int]:
+    """Get expected frames from the instance.
+
+    Args:
+        instance (pyblish.api.Instance): The Pyblish instance.
+
+    Returns:
+        list[int]: A list containing the expected frames. The list is never
+            empty, an unusable custom frame value or scene frame range raises
+            instead.
+
+    Raises:
+        PublishError: The custom frame value cannot be parsed, or the
+            scene render frame range is empty or inverted. Both used to end up
+            as a bare `ValueError`/`min()` failure in `CollectFrameRange`,
+            which then left the instance without `frameStartHandle` and
+            `frameEndHandle` and broke every downstream frame range user.
+    """
+    frames_str = (instance.data.get("customFrames") or "").strip()
+    if frames_str:
+        frames_list = convert_frames_str_to_list(frames_str)
+        if not frames_list:
+            raise PublishError(
+                f"Custom frame range '{frames_str}' does not contain any "
+                "frame."
+            )
+        return frames_list
+
+    frame_start = int(rt.rendStart)
+    frame_end = int(rt.rendEnd)
+    if frame_end < frame_start:
+        raise PublishError(
+            f"Invalid render frame range {frame_start}-{frame_end}: the end "
+            "frame is before the start frame. Set the scene render frame "
+            "range or a custom frame range on the instance."
+        )
+    return list(range(frame_start, frame_end + 1))
+
+
+def is_vray_exr_saverawfile(image_format: str, vr_settings: Any) -> bool:
+    """Check if V-Ray renderer is set to output raw files in EXR format.
+
+    Args:
+        image_format (str): The image format being used for rendering.
+        vr_settings (Any): The V-Ray settings object
+
+    Returns:
+        bool: True if the image format is EXR and V-Ray is set to save
+            raw files, False otherwise.
+    """
+    return (
+        image_format == "exr"
+        # safe check
+        and hasattr(vr_settings, "output_saverawfile")
+        and vr_settings.output_saverawfile
+    )

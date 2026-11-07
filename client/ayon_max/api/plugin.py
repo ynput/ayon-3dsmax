@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 """3dsmax specific AYON/Pyblish plugin definitions."""
-from pymxs import runtime as rt
+try:
+    from pymxs import runtime as rt
+
+except ImportError:
+    rt = None
 
 from ayon_core.lib import BoolDef
 from ayon_core.pipeline import (
@@ -13,7 +17,7 @@ from ayon_core.pipeline import (
 
 from .lib import imprint, lsattr, read, get_tyflow_export_operators
 
-MS_CUSTOM_ATTRIB = """attributes "openPypeData"
+MS_CUSTOM_ATTRIB = """attributes "AYONData"
 (
     parameters main rollout:OPparams
     (
@@ -379,6 +383,7 @@ class MaxCreatorBase(object):
             return shared_data
 
         shared_data["max_cached_instances"] = {}
+        shared_data["max_cached_legacy_instances"] = {}
 
         cached_instances = []
         for id_type in [AYON_INSTANCE_ID, AVALON_INSTANCE_ID]:
@@ -386,15 +391,18 @@ class MaxCreatorBase(object):
 
         for i in cached_instances:
             creator_id = rt.GetUserProp(i, "creator_identifier")
-            if creator_id not in shared_data["max_cached_instances"]:
-                shared_data["max_cached_instances"][creator_id] = [i.name]
+            if creator_id and "openpype" in creator_id:
+                # Legacy creator instance
+                shared_data["max_cached_legacy_instances"].setdefault(
+                    creator_id, []).append(i.name)
             else:
-                shared_data[
-                    "max_cached_instances"][creator_id].append(i.name)
+                shared_data["max_cached_instances"].setdefault(
+                    creator_id, []).append(i.name)
+
         return shared_data
 
     @staticmethod
-    def create_instance_node(node, attribute="general_data"):
+    def create_instance_node(node):
         """Create instance node.
 
         If the supplied node is existing node, it will be used to hold the
@@ -410,28 +418,52 @@ class MaxCreatorBase(object):
             raise CreatorError("Instance node is not at the string value.")
 
         node = rt.Container(name=node)
-        if attribute == "tycache_data":
-            attrs = rt.Execute(MS_TYCACHE_ATTRIB)
-        elif attribute == "ty_vdb_data":
-            attrs = rt.Execute(MS_VDB_ATTRIB)
-        else:
-            attrs = rt.Execute(MS_CUSTOM_ATTRIB)
-
+        attrs = rt.Execute(MS_CUSTOM_ATTRIB)
         modifier = rt.EmptyModifier()
         rt.addModifier(node, modifier)
-        if attribute == "tycache_data":
-            node.modifiers[0].name = "AYON TyCache Data"
-        elif attribute == "ty_vdb_data":
-            node.modifiers[0].name = "AYON TyFlow VDB Data"
-        else:
-            node.modifiers[0].name = "OP Data"
+        node.modifiers[0].name = "AYON Data"
+        rt.custAttributes.add(node.modifiers[0], attrs)
 
+        return node
+
+
+class MaxTyFlowDataCreatorBase(MaxCreatorBase):
+    @staticmethod
+    def create_instance_node(node, attribute="tycache_data"):
+        """Create instance node.
+
+        If the supplied node is existing node, it will be used to hold the
+        instance, otherwise new node of type Dummy will be created.
+
+        Args:
+            node (rt.MXSWrapperBase, str): Node or node name to use.
+            attribute (str): Type of the instance attribute data to imprint.
+
+        Returns:
+            instance
+        """
+        if not isinstance(node, str):
+            raise CreatorError("Instance node is not at the string value.")
+
+        if attribute == "ty_vdb_data":
+            attrs = rt.Execute(MS_VDB_ATTRIB)
+            modifier_name = "AYON TyFlow VDB Data"
+        else:
+            attrs = rt.Execute(MS_TYCACHE_ATTRIB)
+            modifier_name = "AYON TyCache Data"
+
+        node = rt.Container(name=node)
+        modifier = rt.EmptyModifier()
+        rt.addModifier(node, modifier)
+        node.modifiers[0].name = modifier_name
         rt.custAttributes.add(node.modifiers[0], attrs)
 
         return node
 
 
 class MaxCreator(Creator, MaxCreatorBase):
+    skip_discovery = True
+    settings_category = "max"
     selected_nodes = []
 
     def create(self, product_name, instance_data, pre_create_data):
@@ -442,11 +474,17 @@ class MaxCreator(Creator, MaxCreatorBase):
 
         instance_node = self.create_instance_node(product_name)
         instance_data["instance_node"] = instance_node.name
+        if families := self.get_published_families():
+            instance_data["families"] = families
+        product_type = instance_data.get("productType")
+        if not product_type:
+            product_type = self.product_base_type
         instance = CreatedInstance(
-            self.product_type,
-            product_name,
-            instance_data,
-            self
+            product_type=product_type,
+            product_base_type=self.product_base_type,
+            product_name=product_name,
+            data=instance_data,
+            creator=self,
         )
         if pre_create_data.get("use_selection"):
 
@@ -459,23 +497,25 @@ class MaxCreator(Creator, MaxCreatorBase):
 
             # Setting the property
             rt.setProperty(
-                instance_node.modifiers[0].openPypeData,
+                instance_node.modifiers[0].AYONData,
                 "all_handles", node_list)
             rt.setProperty(
-                instance_node.modifiers[0].openPypeData,
+                instance_node.modifiers[0].AYONData,
                 "sel_list", sel_list)
 
         self._add_instance_to_context(instance)
-        imprint(instance_node.name, instance.data_to_store())
+        self.imprint_instance_node(instance_node.name, instance.data_to_store())
 
         return instance
 
     def collect_instances(self):
         self.cache_instance_data(self.collection_shared_data)
         for instance in self.collection_shared_data["max_cached_instances"].get(self.identifier, []):  # noqa
-            created_instance = CreatedInstance.from_existing(
-                read(rt.GetNodeByName(instance)), self
-            )
+            data = read(rt.GetNodeByName(instance))
+            families = self.get_published_families()
+            if families:
+                data["families"] = families
+            created_instance = CreatedInstance.from_existing(data, self)
             self._add_instance_to_context(created_instance)
 
     def update_instances(self, update_list):
@@ -497,10 +537,7 @@ class MaxCreator(Creator, MaxCreatorBase):
                 created_inst["instance_node"] = instance_node
                 node.name = instance_node
 
-            imprint(
-                instance_node,
-                created_inst.data_to_store(),
-            )
+            self.imprint_instance_node(instance_node, created_inst.data_to_store())
 
     def remove_instances(self, instances):
         """Remove specified instance from the scene.
@@ -525,22 +562,33 @@ class MaxCreator(Creator, MaxCreatorBase):
         ]
 
 
-class MaxCacheCreator(MaxCreator):
-    settings_category = "max"
+    def get_published_families(self) -> list[str]:
+        return []
+
+    def imprint_instance_node(self, node, data):
+        data.pop("families", None)
+        return imprint(node, data)
+
+
+class MaxCacheCreator(MaxCreator, MaxTyFlowDataCreatorBase):
 
     def create(self, product_name, instance_data, pre_create_data):
         tyflow_op_nodes = get_tyflow_export_operators()
         if not tyflow_op_nodes:
             raise CreatorError("No Export Particle Operators"
                                " found in tyCache Editor.")
-        instance_node = self.create_instance_node(
-            product_name, attribute="tycache_data")
+        instance_node = self.create_instance_node(product_name)
         instance_data["instance_node"] = instance_node.name
+        instance_data["families"] = self.get_published_families()
+        product_type = instance_data.get("productType")
+        if not product_type:
+            product_type = self.product_base_type
         instance = CreatedInstance(
-            self.product_type,
-            product_name,
-            instance_data,
-            self
+            product_type=product_type,
+            product_base_type=self.product_base_type,
+            product_name=product_name,
+            data=instance_data,
+            creator=self,
         )
         # Setting the property
         node_list = [sub_anim.name for sub_anim in tyflow_op_nodes]
@@ -548,31 +596,54 @@ class MaxCacheCreator(MaxCreator):
             instance_node.modifiers[0].AYONTyCacheData,
             "tyc_handles", node_list)
         self._add_instance_to_context(instance)
-        imprint(instance_node.name, instance.data_to_store())
+        self.imprint_instance_node(instance_node.name, instance.data_to_store())
 
         return instance
+
+    def remove_instances(self, instances):
+        """Remove specified instance from the scene.
+
+        This is only removing AYON-related parameters based on the modifier
+        so instance is no longer instance, because it might contain
+        valuable data for artist.
+
+        """
+        for instance in instances:
+            instance_node = rt.GetNodeByName(
+                instance.data.get("instance_node"))
+            if instance_node:
+                count = rt.custAttributes.count(instance_node.modifiers[0])
+                rt.custAttributes.delete(instance_node.modifiers[0], count)
+                rt.Delete(instance_node)
+
+            self._remove_instance_from_context(instance)
 
     def get_pre_create_attr_defs(self):
         return []
 
 
-class MaxTyflowVDBCacheCreator(MaxCreator):
-    settings_category = "max"
+class MaxTyflowVDBCacheCreator(MaxCreator, MaxTyFlowDataCreatorBase):
+    """Creator for VDB files exported with TyFlow's VDB export operator."""
 
     def create(self, product_name, instance_data, pre_create_data):
-        tyflow_op_nodes = get_tyflow_export_operators(operator_type="exportVDB")
+        tyflow_op_nodes = get_tyflow_export_operators(
+            operator_type="exportVDB")
         if not tyflow_op_nodes:
             raise CreatorError("No Export VDB Operators"
                                " found in tyCache Editor.")
         instance_node = self.create_instance_node(
             product_name, attribute="ty_vdb_data")
         instance_data["instance_node"] = instance_node.name
-        instance_data["families"] = self.get_publish_families()
+        instance_data["families"] = self.get_published_families()
+        product_type = instance_data.get("productType")
+        if not product_type:
+            product_type = self.product_base_type
         instance = CreatedInstance(
-            self.product_type,
-            product_name,
-            instance_data,
-            self
+            product_type=product_type,
+            product_base_type=self.product_base_type,
+            product_name=product_name,
+            data=instance_data,
+            creator=self,
         )
         # Setting the property
         node_list = [sub_anim.name for sub_anim in tyflow_op_nodes]
@@ -581,24 +652,9 @@ class MaxTyflowVDBCacheCreator(MaxCreator):
             "vdb_handles", node_list
         )
         self._add_instance_to_context(instance)
-        imprint(instance_node.name, instance.data_to_store())
+        self.imprint_instance_node(instance_node.name, instance.data_to_store())
 
         return instance
 
     def get_pre_create_attr_defs(self):
-        return []
-
-    def get_publish_families(self):
-        """Return families for the instances of this creator.
-
-        Allow a Creator to define multiple families so that a creator can
-        e.g. specify `vdb` and `tyflow_vdb`.
-
-        There is no need to override this method if you only have the
-        primary family defined by the `product_type` property as that will
-        always be set.
-
-        Returns:
-            List[str]: families for instances of this creator
-        """
         return []

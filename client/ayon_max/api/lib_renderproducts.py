@@ -2,246 +2,441 @@
 # https://help.autodesk.com/view/MAXDEV/2022/ENU/?guid=GUID-E8F75D47-B998-4800-A3A5-610E22913CFC
 # arnold
 # https://help.autodesk.com/view/ARNOL/ENU/?guid=arnold_for_3ds_max_ax_maxscript_commands_ax_renderview_commands_html
+from __future__ import annotations
 import os
+from pathlib import Path
+from typing import Dict, Any
 
-from pymxs import runtime as rt
+try:
+    from pymxs import runtime as rt
 
-from ayon_max.api.lib import get_current_renderer
+except ImportError:
+    rt = None
+
+
+from ayon_max.api.lib import (
+    get_current_renderer,
+    get_multipass_setting,
+    reformat_filename,
+    is_vray_exr_saverawfile,
+)
 from ayon_core.pipeline import get_current_project_name
 from ayon_core.settings import get_project_settings
+from ayon_max.api.lib_rendersettings import is_supported_renderer
 
 
 class RenderProducts(object):
+    """Class for managing render products in 3ds Max."""
+    def __init__(self, project_settings: Dict[str, Any] = None):
+        """Initialize the RenderProducts class.
 
-    def __init__(self, project_settings=None):
+        Args:
+            project_settings (Dict[str, Any], optional): Project settings
+                dictionary. Defaults to None.
+        """
         self._project_settings = project_settings
         if not self._project_settings:
             self._project_settings = get_project_settings(
                 get_current_project_name()
             )
 
-    def get_beauty(self, container):
-        render_dir = os.path.dirname(rt.rendOutputFilename)
+    def get_render_products(self, frames: list[int]) -> Dict[str, list[str]]:
+        """Get render output file paths for the current scene.
 
-        output_file = os.path.join(render_dir, container)
+        Handles both beauty and AOV extraction with shared setup logic.
+        Always includes the beauty pass; optionally includes render elements/AOVs.
 
-        setting = self._project_settings
-        img_fmt = setting["max"]["RenderSettings"]["image_format"]   # noqa
+        Args:
+            frames (list[int]): A list of frames to generate expected
+                output file paths for.
 
-        start_frame = int(rt.rendStart)
-        end_frame = int(rt.rendEnd) + 1
+        Returns:
+            Dict[str, list[str]]: A dictionary containing render output file paths.
+                Beauty key is "beauty"; AOV keys are named after the render element
+                (e.g., "Cryptomatte", "Alpha").
+        """
+        extension = self.image_format()
 
-        return {
-            "beauty": self.get_expected_beauty(
-                output_file, start_frame, end_frame, img_fmt
-            )
-        }
+        # todo: Support Custom Frames sequences 0,5-10,100-120
+        # we can add filtering frames list to get expected frames list
+        # instead of using start and end frame
+        # but if the custom frame disabled, we can still use start and end frame
+        # to get expected frames list
+        render_dict: Dict[str, list[str]] = {}
 
-    def get_multiple_beauty(self, outputs, cameras):
-        beauty_output_frames = dict()
-        for output, camera in zip(outputs, cameras):
-            camera = camera.replace(":", "_")
-            filename, ext = os.path.splitext(output)
-            filename = filename.replace(".", "")
-            ext = ext.replace(".", "")
-            start_frame = int(rt.rendStart)
-            end_frame = int(rt.rendEnd) + 1
-            new_beauty = self.get_expected_beauty(
-                filename, start_frame, end_frame, ext
-            )
-            beauty_output = ({
-                f"{camera}_beauty": new_beauty
-            })
-            beauty_output_frames.update(beauty_output)
-        return beauty_output_frames
+        # Always add beauty pass
+        beauty_files = self.get_expected_beauty(frames, extension)
+        if beauty_files:
+            render_dict["beauty"] = beauty_files
 
-    def get_multiple_aovs(self, outputs, cameras):
-        renderer_class = get_current_renderer()
-        renderer = str(renderer_class).split(":")[0]
-        aovs_frames = {}
-        for output, camera in zip(outputs, cameras):
-            camera = camera.replace(":", "_")
-            filename, ext = os.path.splitext(output)
-            filename = filename.replace(".", "")
-            ext = ext.replace(".", "")
-            start_frame = int(rt.rendStart)
-            end_frame = int(rt.rendEnd) + 1
-
-            if renderer in [
-                "ART_Renderer",
-                "Default_Scanline_Renderer",
-                "Quicksilver_Hardware_Renderer",
-            ] and renderer.startswith("V_Ray_"):
-                render_name = self.get_render_elements_name()
-                if render_name:
-                    for name in render_name:
-                        aovs_frames.update({
-                            f"{camera}_{name}": self.get_expected_aovs(
-                                filename, name, start_frame,
-                                end_frame, ext)
-                        })
-            elif renderer == "Redshift_Renderer":
-                render_name = self.get_render_elements_name()
-                if render_name:
-                    rs_aov_files = rt.Execute("renderers.current.separateAovFiles")     # noqa
-                    # this doesn't work, always returns False
-                    # rs_AovFiles = rt.RedShift_Renderer().separateAovFiles
-                    if ext == "exr" and not rs_aov_files:
-                        for name in render_name:
-                            if name == "RsCryptomatte":
-                                aovs_frames.update({
-                                    f"{camera}_{name}": self.get_expected_aovs(
-                                        filename, name, start_frame,
-                                        end_frame, ext)
-                                })
-                    else:
-                        for name in render_name:
-                            aovs_frames.update({
-                                f"{camera}_{name}": self.get_expected_aovs(
-                                    filename, name, start_frame,
-                                    end_frame, ext)
-                            })
-            elif renderer == "Arnold":
-                render_name = self.get_arnold_product_name()
-                if render_name:
-                    for name in render_name:
-                        aovs_frames.update({
-                            f"{camera}_{name}": self.get_expected_arnold_product(   # noqa
-                                filename, name, start_frame,
-                                end_frame, ext)
-                        })
-
-        return aovs_frames
-
-    def get_aovs(self, container):
-        render_dir = os.path.dirname(rt.rendOutputFilename)
-
-        output_file = os.path.join(render_dir,
-                                   container)
-
-        setting = self._project_settings
-        img_fmt = setting["max"]["RenderSettings"]["image_format"]   # noqa
-
-        start_frame = int(rt.rendStart)
-        end_frame = int(rt.rendEnd) + 1
-        renderer_class = get_current_renderer()
-        renderer = str(renderer_class).split(":")[0]
-        render_dict = {}
-
-        if renderer in [
-            "ART_Renderer",
-            "Default_Scanline_Renderer",
-            "Quicksilver_Hardware_Renderer",
-        ] and renderer.startswith("V_Ray_"):
-            render_name = self.get_render_elements_name()
-            if render_name:
-                for name in render_name:
-                    render_dict.update({
-                        name: self.get_expected_aovs(
-                            output_file, name, start_frame,
-                            end_frame, img_fmt)
-                    })
-        elif renderer == "Redshift_Renderer":
-            render_name = self.get_render_elements_name()
-            if render_name:
-                rs_aov_files = rt.Execute("renderers.current.separateAovFiles")
-                # this doesn't work, always returns False
-                # rs_AovFiles = rt.RedShift_Renderer().separateAovFiles
-                if img_fmt == "exr" and not rs_aov_files:
-                    for name in render_name:
-                        if name == "RsCryptomatte":
-                            render_dict.update({
-                                name: self.get_expected_aovs(
-                                    output_file, name, start_frame,
-                                    end_frame, img_fmt)
-                            })
-                else:
-                    for name in render_name:
-                        render_dict.update({
-                            name: self.get_expected_aovs(
-                                output_file, name, start_frame,
-                                end_frame, img_fmt)
-                        })
-
-        elif renderer == "Arnold":
-            render_name = self.get_arnold_product_name()
-            if render_name:
-                for name in render_name:
-                    render_dict.update({
-                        name: self.get_expected_arnold_product(
-                            output_file, name, start_frame,
-                            end_frame, img_fmt)
-                    })
-
+        # Optionally add AOVs
+        renderer = get_current_renderer()
+        renderer_name = str(renderer).split(":")[0]
+        render_elements = self.get_render_element_and_filepath(extension)
+        if render_elements and not self.is_arnold_exr(renderer, extension):
+            for aov_name, aov_filepath in render_elements:
+                aov_expected_files = self.get_expected_files(
+                    aov_filepath,
+                    frames,
+                    aov_name,
+                    renderer_name
+                )
+                render_dict[aov_name] = aov_expected_files
         return render_dict
 
-    def get_expected_beauty(self, folder, start_frame, end_frame, fmt):
-        beauty_frame_range = []
-        for f in range(start_frame, end_frame):
-            frame = "%04d" % f
-            beauty_output = f"{folder}.{frame}.{fmt}"
-            beauty_output = beauty_output.replace("\\", "/")
-            beauty_frame_range.append(beauty_output)
+    def get_multiple_render_products(
+            self, outputs: list[str], cameras: list[str], frames: list[int]
+    ) -> Dict[str, list[str]]:
+        """Get render output file paths for multiple cameras.
 
-        return beauty_frame_range
+        Combines beauty and AOV extraction into a single method to eliminate
+        duplicate setup code. Always includes beauty passes; optionally includes
+        render elements/AOVs.
 
-    def get_arnold_product_name(self):
-        """Get all the Arnold AOVs name"""
-        aov_name = []
+        Args:
+            outputs (list[str]): A list of output file paths.
+            cameras (list[str]): A list of camera names.
+            frames (list[int]): A list of frames to generate expected
+                output file paths for.
 
-        amw = rt.MaxToAOps.AOVsManagerWindow()
-        aov_mgr = rt.renderers.current.AOVManager
-        # Check if there is any aov group set in AOV manager
-        aov_group_num = len(aov_mgr.drivers)
-        if aov_group_num < 1:
-            return
-        for i in range(aov_group_num):
-            # get the specific AOV group
-            aov_name.extend(aov.name for aov in aov_mgr.drivers[i].aov_list)
-        # close the AOVs manager window
-        amw.close()
+        Returns:
+            Dict[str, list[str]]: A dictionary containing render output file
+                paths for each camera (e.g., "camera01_beauty", "camera01_Cryptomatte").
+        """
+        renderer = get_current_renderer()
+        renderer_name = str(renderer).split(":")[0]
+        render_output_frames: Dict[str, list[str]] = {}
 
-        return aov_name
+        for output, camera in zip(outputs, cameras):
+            camera = camera.replace(":", "_")
+            filename, ext = os.path.splitext(output)
+            filename = filename.replace(".", "")
+            ext = ext.replace(".", "")
 
-    def get_expected_arnold_product(self, folder, name,
-                                    start_frame, end_frame, fmt):
-        """Get all the expected Arnold AOVs"""
-        aov_list = []
-        for f in range(start_frame, end_frame):
-            frame = "%04d" % f
-            render_element = f"{folder}_{name}.{frame}.{fmt}"
-            render_element = render_element.replace("\\", "/")
-            aov_list.append(render_element)
+            # Always add beauty pass
+            beauty_files = self.get_expected_beauty(frames, ext)
+            render_output_frames[f"{camera}_beauty"] = beauty_files
 
-        return aov_list
+            # Add AOVs
+            render_elements = self.get_render_element_and_filepath(ext)
+            if render_elements and not self.is_arnold_exr(renderer, ext):
+                for aov_name, aov_filepath in render_elements:
+                    aov_expected_files = self.get_expected_files(
+                        aov_filepath,
+                        frames,
+                        aov_name,
+                        renderer_name
+                    )
+                    render_output_frames[f"{camera}_{aov_name}"] = aov_expected_files
 
-    def get_render_elements_name(self):
-        """Get all the render element names for general """
-        render_name = []
+        return render_output_frames
+
+    def get_expected_beauty(
+            self, frames: list[int], extension: str
+    ) -> list[str]:
+        """Get expected beauty render output file paths for each frame.
+
+        Args:
+            frames (list[int]): The frame range to generate expected
+                output file paths for.
+            extension (str): The file extension for the output files.
+
+        Returns:
+            list[str]: A list of expected beauty render output file paths.
+        """
+        renderer = get_current_renderer()
+        renderer_name = str(renderer).split(":")[0]
+        if renderer_name.startswith("V_Ray_"):
+            output_path = self.get_vray_render_output(renderer, extension)
+        elif renderer_name == "Arnold":
+            output_path = self.get_arnold_render_output(renderer, extension)
+        else:
+            output_path = rt.rendOutputFilename
+
+        return self.get_expected_files(
+            output_path,
+            frames,
+            "",
+            renderer_name
+        )
+
+    def get_render_element_outputfilename(
+        self,
+        renderer: Any,
+        render_elem: Any,
+        index: int,
+        image_format: str,
+        is_multipass: bool
+    ) -> str:
+        """Get the output filename for a render element.
+
+        Args:
+            renderer (Any, rt.Renderers.Current): The renderer instance.
+            render_elem (Any, rt.RenderTarget): The render element instance.
+            index (int): The index of the render element.
+            image_format (str): The image format.
+            is_multipass (bool): Whether it is a multipass render element.
+
+        Returns:
+            str: The output filename for the render element.
+        """
+        renderer_name = str(renderer).split(":")[0]
+        if renderer_name.startswith("V_Ray_"):
+            return self.get_vray_render_output(
+                renderer,
+                image_format,
+                is_render_element=is_multipass
+            )
+
+        elif renderer_name.startswith("Arnold"):
+            return self.get_arnold_render_output(renderer, image_format)
+
+        elif is_supported_renderer(renderer_name):
+            # An undefined render element filename would otherwise travel as
+            # the string "None" into the expected files and the Deadline
+            # submission, so treat it as a missing filename instead.
+            filename = render_elem.GetRenderElementFilename(index)
+            return filename or ""
+
+        else:
+            raise RuntimeError(
+                f"Renderer {renderer_name} is not supported for getting"
+                " render element output filename."
+            )
+
+    def get_vray_render_output(
+        self,
+        vr_renderer: Any,
+        image_format: str,
+        is_render_element: bool = False
+    ) -> str:
+        """Get the V-Ray render output filename.
+
+        Args:
+            vr_renderer (Any, rt.Renderers.Current): The V-Ray renderer instance.
+            image_format (str): The image format.
+            is_render_element (bool, optional): Whether it is a render element. Defaults to False.
+
+        Returns:
+            str: The V-Ray render output filename.
+        """
+        vray_settings = (
+            vr_renderer.V_Ray_settings
+            if "GPU" in str(vr_renderer)
+            else vr_renderer
+        )
+        is_save_vray_exr_rawfile = is_vray_exr_saverawfile(
+            image_format,
+            vray_settings,
+        )
+        if not is_save_vray_exr_rawfile and not is_render_element:
+            # Without the raw file V-Ray writes the beauty pass through the
+            # 3ds Max render output, unless the render channels are split.
+            # With separate render channels only the split channel files are
+            # written and there is no beauty pass (issue #138). The split
+            # toggle is checked as well so a stale split filename does not
+            # wrongly drop the beauty product.
+            split_channels = (
+                getattr(vray_settings, "output_splitgbuffer", False)
+                and getattr(vray_settings, "output_splitfilename", "")
+            )
+            if split_channels:
+                return ""
+            return rt.rendOutputFilename
+        output_attr = (
+            "output_rawfilename"
+            if not is_render_element
+            and is_save_vray_exr_rawfile
+            else "output_splitfilename"
+        )
+        render_output = getattr(vray_settings, output_attr, "")
+        if not render_output:
+            return rt.rendOutputFilename
+
+        return render_output
+
+    def get_arnold_render_output(self, arnold_renderer: Any, extension: str) -> str:
+        """Get the Arnold render output filename.
+
+        Args:
+            arnold_renderer (Any, rt.Renderers.Current): The Arnold renderer instance.
+            extension (str): The file extension for the output.
+
+        Raises:
+            RuntimeError: If the Arnold renderer does not have an
+                AOVManager attribute.
+            RuntimeError: If the Arnold AOVManager does not have
+                a drivers attribute.
+            RuntimeError: If the Arnold AOVManager does not have any drivers.
+            RuntimeError: If the Arnold AOVManager does not have an
+                outputPath attribute.
+
+        Returns:
+            str: The Arnold render output filename.
+        """
+        aov_manager = arnold_renderer.AOVManager
+        drivers = aov_manager.drivers
+        if not drivers:
+            raise RuntimeError("Arnold AOVManager does not have any drivers.")
+
+        output_dir = aov_manager.outputPath
+        # Getting the first driver
+        driver = drivers[0]
+        return f"{output_dir}/{driver.filenameSuffix}.{extension}"
+
+    def get_expected_files(
+        self,
+        filepath: str,
+        frames: list[int],
+        aov_name: str,
+        renderer_name: str,
+    ) -> list[str]:
+        """Get expected files
+
+        Args:
+            filepath (str): filepath of the render output.
+            frames (list[int]): range of frames of the render sequence.
+            aov_name (str): name of the AOV.
+            renderer_name (str): name of the renderer.
+
+        Returns:
+            list[str]: List of expected file paths.
+        """
+        expected_aovs: list[str] = []
+        if not filepath:
+            return expected_aovs
+        file_path = Path(filepath)
+        directory = file_path.parent
+        filename = file_path.name
+        name, ext = os.path.splitext(filename)
+        name = name.lstrip(".")
+        aov_name = aov_name.strip()
+        for frame in frames:
+            aov_filename =  f"{name}.{frame:04d}{ext}"
+            if aov_name and renderer_name.startswith("V_Ray_"):
+                aov_filename = f"{name}.{aov_name}.{frame:04d}{ext}"
+            aov_filename = reformat_filename(aov_filename)
+            expected_aov = Path(directory) / aov_filename
+            expected_aovs.append(expected_aov.as_posix())
+
+        return expected_aovs
+
+    def get_render_element_and_filepath(
+            self, image_format: str
+    ) -> list[tuple[str, str]]:
+        """Get render element names and their corresponding file paths.
+
+        Args:
+            image_format (str): Image format of the render output.
+
+        Returns:
+            list[tuple[str, str]]: List of tuples containing render element
+                names and their corresponding file paths.
+        """
+        renderer = get_current_renderer()
+        renderer_name = str(renderer).split(":")[0]
+        expected_elements: list[tuple[str, str]] = []
         render_elem = rt.maxOps.GetCurRenderElementMgr()
         render_elem_num = render_elem.NumRenderElements()
+        is_multipass = get_multipass_setting(
+            renderer_name, self._project_settings
+        )
         if render_elem_num < 1:
-            return
+            return expected_elements
         # get render elements from the renders
-        for i in range(render_elem_num):
-            renderlayer_name = render_elem.GetRenderElement(i)
-            if renderlayer_name.enabled:
-                target, renderpass = str(renderlayer_name).split(":")
-                render_name.append(renderpass)
+        for index in range(render_elem_num):
+            renderlayer = render_elem.GetRenderElement(index)
+            if self.get_render_element_by_multipass(
+                renderer_name, renderlayer, is_multipass, image_format
+            ):
+                renderpass = str(renderlayer.elementname)
+                renderlayer_filepath = self.get_render_element_outputfilename(
+                    renderer,
+                    render_elem,
+                    index,
+                    image_format,
+                    is_multipass
+                )
+                expected_elements.append((renderpass, str(renderlayer_filepath)))
+
+        if renderer_name.startswith("V_Ray_"):
+            additional_render_elements = self._get_vray_additional_outputs(renderer, is_multipass)
+            for render_element in additional_render_elements:
+                filepath = self.get_vray_render_output(
+                    renderer, image_format, is_render_element=True
+                )
+                expected_elements.append((render_element, str(filepath)))
+
+        return expected_elements
+
+    def get_render_element_by_multipass(
+            self,
+            renderer_name: str,
+            renderlayer: Any,
+            multipass: bool,
+            image_format: str) -> bool:
+        """Get render element name based on multipass setting.
+
+        Args:
+            renderer_name (str): The name of the renderer.
+            renderlayer (Any, rt.RenderTarget): The render layer instance.
+            multipass (bool): Whether multipass is enabled.
+            image_format (str): The image format of the render output.
+
+        Returns:
+            bool: True if the render element should be included
+                based on the multipass setting, False otherwise.
+        """
+        if renderer_name == "Default_Scanline_Renderer":
+            return renderlayer.enabled
+
+        # If cryptomatte render element is enabled in Redshift it will
+        # always write it out as a separate file, regardless of whether
+        # 'separate AOVs' is enabled or not
+        if renderer_name == "Redshift_Renderer" and image_format == "exr":
+            if "Cryptomatte" in renderlayer.elementname:
+                return renderlayer.enabled
+
+        return renderlayer.enabled and multipass
+
+    def _get_vray_additional_outputs(self, renderer: Any, is_multipass: bool) -> list[str]:
+        """Get additional V-Ray outputs like Alpha and RGB_color.
+
+        Args:
+            renderer (Any, rt.Renderers.Current): V-Ray renderer instance
+            is_multipass (bool): Whether multipass is enabled
+
+        Returns:
+            list: Updated list with additional outputs
+        """
+        render_name = []
+        if not is_multipass:
+            return render_name
+        if hasattr(renderer, 'output_splitAlpha') and renderer.output_splitAlpha:
+            render_name.append("Alpha")
+        if hasattr(renderer, 'output_splitRGB') and renderer.output_splitRGB:
+            render_name.append("RGB_color")
 
         return render_name
 
-    def get_expected_aovs(self, folder, name,
-                          start_frame, end_frame, fmt):
-        """Get all the expected render element output files. """
-        render_elements = []
-        for f in range(start_frame, end_frame):
-            frame = "%04d" % f
-            render_element = f"{folder}_{name}.{frame}.{fmt}"
-            render_element = render_element.replace("\\", "/")
-            render_elements.append(render_element)
+    def is_arnold_exr(self, renderer: Any, image_format: str) -> bool:
+        """Check if the current renderer is Arnold and the image format is EXR.
 
-        return render_elements
+        Args:
+            renderer (Any, rt.Renderers.Current): The Arnold renderer instance.
+            image_format (str): The image format of the render output.
 
-    def image_format(self):
+        Returns:
+            bool: True if the current renderer is Arnold and the image format
+                is EXR, False otherwise.
+        """
+        renderer_name = str(renderer).split(":")[0]
+        return renderer_name.startswith("Arnold") and image_format == "exr"
+
+    def image_format(self) -> str:
+        """Get the image format of the render output.
+
+        Returns:
+            str: The image format of the render output.
+        """
         return self._project_settings["max"]["RenderSettings"]["image_format"]  # noqa

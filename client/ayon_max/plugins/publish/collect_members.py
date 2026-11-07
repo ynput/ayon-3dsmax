@@ -2,6 +2,13 @@
 """Collect instance members."""
 import pyblish.api
 from pymxs import runtime as rt
+from ayon_max.api.lib import get_ayon_data
+
+
+FILTER_PRODUCT_BASE_TYPES = {
+     "workfile", "tyflow", "tycache",
+     "tyspline", "renderpreset", "matlib"
+}
 
 
 class CollectMembers(pyblish.api.InstancePlugin):
@@ -12,11 +19,10 @@ class CollectMembers(pyblish.api.InstancePlugin):
     hosts = ['max']
 
     def process(self, instance):
-        if instance.data["productType"] in {
-            "workfile", "tyflow", "tycache", "tyspline"}:
+        if instance.data["productBaseType"] in FILTER_PRODUCT_BASE_TYPES:
                 self.log.debug(
-                    "Skipping Collecting Members for workfile "
-                    "and tyflow product type."
+                    "Skipping Collecting Members for "
+                    f"{instance.data['productBaseType']} product base type."
                 )
                 return
         elif "tyflow_vdb" in instance.data["families"]:
@@ -28,7 +34,8 @@ class CollectMembers(pyblish.api.InstancePlugin):
 
         elif instance.data.get("instance_node"):
             container = rt.GetNodeByName(instance.data["instance_node"])
+            container_modifier = container.modifiers[0]
+            ayon_data = get_ayon_data(container_modifier)
             instance.data["members"] = [
-                member.node for member
-                in container.modifiers[0].openPypeData.all_handles
+                member.node for member in ayon_data.all_handles
             ]

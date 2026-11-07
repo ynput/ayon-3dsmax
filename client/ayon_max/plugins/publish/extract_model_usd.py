@@ -3,8 +3,8 @@ import os
 import pyblish.api
 from pymxs import runtime as rt
 
-from ayon_max.api import maintained_selection
 from ayon_core.pipeline import OptionalPyblishPluginMixin, publish
+from ayon_core.pipeline.publish import KnownPublishError
 
 
 class ExtractModelUSD(publish.Extractor,
@@ -38,14 +38,16 @@ class ExtractModelUSD(publish.Extractor,
 
         # get the nodes which need to be exported
         export_options = self.get_export_options(log_filepath)
-        with maintained_selection():
-            # select and export
-            node_list = instance.data["members"]
-            rt.Select(node_list)
-            rt.USDExporter.ExportFile(asset_filepath,
-                                      exportOptions=export_options,
-                                      contentSource=rt.Name("selected"),
-                                      nodeList=node_list)
+        # select and export
+        node_list = instance.data["members"]
+        result = rt.USDExporter.ExportFile(
+            asset_filepath,
+            exportOptions=export_options,
+            contentSource=rt.Name("nodeList"),
+            nodeList=node_list
+        )
+        if not result:
+            raise KnownPublishError("USD Export Failed")
 
         self.log.info("Performing Extraction ...")
         if "representations" not in instance.data:

@@ -1,47 +1,79 @@
 # -*- coding: utf-8 -*-
 """Creator plugin for creating camera."""
 import os
-from ayon_max.api import plugin
-from ayon_core.lib import BoolDef
+
+from ayon_core.lib import BoolDef, EnumDef
+from ayon_core.pipeline import CreatorError, registered_host
+
+from ayon_max.api.plugin import MaxCreator
 from ayon_max.api.lib_rendersettings import RenderSettings
 
+from pymxs import runtime as rt
 
-class CreateRender(plugin.MaxCreator):
+
+class CreateRender(MaxCreator):
     """Creator plugin for Renders."""
-    identifier = "io.openpype.creators.max.render"
+    identifier = "io.ayon.creators.max.render"
     label = "Render"
-    product_type = "maxrender"
+    product_base_type = "maxrender"
+    product_type = product_base_type
     icon = "gear"
 
-    settings_category = "max"
+    render_target = "farm"
 
     def create(self, product_name, instance_data, pre_create_data):
-        from pymxs import runtime as rt
         file = rt.maxFileName
+        host = registered_host()
+        current_file = host.get_current_workfile()
+        if not current_file or not file:
+            raise CreatorError(
+                "Please save the scene before creating render instance"
+            )
         filename, _ = os.path.splitext(file)
-        instance_data["AssetName"] = filename
+        instance_data["original_workfile_pattern"] = filename.strip(".")
         instance_data["multiCamera"] = pre_create_data.get("multi_cam")
+        instance_data["families"] = self.get_published_families()
         num_of_renderlayer = rt.batchRenderMgr.numViews
         if num_of_renderlayer > 0:
             rt.batchRenderMgr.DeleteView(num_of_renderlayer)
+
+        container = rt.getNodeByName(product_name)
+        product_base_type = instance_data["productBaseType"]
+        # check if there is existing render instance
+        if container and product_name.startswith(product_base_type):
+            raise CreatorError("Render instance already exists")
 
         instance = super(CreateRender, self).create(
             product_name,
             instance_data,
             pre_create_data)
 
-        container_name = instance.data.get("instance_node")
+        render_settings = RenderSettings(data=instance.data)
         # set output paths for rendering(mandatory for deadline)
-        RenderSettings().render_output(container_name)
+        render_settings.render_output()
         # TODO: create multiple camera options
         if self.selected_nodes:
             selected_nodes_name = []
             for sel in self.selected_nodes:
                 name = sel.name
                 selected_nodes_name.append(name)
-            RenderSettings().batch_render_layer(
-                container_name, filename,
-                selected_nodes_name)
+            output_dir = os.path.dirname(rt.rendOutputFilename)
+            render_settings.batch_render_layers_by_multi_camera(
+                output_dir, selected_nodes_name
+            )
+
+    def get_instance_attr_defs(self):
+        render_target_items: dict[str, str] = {
+            "local": "Local machine rendering",
+            "local_no_render": "Use existing frames (local)",
+            "farm": "Farm Rendering",
+        }
+        return [
+            EnumDef("render_target",
+                    items=render_target_items,
+                    label="Render target",
+                    default=self.render_target),
+        ]
 
     def get_pre_create_attr_defs(self):
         attrs = super(CreateRender, self).get_pre_create_attr_defs()
@@ -50,3 +82,6 @@ class CreateRender(plugin.MaxCreator):
                     label="Multiple Cameras Submission",
                     default=False),
         ]
+
+    def get_published_families(self):
+        return ["maxrender", "supports.customFrameRange"]

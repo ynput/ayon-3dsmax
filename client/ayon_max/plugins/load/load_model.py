@@ -1,5 +1,6 @@
 import os
 from ayon_core.pipeline import load
+from ayon_core.pipeline.load import LoadError
 from ayon_max.api.pipeline import (
     containerise,
     get_previous_loaded_object,
@@ -14,9 +15,11 @@ from ayon_max.api.lib import (
 class ModelAbcLoader(load.LoaderPlugin):
     """Loading model with the Alembic loader."""
 
-    product_types = {"model"}
+    product_base_types = {"model"}
+    product_types = product_base_types
     label = "Load Model with Alembic"
-    representations = {"abc"}
+    representations = {"*"}
+    extensions = {"abc"}
     order = -10
     icon = "code-fork"
     color = "orange"
@@ -47,13 +50,15 @@ class ModelAbcLoader(load.LoaderPlugin):
         # This should yield new AlembicContainer node
         abc_containers = abc_after.difference(abc_before)
 
-        if len(abc_containers) != 1:
-            self.log.error("Something failed when loading.")
+        if not abc_containers:
+            raise LoadError("Something failed when loading Alembic.")
 
         abc_container = abc_containers.pop()
 
+        folder_name = context["folder"]["name"]
         namespace = unique_namespace(
             name + "_",
+            prefix=f"{folder_name}_",
             suffix="_",
         )
         abc_objects = []

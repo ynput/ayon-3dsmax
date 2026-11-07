@@ -11,7 +11,7 @@ class CollectTyFlowData(pyblish.api.InstancePlugin,
                         AYONPyblishPluginMixin):
     """Collect Channel Attributes for TyCache Export"""
 
-    order = pyblish.api.CollectorOrder + 0.005
+    order = pyblish.api.CollectorOrder - 0.49
     label = "Collect tyCache attribute Data"
     hosts = ['max']
     families = ["tyflow"]
@@ -34,29 +34,53 @@ class CollectTyFlowData(pyblish.api.InstancePlugin,
             in container.modifiers[0].AYONTyCacheData.tyc_exports
         ]
         attr_values = self.get_attr_values_from_data(instance.data)
+
+        i_product_type = instance.data["productType"]
+        if i_product_type == instance.data["productBaseType"]:
+            i_product_type = None
+
         for tyc_product_name in tyc_product_names:
             self.log.debug(f"Creating instance for operator:{tyc_product_name}")
-            tyc_instance = context.create_instance(tyc_product_name)
-            tyc_instance[:] = instance[:]
-            tyc_instance.data.update(copy.deepcopy(dict(instance.data)))
             # Replace all runs of whitespace with underscore
             prod_name = re.sub(r"\s+", "_", tyc_product_name)
             operator = next((node for node in get_tyflow_export_operators()
                              if node.name == tyc_product_name), None)   # noqa
-            product_type = "tycache" if operator.exportMode == 2 else "tyspline"
+            if operator is None:
+                self.log.warning(
+                    f"No matching export operator found for "
+                    f"{tyc_product_name}. Skipping instance creation."
+                )
+                continue
+
+            tyc_instance = context.create_instance(tyc_product_name)
+            tyc_instance[:] = instance[:]
+            tyc_instance.data.update(copy.deepcopy(dict(instance.data)))
+
+            product_base_type = (
+                "tycache"
+                if operator.exportMode == 2
+                else "tyspline"
+            )
+            # Keep custom product type only if is not the same
+            #   as product base type
+            product_type = i_product_type
+            if not product_type:
+                product_type = product_base_type
+
             tyc_instance.data.update({
                 "name": f"{container_name}_{prod_name}",
                 "label": f"{container_name}_{prod_name}",
-                "family": product_type,
-                "families": [product_type],
+                "family": product_base_type,
+                "families": [product_base_type],
                 "productName": f"{container_name}_{prod_name}",
                 # get the name of operator for the export
                 "operator": operator,
                 "exportMode": operator.exportMode,
                 "material_cache": attr_values.get("material"),
                 "productType": product_type,
+                "productBaseType": product_base_type,
                 "creator_identifier": (
-                    f"io.openpype.creators.max.{product_type}"),
+                    f"io.ayon.creators.max.{product_base_type}"),
                 "publish_attributes": {
                     "ValidateTyCacheFrameRange": {
                         "active": attr_values.get("has_frame_range_validator")}

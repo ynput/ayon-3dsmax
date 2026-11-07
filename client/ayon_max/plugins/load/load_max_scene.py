@@ -6,7 +6,8 @@ from ayon_max.api.lib import (
     unique_namespace,
     get_namespace,
     object_transform_set,
-    is_headless
+    object_transform_restore,
+    is_headless,
 )
 from ayon_max.api.pipeline import (
     containerise, get_previous_loaded_object,
@@ -72,13 +73,15 @@ class MaterialDupOptionsWindow(QtWidgets.QDialog):
 class MaxSceneLoader(load.LoaderPlugin):
     """Max Scene Loader."""
 
-    product_types = {
+    product_base_types = {
         "camera",
         "maxScene",
         "model",
     }
-
-    representations = {"max"}
+    product_types = product_base_types
+    representations = {"*"}
+    extensions = {"max"}
+    label = "Load Max Scene"
     order = -8
     icon = "code-fork"
     color = "green"
@@ -89,6 +92,7 @@ class MaxSceneLoader(load.LoaderPlugin):
         "useSceneMtlDups": "Use Scene Material",
         "renameMtlDups": "Merge and Rename Incoming Material"
         }
+
     @classmethod
     def get_options(cls, contexts):
         return [
@@ -111,8 +115,10 @@ class MaxSceneLoader(load.LoaderPlugin):
         max_object_names = [obj.name for obj in max_objects]
         # implement the OP/AYON custom attributes before load
         max_container = []
+        folder_name = context["folder"]["name"]
         namespace = unique_namespace(
             name + "_",
+            prefix=f"{folder_name}_",
             suffix="_",
         )
         for max_obj, obj_name in zip(max_objects, max_object_names):
@@ -132,12 +138,11 @@ class MaxSceneLoader(load.LoaderPlugin):
         namespace, _ = get_namespace(node_name)
         # delete the old container with attribute
         # delete old duplicate
-        # use the modifier OP data to delete the data
+        # use the modifier AYON Data to delete the data
         node_list = get_previous_loaded_object(node)
         rt.select(node_list)
         prev_max_objects = rt.GetCurrentSelection()
         transform_data = object_transform_set(prev_max_objects)
-
         for prev_max_obj in prev_max_objects:
             if rt.isValidNode(prev_max_obj):  # noqa
                 rt.Delete(prev_max_obj)
@@ -158,11 +163,7 @@ class MaxSceneLoader(load.LoaderPlugin):
                                      current_max_object_names):
             max_obj.name = f"{namespace}:{obj_name}"
             max_objects.append(max_obj)
-            max_transform = f"{max_obj}.transform"
-            if max_transform in transform_data.keys():
-                max_obj.pos = transform_data[max_transform] or 0
-                max_obj.scale = transform_data[
-                    f"{max_obj}.scale"] or 0
+            object_transform_restore(max_obj, transform_data)
 
         update_custom_attribute_data(node, max_objects)
         lib.imprint(container["instance_node"], {

@@ -16,8 +16,11 @@ from ayon_core.pipeline import load
 class TyCacheLoader(load.LoaderPlugin):
     """TyCache Loader."""
 
-    product_types = {"tycache"}
-    representations = {"tyc"}
+    label = "Load TyCache"
+    product_base_types = {"tycache"}
+    product_types = product_base_types
+    representations = {"*"}
+    extensions = {"tyc"}
     order = -8
     icon = "code-fork"
     color = "green"
@@ -29,8 +32,10 @@ class TyCacheLoader(load.LoaderPlugin):
         obj = rt.tyCache()
         obj.filename = filepath
 
+        folder_name = context["folder"]["name"]
         namespace = unique_namespace(
             name + "_",
+            prefix=f"{folder_name}_",
             suffix="_",
         )
         obj.name = f"{namespace}:{obj.name}"
@@ -71,8 +76,11 @@ class TyCacheLoader(load.LoaderPlugin):
 class TySplineCacheLoader(TyCacheLoader):
     """TyCache(Spline) Loader."""
 
-    product_types = {"tyspline"}
-    representations = {"tyc"}
+    label = "Load TySpline Cache"
+    product_base_types = {"tyspline"}
+    product_types = product_base_types
+    representations = {"*"}
+    extensions = {"tyc"}
     order = -8
     icon = "code-fork"
     color = "green"

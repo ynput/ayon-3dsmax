@@ -40,15 +40,16 @@ class SaveScenesForCamera(pyblish.api.InstancePlugin):
             return
         new_folder = f"{current_folder}_{filename}"
         os.makedirs(new_folder, exist_ok=True)
+        render_settings = RenderSettings(data=instance.data)
         for camera in cameras:
-            new_output = RenderSettings().get_batch_render_output(camera)       # noqa
+            new_output = render_settings.get_batch_render_output(camera)       # noqa
             new_output = new_output.replace("\\", "/")
             camera_name = camera.replace(":", "_")
             new_filename = f"{filename}_{camera_name}{ext}"
             new_filepath = os.path.join(new_folder, new_filename)
             new_filepath = new_filepath.replace("\\", "/")
             camera_scene_files.append(new_filepath)
-            RenderSettings().batch_render_elements(camera)
+            render_settings.batch_render_elements(camera)
             rt.rendOutputFilename = new_output
             rt.saveMaxFile(current_filepath)
             script = ("""
@@ -58,6 +59,7 @@ filename = "{filename}"
 new_filepath = "{new_filepath}"
 new_output = "{new_output}"
 camera = "{camera}"
+farm = {farm}
 camera_name = camera.replace(":", "_")
 target_camera_node = rt.getNodeByName(camera)
 rt.viewport.setCamera(target_camera_node)
@@ -76,11 +78,15 @@ if render_elem_num > 0:
         aov_name =  f"{{directory}}_{{camera_name}}_{{renderpass}}..{ext}"
         render_elem.SetRenderElementFileName(i, aov_name)
 rt.saveMaxFile(new_filepath)
+if not farm:
+    for frame in range(int(rt.rendStart), int(rt.rendEnd) + 1):
+        rt.render(outputFile=rt.rendOutputFilename, frame=frame, vfb=False)
         """).format(filename=instance.name,
                     new_filepath=new_filepath,
                     new_output=new_output,
                     camera=camera,
-                    ext=fmt)
+                    ext=fmt,
+                    farm=instance.data.get("farm"))
             scripts.append(script)
         maxbatch_exe = os.path.join(
             os.path.dirname(sys.executable), "3dsmaxbatch")

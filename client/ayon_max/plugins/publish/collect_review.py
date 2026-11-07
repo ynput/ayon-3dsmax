@@ -3,11 +3,11 @@
 import pyblish.api
 
 from pymxs import runtime as rt
-from ayon_core.lib import BoolDef
+from ayon_core.lib import BoolDef, UISeparatorDef, UILabelDef
 from ayon_max.api.lib import get_max_version
 from ayon_core.pipeline.publish import (
     AYONPyblishPluginMixin,
-    KnownPublishError
+    PublishError
 )
 
 
@@ -23,12 +23,38 @@ class CollectReview(pyblish.api.InstancePlugin,
     def process(self, instance):
         nodes = instance.data["members"]
 
-        def is_camera(node):
-            is_camera_class = rt.classOf(node) in rt.Camera.classes
-            return is_camera_class and rt.isProperty(node, "fov")
+        def get_camera(node):
+            """Return the camera node for the given node.
+
+            Returns the node itself when it is a camera, otherwise the first
+            camera among its direct children, or None when no camera is found.
+            """
+            if rt.classOf(node) in rt.Camera.classes:
+                return node
+            if hasattr(node, "children"):
+                for child in node.children:
+                    if rt.classOf(child) in rt.Camera.classes:
+                        return child
+            return None
+
+        def get_focal_length(camera_node):
+            """Get focal length from camera node or its children."""
+            # Check direct FOV attribute
+            if hasattr(camera_node, 'fov'):
+                return camera_node.fov
+
+            # Check children for FOV attribute
+            if hasattr(camera_node, "children"):
+                for child in camera_node.children:
+                    if hasattr(child, 'fov'):
+                        return child.fov
+
+            # Return default focal length
+            return 45.0
 
         # Use first camera in instance
-        cameras = [node for node in nodes if is_camera(node)]
+        cameras = [cam for cam in (get_camera(node) for node in nodes)
+                   if cam is not None]
         if cameras:
             if len(cameras) > 1:
                 self.log.warning(
@@ -37,9 +63,11 @@ class CollectReview(pyblish.api.InstancePlugin,
                 )
             camera = cameras[0]
             camera_name = camera.name
-            focal_length = camera.fov
+            # use default focal length if not found
+            # implement this specifically for imported cameras
+            focal_length = get_focal_length(camera)
         else:
-            raise KnownPublishError(
+            raise PublishError(
                 "Unable to find a valid camera in 'Review' container."
                 " Only native max Camera supported. "
                 f"Found objects: {nodes}"
@@ -117,6 +145,8 @@ class CollectReview(pyblish.api.InstancePlugin,
     @classmethod
     def get_attribute_defs(cls):
         return [
+            UISeparatorDef("sep_export_options"),
+            UILabelDef("Export Options"),
             BoolDef("dspGeometry",
                     label="Geometry",
                     default=True),
@@ -149,5 +179,6 @@ class CollectReview(pyblish.api.InstancePlugin,
                     default=False),
             BoolDef("dspFrameNums",
                     label="Frame Numbers",
-                    default=False)
+                    default=False),
+            UISeparatorDef("sep_export_options_end")
         ]

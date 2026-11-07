@@ -5,6 +5,15 @@ from ayon_server.settings import BaseSettingsModel, SettingsField
 from ayon_server.exceptions import BadRequestException
 
 
+class CollectRenderModel(BaseSettingsModel):
+    sync_workfile_version: bool = SettingsField(
+        title="Sync render version with workfile"
+    )
+    sync_current_workfile_name: bool = SettingsField(
+        title="Sync current workfile name to instance data"
+    )
+
+
 class ValidateAttributesModel(BaseSettingsModel):
     enabled: bool = SettingsField(title="ValidateAttributes")
     attributes: str = SettingsField(
@@ -83,6 +92,11 @@ class BasicValidateModel(BaseSettingsModel):
 
 
 class PublishersModel(BaseSettingsModel):
+    CollectRender: CollectRenderModel = SettingsField(
+        default_factory=CollectRenderModel,
+        title="Collect Render",
+        section="Collectors"
+    )
     ValidateInstanceInContext: BasicValidateModel = SettingsField(
         default_factory=BasicValidateModel,
         title="Validate Instance In Context",
@@ -128,6 +142,10 @@ class PublishersModel(BaseSettingsModel):
         default_factory=ValidateModelNameModel,
         title="Validate Model Name"
     )
+    ValidateNoActiveViewport: BasicValidateModel = SettingsField(
+        default_factory=BasicValidateModel,
+        title="Validate No Active Viewport"
+    )
     ValidateRenderPasses: BasicValidateModel = SettingsField(
         default_factory=BasicValidateModel,
         title="Validate Render Passes"
@@ -156,6 +174,10 @@ class PublishersModel(BaseSettingsModel):
 
 
 DEFAULT_PUBLISH_SETTINGS = {
+    "CollectRender": {
+        "sync_workfile_version": False,
+        "sync_current_workfile_name": True
+    },
     "ValidateInstanceInContext": {
         "enabled": True,
         "optional": True,
@@ -208,6 +230,11 @@ DEFAULT_PUBLISH_SETTINGS = {
         "enabled": True,
         "optional": True,
         "active": False,
+    },
+    "ValidateNoActiveViewport": {
+        "enabled": True,
+        "optional": False,
+        "active": True
     },
     "ValidateRenderPasses": {
         "enabled": True,

@@ -1,5 +1,7 @@
 import pyblish.api
 from ayon_core.pipeline import registered_host
+from ayon_core.pipeline.publish import PublishError
+from pathlib import Path
 
 
 class SaveCurrentScene(pyblish.api.InstancePlugin):
@@ -12,10 +14,18 @@ class SaveCurrentScene(pyblish.api.InstancePlugin):
 
     def process(self, instance):
         host = registered_host()
+        context_file = instance.context.data["currentFile"]
         current_file = host.get_current_workfile()
+        if Path(context_file) != Path(current_file):
+            self.log.error(
+                f"Current file in context: {context_file} "
+                f"does not match the actual current file: {current_file}"
+            )
+            raise PublishError(
+                "Current file in context does not match the actual current file."
+            )
 
-        assert instance.context.data["currentFile"] == current_file
-        if instance.data["productType"] == "maxrender":
+        if instance.data["productBaseType"] == "maxrender":
             host.save_workfile(current_file)
 
         elif host.workfile_has_unsaved_changes():

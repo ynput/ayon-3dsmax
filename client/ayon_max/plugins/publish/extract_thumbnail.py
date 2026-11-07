@@ -14,6 +14,14 @@ class ExtractThumbnail(publish.Extractor):
     families = ["review"]
 
     def process(self, instance):
+        if (
+            "render.local" in instance.data["families"] or
+            "render.local_no_render" in instance.data["families"]
+        ):
+            self.log.debug(
+                f"The instance {instance.name} is rendering locally, "
+                "skipping thumbnail extraction.")
+            return
         ext = instance.data.get("imageFormat")
         frame = int(instance.data["frameStart"])
         staging_dir = self.staging_dir(instance)

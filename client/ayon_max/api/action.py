@@ -1,4 +1,9 @@
-from pymxs import runtime as rt
+try:
+    from pymxs import runtime as rt
+
+except ImportError:
+    rt = None
+
 
 import pyblish.api
 
@@ -6,7 +11,7 @@ from ayon_core.pipeline.publish import get_errored_instances_from_context
 
 
 class SelectInvalidAction(pyblish.api.Action):
-    """Select invalid objects in Blender when a publish plug-in failed."""
+    """Select invalid objects in 3ds Max when a publish plug-in failed."""
     label = "Select Invalid"
     on = "failed"
     icon = "search"
