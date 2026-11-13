@@ -112,13 +112,15 @@ if renderer_name.startswith("V_Ray_"):
         vray_settings = current_renderer.V_Ray_settings
     else:
         vray_settings = current_renderer
+    # V-Ray can write both the raw EXR and the split render channels. Both
+    # filenames must be set per camera: otherwise every camera writes the
+    # split channel files into the same scene-level path, while the expected
+    # files are derived per camera from the batch output (`camera_output`).
+    output_file, ext = os.path.splitext(new_output)
+    render_output = f"{{output_file}}{{ext.strip('.')}}"
     if hasattr(vray_settings, "output_saverawfile") and vray_settings.output_saverawfile:
-        output_file, ext = os.path.splitext(new_output)
-        render_output = f"{{output_file}}{{ext.strip('.')}}"
         vray_settings.output_rawfilename = render_output
-    elif hasattr(vray_settings, "output_splitgbuffer") and vray_settings.output_splitgbuffer:
-        output_file, ext = os.path.splitext(new_output)
-        render_output = f"{{output_file}}{{ext.strip('.')}}"
+    if hasattr(vray_settings, "output_splitgbuffer") and vray_settings.output_splitgbuffer:
         vray_settings.output_splitfilename = render_output
 
 rt.saveMaxFile(new_filepath)
