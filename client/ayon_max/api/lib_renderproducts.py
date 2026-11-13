@@ -17,6 +17,7 @@ except ImportError:
 from ayon_max.api.lib import (
     get_current_renderer,
     get_multipass_setting,
+    get_vray_settings,
     reformat_filename,
     is_vray_exr_saverawfile,
 )
@@ -84,14 +85,101 @@ class RenderProducts(object):
                 render_dict[aov_name] = aov_expected_files
         return render_dict
 
+    def get_camera_output_paths(
+            self, output: str, image_format: str,
+            multipass: bool = None
+    ) -> Dict[str, str]:
+        """Get the per camera output paths of a camera batch output.
+
+        Mirrors the output filenames used by the multi camera camera script
+        (`save_scenes_for_cameras.py`), so the expected files of a camera can
+        be derived from its own batch render output instead of the live scene.
+
+        Args:
+            output (str): Batch render output of a camera, e.g.
+                "<render dir>/maxrenderMain_PhysCamera001..exr".
+            image_format (str): Image format of the render.
+            multipass (bool): Whether multipass is enabled. Read from the
+                project settings when not given.
+
+        Returns:
+            Dict[str, str]: Paths for "beauty", "raw", "split" and "arnold".
+                An empty string means the output is not written for the
+                camera (e.g. no beauty pass with V-Ray split channels).
+        """
+        renderer = get_current_renderer()
+        renderer_name = str(renderer).split(":")[0]
+        if multipass is None:
+            multipass = get_multipass_setting(
+                renderer_name, self._project_settings)
+        output_stem = os.path.splitext(output)[0].rstrip(".")
+        camera_output = f"{output_stem}.{image_format}"
+        camera_paths = {
+            "beauty": "",
+            "raw": "",
+            "split": "",
+            "arnold": "",
+        }
+        if renderer_name.startswith("V_Ray_"):
+            vray_settings = get_vray_settings(renderer_name, renderer)
+            if is_vray_exr_saverawfile(image_format, vray_settings):
+                camera_paths["raw"] = camera_output
+                camera_paths["beauty"] = camera_output
+            # The V-Ray split channels are used only when the multipass
+            # setting and the renderer setting agree, the same pair
+            # `validate_rendersettings` validates.
+            split_enabled = bool(
+                multipass
+                and getattr(vray_settings, "output_splitgbuffer", False)
+                and getattr(vray_settings, "output_splitfilename", "")
+            )
+            if split_enabled:
+                camera_paths["split"] = camera_output
+            if not camera_paths["beauty"] and not split_enabled:
+                camera_paths["beauty"] = output
+        elif renderer_name.startswith("Arnold"):
+            camera_paths["arnold"] = camera_output
+            camera_paths["beauty"] = camera_output
+        else:
+            camera_paths["beauty"] = output
+        return camera_paths
+
+    def _get_camera_render_element_names(
+            self, renderer_name: str, multipass: bool, image_format: str
+    ) -> list[str]:
+        """Get the render element names which are written for a camera.
+
+        Args:
+            renderer_name (str): Name of the current renderer.
+            multipass (bool): Whether multipass is enabled.
+            image_format (str): Image format of the render.
+
+        Returns:
+            list[str]: Render element names.
+        """
+        render_elem = rt.maxOps.GetCurRenderElementMgr()
+        render_elem_num = render_elem.NumRenderElements()
+        element_names: list[str] = []
+        for index in range(render_elem_num):
+            renderlayer = render_elem.GetRenderElement(index)
+            if not self.get_render_element_by_multipass(
+                    renderer_name, renderlayer, multipass, image_format):
+                continue
+            element_names.append(str(renderlayer.elementname))
+        if renderer_name.startswith("V_Ray_"):
+            renderer = get_current_renderer()
+            element_names += self._get_vray_additional_outputs(
+                renderer, multipass)
+        return element_names
+
     def get_multiple_render_products(
             self, outputs: list[str], cameras: list[str], frames: list[int]
     ) -> Dict[str, list[str]]:
         """Get render output file paths for multiple cameras.
 
-        Combines beauty and AOV extraction into a single method to eliminate
-        duplicate setup code. Always includes beauty passes; optionally includes
-        render elements/AOVs.
+        Derives the expected files of every camera from its own batch render
+        output (instead of the live scene), so each camera product gets its
+        own files. Combines beauty and AOV extraction.
 
         Args:
             outputs (list[str]): A list of output file paths.
@@ -105,29 +193,63 @@ class RenderProducts(object):
         """
         renderer = get_current_renderer()
         renderer_name = str(renderer).split(":")[0]
+        image_format = self.image_format()
+        is_multipass = get_multipass_setting(
+            renderer_name, self._project_settings)
         render_output_frames: Dict[str, list[str]] = {}
 
         for output, camera in zip(outputs, cameras):
-            camera = camera.replace(":", "_")
-            filename, ext = os.path.splitext(output)
-            filename = filename.replace(".", "")
-            ext = ext.replace(".", "")
+            camera_key = camera.replace(":", "_")
+            camera_paths = self.get_camera_output_paths(
+                output, image_format, is_multipass)
+            output_stem = os.path.splitext(output)[0].rstrip(".")
 
-            # Always add beauty pass
-            beauty_files = self.get_expected_beauty(frames, ext)
-            render_output_frames[f"{camera}_beauty"] = beauty_files
+            # Beauty pass of the camera. With V-Ray split render channels only
+            # the channel files are written, there is no beauty pass.
+            if camera_paths["beauty"]:
+                render_output_frames[f"{camera_key}_beauty"] = (
+                    self.get_expected_files(
+                        camera_paths["beauty"], frames, "", renderer_name))
 
-            # Add AOVs
-            render_elements = self.get_render_element_and_filepath(ext)
-            if render_elements and not self.is_arnold_exr(renderer, ext):
-                for aov_name, aov_filepath in render_elements:
-                    aov_expected_files = self.get_expected_files(
-                        aov_filepath,
-                        frames,
-                        aov_name,
-                        renderer_name
-                    )
-                    render_output_frames[f"{camera}_{aov_name}"] = aov_expected_files
+            # Arnold writes the render elements into the render output
+            # (multipart render / AOV manager), they are not separate files.
+            if self.is_arnold_exr(renderer, image_format):
+                continue
+
+            element_names = self._get_camera_render_element_names(
+                renderer_name, is_multipass, image_format)
+            if not element_names:
+                continue
+
+            elif renderer_name.startswith("V_Ray_"):
+                # V-Ray split channels are written through the per camera
+                # split output.
+                if not camera_paths["split"]:
+                    continue
+
+                for aov_name in element_names:
+                    render_output_frames[f"{camera_key}_{aov_name}"] = (
+                        self.get_expected_files(
+                            camera_paths["split"], frames, aov_name,
+                            renderer_name))
+
+            elif renderer_name.startswith("Arnold"):
+                # Arnold AOV driver file names are not derivable from the
+                # camera output; keep the live scene element files for now.
+                for aov_name, aov_filepath in (
+                        self.get_render_element_and_filepath(image_format)):
+                    render_output_frames[f"{camera_key}_{aov_name}"] = (
+                        self.get_expected_files(
+                            aov_filepath, frames, aov_name, renderer_name))
+            else:
+                # Other renderers write every render element to its own file,
+                # the camera script names it
+                # "<camera output stem>_<element>..<image format>".
+                for aov_name in element_names:
+                    aov_path = f"{output_stem}_{aov_name}..{image_format}"
+                    render_output_frames[f"{camera_key}_{aov_name}"] = (
+                        self.get_expected_files(
+                            aov_path, frames, "", renderer_name))
 
         return render_output_frames
 
