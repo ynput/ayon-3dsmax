@@ -148,8 +148,15 @@ if not farm:
             full_script = "\n".join(scripts)
             current_filepath = current_filepath.replace("\\", "/")
             tmp_script_path = tmp_script_path.replace("\\", "/")
-            run_subprocess([maxbatch_exe, tmp_script_path,
-                            "-sceneFile", current_filepath])
+            env = os.environ.copy()
+            env.pop("ADSK_3DSMAX_STARTUPSCRIPTS_ADDON_DIR", None)
+
+            run_subprocess(
+                [maxbatch_exe, tmp_script_path,
+                 "-sceneFile", current_filepath],
+                logger=self.log,
+                env=env,
+            )
 
         for camera_scene in camera_scene_files:
             if not os.path.exists(camera_scene):
