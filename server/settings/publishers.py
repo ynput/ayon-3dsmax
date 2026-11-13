@@ -81,6 +81,10 @@ class ValidateLoadedPluginModel(BaseSettingsModel):
     )
 
 
+class ValidateTyVDBFrameRangeModel(BaseSettingsModel):
+    enabled: bool = SettingsField(title="Enabled")
+
+
 class BasicValidateModel(BaseSettingsModel):
     enabled: bool = SettingsField(title="Enabled")
     optional: bool = SettingsField(title="Optional")
@@ -105,6 +109,10 @@ class PublishersModel(BaseSettingsModel):
     ValidateTyCacheFrameRange: BasicValidateModel = SettingsField(
         default_factory=BasicValidateModel,
         title="Validate Frame Range (TyCache)"
+    )
+    ValidateTyVDBFrameRange: ValidateTyVDBFrameRangeModel = SettingsField(
+        default_factory=ValidateTyVDBFrameRangeModel,
+        title="Validate Frame Range (TyFlow VDB)"
     )
     ValidateAttributes: ValidateAttributesModel = SettingsField(
         default_factory=ValidateAttributesModel,
@@ -184,6 +192,9 @@ DEFAULT_PUBLISH_SETTINGS = {
         "enabled": False,
         "optional": True,
         "active": True
+    },
+    "ValidateTyVDBFrameRange": {
+        "enabled": True,
     },
     "ValidateAttributes": {
         "enabled": False,

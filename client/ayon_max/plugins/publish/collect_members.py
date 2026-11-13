@@ -25,6 +25,12 @@ class CollectMembers(pyblish.api.InstancePlugin):
                     f"{instance.data['productBaseType']} product base type."
                 )
                 return
+        elif "tyflow_vdb" in instance.data["families"]:
+             self.log.debug(
+                  "Skipping Collecting Members for tyflow-specific"
+                  "vdbcache product type."
+             )
+             return
 
         elif instance.data.get("instance_node"):
             container = rt.GetNodeByName(instance.data["instance_node"])
