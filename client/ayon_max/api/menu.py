@@ -22,8 +22,18 @@ from .workfile_template_builder import (
     update_workfile_template,
     open_template,
     create_placeholder,
-    update_placeholder
+    update_placeholder,
+    show_template_builder,
 )
+
+# Tool to manage workfile templates was added in a later ayon-core version
+try:
+    from ayon_core.tools.workfile_template_build import (  # noqa: F401
+        show_workfile_template_builder,
+    )
+    HAS_TEMPLATE_BUILDER_TOOL = True
+except ImportError:
+    HAS_TEMPLATE_BUILDER_TOOL = False
 
 
 class AYONMenu(object):
@@ -176,6 +186,33 @@ class AYONMenu(object):
         ayon_menu.addAction(unit_scale_action)
 
         ayon_menu.addSeparator()
+        self._add_template_builder_menu(ayon_menu)
+
+        return ayon_menu
+
+    def _add_template_builder_menu(self, ayon_menu):
+        """Add the workfile template builder actions to the menu.
+
+        With a recent enough ayon-core a single action opens the workfile
+        template builder tool, otherwise the separate actions are shown.
+
+        Args:
+            ayon_menu (QtWidgets.QMenu): Menu to add the actions to.
+        """
+        if HAS_TEMPLATE_BUILDER_TOOL:
+            template_builder_action = QtWidgets.QAction(
+                "Template Builder...", ayon_menu)
+            template_builder_action.triggered.connect(
+                self.template_builder_callback)
+            ayon_menu.addAction(template_builder_action)
+
+            create_first_workfile_template_action = QtWidgets.QAction(
+                "Create First Workfile from Template", ayon_menu)
+            create_first_workfile_template_action.triggered.connect(
+                self.create_first_workfile_template_callback)
+            ayon_menu.addAction(create_first_workfile_template_action)
+            return
+
         template_builder = ayon_menu.addMenu("Template Builder")
 
         template_builder.addSeparator()
@@ -214,8 +251,6 @@ class AYONMenu(object):
         update_placeholders_action.triggered.connect(
             self.update_placeholders_callback)
         template_builder.addAction(update_placeholders_action)
-
-        return ayon_menu
 
     def load_callback(self):
         """Callback to show Loader tool."""
@@ -260,6 +295,10 @@ class AYONMenu(object):
     def create_first_workfile_template_callback(self):
         """Callback to create the first workfile from template."""
         create_first_workfile_from_template()
+
+    def template_builder_callback(self):
+        """Callback to show the workfile template builder tool."""
+        show_template_builder()
 
     def build_workfile_template_callback(self):
         """Callback to build workfile from template."""
