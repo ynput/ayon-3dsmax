@@ -19,6 +19,7 @@ from ayon_max.api.lib import (
     get_default_render_folder,
     get_multipass_setting,
     get_vray_settings,
+    is_vray_exr_saverawfile,
 )
 
 
@@ -140,12 +141,26 @@ class RenderSettings(object):
             if img_fmt == "exr":
                 vr_settings.output_saverawfile = True
                 vr_settings.output_rawfilename = f"{output}.{img_fmt}"
+            else:
+                if hasattr(vr_settings, "output_saverawfile"):
+                    vr_settings.output_saverawfile = False
+                if hasattr(vr_settings, "output_rawfilename"):
+                    vr_settings.output_rawfilename = ""
 
             if multipass_enabled:
                 rt.rendOutputFilename = output_filename
                 vr_settings.output_splitfilename = f"{output}.{img_fmt}"
             else:
-                rt.rendOutputFilename = f"{output}_tmp..{img_fmt}"
+                # Keep the scene render output in sync with the current
+                # naming even when raw EXR is the actual beauty output. It is
+                # not written while `rendSaveFile` is off.
+                rt.rendOutputFilename = f"{output}..{img_fmt}"
+                # Do not keep a split filename from a previous publish. A
+                # stale value would wrongly make the beauty pass look like it
+                # is not written (issue #138).
+                if hasattr(vr_settings, "output_splitfilename"):
+                    vr_settings.output_splitfilename = ""
+
             self.render_element_layer(output, width, height, img_fmt)
         # TODO: supports multipass for different renderers
         elif renderer_name == "Redshift_Renderer":
@@ -155,8 +170,10 @@ class RenderSettings(object):
                 rt.renderers.production.OutputExrMultipart = multipass_enabled
 
         # prevent rendering extra files when using V-Ray
-        rt.rendSaveFile = True if not renderer_name.startswith("V_Ray_") else False
-
+        rt.rendSaveFile = not (
+            renderer_name.startswith("V_Ray_")
+            and is_vray_exr_saverawfile(img_fmt, vr_settings)
+        )
         rt.renderSceneDialog.update()
 
     def arnold_setup(self, output_dir, container, multipass_enabled):

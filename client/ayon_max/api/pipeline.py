@@ -17,6 +17,7 @@ import pyblish.api
 from ayon_core.pipeline import (
     register_creator_plugin_path,
     register_loader_plugin_path,
+    register_inventory_action_path,
     register_workfile_build_plugin_path,
     AVALON_CONTAINER_ID,
     AYON_CONTAINER_ID,
@@ -84,6 +85,7 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         pyblish.api.register_plugin_path(PUBLISH_PATH)
         register_loader_plugin_path(LOAD_PATH)
         register_creator_plugin_path(CREATE_PATH)
+        register_inventory_action_path(INVENTORY_PATH)
         register_workfile_build_plugin_path(WORKFILE_BUILD_PATH)
 
         _set_project()

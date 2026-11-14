@@ -7,7 +7,7 @@ class PreCopyMxp(PreLaunchHook):
 
     Hook `GlobalHostDataHook` must be executed before this hook.
     """
-    app_groups = {"3dsmax", "adsk_3dsmax"}
+    app_groups = {"adsk_3dsmax"}
     launch_types = {LaunchTypes.local}
 
     def execute(self):
