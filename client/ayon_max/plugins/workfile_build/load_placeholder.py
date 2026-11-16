@@ -57,13 +57,16 @@ class MaxPlaceholderLoadPlugin(MaxPlaceholderPlugin, PlaceholderLoadMixin):
             except ValueError:
                 containers = []
 
-            container_data = {
+            # 'read' returns a dict per container, so keep them in a list
+            #   (dicts are not hashable and cannot be put in a set).
+            container_data = [
                 read(container)
                 for container in containers
-            }
+            ]
             loaded_representation_ids = {
                 data["representation"]
                 for data in container_data
+                if data.get("representation")
             }
             self.builder.set_shared_populate_data(
                 "loaded_representation_ids", loaded_representation_ids
