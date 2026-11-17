@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """Pipeline tools for AYON 3ds max integration."""
-from functools import partial
 import os
 import logging
 from operator import attrgetter
@@ -65,6 +64,7 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         self._op_events = {}
         self._has_been_setup = False
         self._node_event_callback = None
+        self._event_callbacks = []
 
     def get_app_information(self):
         from ayon_core.host import ApplicationInformation
@@ -102,20 +102,35 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         _set_project()
         _set_autobackup_dir()
 
-        register_event_callback("init", on_init)
-        register_event_callback("new", on_new)
-        register_event_callback("workfile.open.before", on_before_open)
-        register_event_callback("workfile.open.after", on_after_open)
-        register_event_callback("save", on_save)
-        register_event_callback("before.save", before_save)
-        register_event_callback("save", on_save)
-        register_event_callback("taskChanged", self.on_task_changed)
+        self._register_ayon_callbacks()
         self._has_been_setup = True
         self._register_callbacks()
 
     def uninstall(self):
-        rt.callbacks.removeScripts(id=rt.Name("AyonCallbacks"))
+        self._deregister_ayon_callbacks()
+        if lib.is_headless():
+            return
+        rt.callbacks.removeScripts(id=rt.name("AyonCallbacks"))
         self._node_event_callback = None
+
+    def _register_ayon_callbacks(self):
+        """Register the AYON event callbacks of the host."""
+        self._deregister_ayon_callbacks()
+        self._event_callbacks = [
+            register_event_callback("init", on_init),
+            register_event_callback("new", on_new),
+            register_event_callback("workfile.open.before", on_before_open),
+            register_event_callback("workfile.open.after", on_after_open),
+            register_event_callback("save", on_save),
+            register_event_callback("before.save", before_save),
+            register_event_callback("taskChanged", self.on_task_changed),
+        ]
+
+    def _deregister_ayon_callbacks(self):
+        """Deregister the AYON event callbacks of the host."""
+        for callback in self._event_callbacks:
+            callback.deregister()
+        self._event_callbacks = []
 
     def workfile_has_unsaved_changes(self):
         return rt.getSaveRequired()
@@ -155,12 +170,7 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         )
         rt.callbacks.addScript(
             rt.Name('systemPostNew'),
-            partial(emit_event_notification_param, "new"),
-            id=ayon_id
-        )
-        rt.callbacks.addScript(
-            rt.Name('filePreSave'),
-            partial(emit_event_notification_param, "before.save"),
+            _on_scene_new,
             id=ayon_id
         )
         rt.callbacks.addScript(
@@ -170,7 +180,7 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         )
         rt.callbacks.addScript(
             rt.Name('filePreOpen'),
-            partial(emit_event_notification_param, "before.file.open"),
+            _on_scene_before_file_open,
             id=ayon_id
         )
         rt.callbacks.addScript(
@@ -193,7 +203,7 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
     def on_init(self):
         if not self.menu:
             self._deferred_menu_creation()
-        emit_event_notification_param("init")
+        emit_event("init")
 
     def _deferred_menu_creation(self):
         self.log.info("Building menu ...")
@@ -277,15 +287,70 @@ attributes "AYONContext"
         context_label = lib.get_context_label()
         context_action.setText(f"{context_label}")
 
+    def _is_current_scene(self, filepath):
+        """Return whether the filepath points to the current scene.
+
+        Args:
+            filepath (str): Filepath to check.
+
+        Returns:
+            bool: Is the filepath the current scene path.
+        """
+        current_file = self.get_current_workfile()
+        if not current_file:
+            return False
+        return (
+            os.path.normcase(os.path.normpath(filepath))
+            == os.path.normcase(os.path.normpath(current_file))
+        )
+
     def emit_save_events(self) -> None:
-        """Emit save and after.save events with notification parameter."""
-        emit_event_notification_param("save")
-        emit_event_notification_param("after.save")
+        """Emit save and after.save events for the current scene."""
+        saved_file = _get_callback_filepath()
+        if saved_file is not None and not self._is_current_scene(saved_file):
+            # Ignore saves of other files, e.g. Edit > Hold, Save Selected
+            # or autobackup, so listeners only hear about workfile saves.
+            log.debug("Ignoring Max save of non-scene file: %s", saved_file)
+            return
+
+        current_file = self.get_current_workfile()
+        filename = current_file or saved_file
+        data = {"filename": filename} if filename else None
+        emit_event("save", data)
+        emit_event("after.save", data)
 
     def emit_open_event(self) -> None:
+        """Emit the open event with the opened scene path."""
         current_file = self.get_current_workfile()
         data = {"filename": current_file} if current_file else None
-        emit_event_notification_param("open", data=data)
+        emit_event("open", data)
+
+
+def _get_callback_filepath():
+    """Get the filepath from the current 3ds Max callback notification.
+
+    Returns:
+        Union[str, None]: Filepath when the notification carries one.
+    """
+    try:
+        notification = rt.callbacks.notificationParam()
+    except Exception:  # noqa: BLE001
+        log.warning(
+            "Could not read Max callback notification parameter",
+            exc_info=True
+        )
+        return None
+    if isinstance(notification, str):
+        return notification
+    return None
+
+
+def _on_scene_new(*args):
+    emit_event("new")
+
+
+def _on_scene_before_file_open(*args):
+    emit_event("before.file.open")
 
 
 def parse_container(container):
@@ -619,21 +684,3 @@ def remove_container_data(container_node: str):
 
     rt.Delete(container_node)
     rt.redrawViews()
-
-
-def emit_event_notification_param(event, data=None) -> None:
-    """Emit an event with a notification parameter.
-
-    Args:
-        event (str): The event name to emit.
-    """
-    try:
-        notification = rt.callbacks.notificationParam()
-    except Exception:  # noqa: BLE001
-        log.warning("Could not read max notification parameter", exc_info=True)
-        notification = None
-    if data is None and notification is not None:
-        data = {"notificationParam": notification}
-        if isinstance(notification, str):
-            data["filename"] = notification
-    emit_event(event, data)
