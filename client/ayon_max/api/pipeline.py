@@ -83,6 +83,8 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         )
 
     def install(self):
+        _disable_dirty_notification_monitor()
+
         pyblish.api.register_host("max")
 
         pyblish.api.register_plugin_path(PUBLISH_PATH)
@@ -433,6 +435,20 @@ def _set_project():
 
     # avoid glitching viewport
     rt.viewport.ResetAllViews()
+
+
+def _disable_dirty_notification_monitor():
+    """Turn off the 'DirtyNotificationEventMonitor' of pymxs."""
+    # Workaround for 3ds Max 2027+, fixes
+    #   https://github.com/ynput/ayon-3dsmax/issues/213
+    # - pymxs registers a 'sys.monitoring' tool with Python callbacks on
+    #   every Python function call, in every thread. It makes Python code
+    #   much slower and makes Python code in worker threads fail to start.
+    import pymxs
+
+    monitor = getattr(pymxs, "_DirtyNotificationEventMonitorInstance", None)
+    if monitor is not None:
+        monitor.terminate()
 
 
 def _set_autobackup_dir():
