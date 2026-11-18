@@ -266,10 +266,6 @@ def update_workfile_template(*args) -> None:
     builder.rebuild_template()
 
 
-class _TemplateBuilderWindowCache:
-    window = None
-
-
 def show_template_builder(*args) -> None:
     """Show the workfile template builder tool for 3ds Max.
 
