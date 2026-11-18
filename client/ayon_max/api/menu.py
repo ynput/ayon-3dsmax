@@ -153,10 +153,6 @@ class AYONMenu(object):
         manage_action.triggered.connect(self.manage_callback)
         ayon_menu.addAction(manage_action)
 
-        library_action = QtWidgets.QAction("Library...", ayon_menu)
-        library_action.triggered.connect(self.library_callback)
-        ayon_menu.addAction(library_action)
-
         ayon_menu.addSeparator()
 
         res_action = QtWidgets.QAction("Set Resolution", ayon_menu)
@@ -228,10 +224,6 @@ class AYONMenu(object):
     def manage_callback(self):
         """Callback to show Scene Manager/Inventory tool."""
         host_tools.show_scene_inventory(parent=self.main_widget)
-
-    def library_callback(self):
-        """Callback to show Library Loader tool."""
-        host_tools.show_library_loader(parent=self.main_widget)
 
     def workfiles_callback(self):
         """Callback to show Workfiles tool."""

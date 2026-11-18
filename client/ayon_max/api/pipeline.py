@@ -17,6 +17,7 @@ import pyblish.api
 from ayon_core.pipeline import (
     register_creator_plugin_path,
     register_loader_plugin_path,
+    register_inventory_action_path,
     register_workfile_build_plugin_path,
     AVALON_CONTAINER_ID,
     AYON_CONTAINER_ID,
@@ -44,6 +45,9 @@ LOAD_PATH = os.path.join(PLUGINS_DIR, "load")
 CREATE_PATH = os.path.join(PLUGINS_DIR, "create")
 INVENTORY_PATH = os.path.join(PLUGINS_DIR, "inventory")
 WORKFILE_BUILD_PATH = os.path.join(PLUGINS_DIR, "workfile_build")
+
+# Track whether the workfile tool is about to save the current workfile
+_about_to_save = False
 
 
 class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
@@ -79,11 +83,14 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         )
 
     def install(self):
+        _disable_dirty_notification_monitor()
+
         pyblish.api.register_host("max")
 
         pyblish.api.register_plugin_path(PUBLISH_PATH)
         register_loader_plugin_path(LOAD_PATH)
         register_creator_plugin_path(CREATE_PATH)
+        register_inventory_action_path(INVENTORY_PATH)
         register_workfile_build_plugin_path(WORKFILE_BUILD_PATH)
 
         _set_project()
@@ -93,6 +100,9 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         register_event_callback("new", on_new)
         register_event_callback("workfile.open.before", on_before_open)
         register_event_callback("workfile.open.after", on_after_open)
+        register_event_callback("workfile.save.before", before_workfile_save)
+        register_event_callback("workfile.save.after", after_workfile_save)
+        register_event_callback("save", on_save)
         register_event_callback("before.save", before_save)
         register_event_callback("taskChanged", self.on_task_changed)
         self._has_been_setup = True
@@ -211,6 +221,17 @@ attributes "AYONContext"
         if lib.is_headless():
             return
 
+        self._update_menu_context_label()
+
+        global _about_to_save
+        if _about_to_save:
+            # The workfile is about to be saved into another folder or task,
+            # let the user update the scene settings and the publish
+            # instances to match the new context.
+            _about_to_save = False
+            lib.prompt_reset_context()
+
+    def _update_menu_context_label(self):
         ayon_menu = self.menu
         if ayon_menu is None or ayon_menu.menu is None:
             return
@@ -312,6 +333,11 @@ def on_new() -> None:
 def on_save():
     log.info("Saving workfile.")
 
+    # The workfile is now saved, the context change has already been
+    # handled before the actual save.
+    global _about_to_save
+    _about_to_save = False
+
 
 def on_open():
     log.info("Opening workfile.")
@@ -411,6 +437,20 @@ def _set_project():
     rt.viewport.ResetAllViews()
 
 
+def _disable_dirty_notification_monitor():
+    """Turn off the 'DirtyNotificationEventMonitor' of pymxs."""
+    # Workaround for 3ds Max 2027+, fixes
+    #   https://github.com/ynput/ayon-3dsmax/issues/213
+    # - pymxs registers a 'sys.monitoring' tool with Python callbacks on
+    #   every Python function call, in every thread. It makes Python code
+    #   much slower and makes Python code in worker threads fail to start.
+    import pymxs
+
+    monitor = getattr(pymxs, "_DirtyNotificationEventMonitorInstance", None)
+    if monitor is not None:
+        monitor.terminate()
+
+
 def _set_autobackup_dir():
     """Set up autobackup folder to avoid non-existing directory
     """
@@ -428,6 +468,18 @@ def on_after_open():
     """Check and set up unit scale after opening workfile if user enabled.
     """
     lib.validate_unit_scale()
+
+
+def before_workfile_save(event):
+    """Mark that the workfile tool is about to save the current workfile."""
+    global _about_to_save
+    _about_to_save = True
+
+
+def after_workfile_save(event):
+    """Reset the about-to-save mark once the workfile save is finished."""
+    global _about_to_save
+    _about_to_save = False
 
 
 def before_save(event):

@@ -70,7 +70,7 @@ class CreateWorkfile(plugin.MaxCreatorBase, AutoCreator):
                 creator=self
             )
             self._add_instance_to_context(current_instance)
-            imprint(instance_node.name, current_instance.data)
+            imprint(instance_node.name, current_instance.data_to_store())
         elif (
             current_instance["folderPath"] != folder_path
             or current_instance["task"] != task_name
