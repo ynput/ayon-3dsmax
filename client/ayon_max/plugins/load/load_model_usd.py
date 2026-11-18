@@ -72,7 +72,7 @@ class ModelUSDLoader(load.LoaderPlugin):
         node_list = get_previous_loaded_object(node)
         rt.Select(node_list)
         prev_objects = [sel for sel in rt.GetCurrentSelection()
-                        if sel != rt.Container
+                        if rt.ClassOf(sel) != rt.Container
                         and sel.name != node_name]
         transform_data = object_transform_set(prev_objects)
         for prev_obj in prev_objects:
