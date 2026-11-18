@@ -17,8 +17,8 @@ from ayon_core.pipeline.workfile.workfile_template_builder import (
 )
 from ayon_core.tools.workfile_template_build import (
     WorkfileBuildPlaceholderDialog,
+    open_template_ui
 )
-from ayon_core.tools.workfile_template_build import open_template_ui
 
 from .lib import (
     imprint,
@@ -33,6 +33,7 @@ PLACEHOLDER_SET = "PLACEHOLDERS_SET"
 
 class MaxTemplateBuilder(AbstractTemplateBuilder):
     """Concrete implementation of AbstractTemplateBuilder for 3dsmax"""
+
     def import_template(self, path):
         """Import template into current scene.
         Block if a template is already loaded.
@@ -189,8 +190,8 @@ class MaxPlaceholderPlugin(PlaceholderPlugin):
 
         # If we just populate the placeholders from current scene, the
         # placeholder set will not be created so account for that.
-        placeholder_set = rt.getNodebyName(PLACEHOLDER_SET)
-        if placeholder_set:
+        placeholder_set = rt.getNodeByName(PLACEHOLDER_SET)
+        if not placeholder_set:
             placeholder_set = rt.Container(name=PLACEHOLDER_SET)
         placeholder_set.children = node
         placeholder_set.isHidden = True
@@ -204,6 +205,17 @@ class MaxPlaceholderPlugin(PlaceholderPlugin):
         node_to_removed = rt.getNodeByName(node)
         if node_to_removed:
             rt.Delete(node_to_removed)
+
+    def select_placeholder(self, placeholder):
+        """Select placeholder node in the scene.
+
+        Args:
+            placeholder (PlaceholderItem): Placeholder item to select.
+
+        """
+        node = rt.getNodeByName(placeholder.scene_identifier)
+        if node is not None:
+            rt.select(node)
 
     def imprint(self, node, data):
         """Imprint call for placeholder node"""
@@ -252,6 +264,30 @@ def update_workfile_template(*args) -> None:
     """Update the workfile template for 3ds Max."""
     builder = MaxTemplateBuilder(registered_host())
     builder.rebuild_template()
+
+
+def show_template_builder(*args) -> None:
+    """Show the workfile template builder tool for 3ds Max.
+
+    The window is reused when it was opened before. The placeholder that is
+    selected in the scene is selected in the tool.
+    """
+    from ayon_core.tools.workfile_template_build import (
+        show_workfile_template_builder,
+    )
+
+    builder = MaxTemplateBuilder(registered_host())
+    window = show_workfile_template_builder(
+        builder, parent=get_main_window()
+    )
+    # Added in a later ayon-core version than the tool itself
+    select_placeholder = getattr(window, "select_placeholder", None)
+    if select_placeholder is None:
+        return
+
+    for node in rt.getCurrentSelection() or []:
+        if select_placeholder(node.name):
+            break
 
 
 def open_template(*args) -> None:
