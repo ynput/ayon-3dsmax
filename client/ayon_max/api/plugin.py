@@ -265,6 +265,116 @@ MS_TYCACHE_ATTRIB = """attributes "AYONTyCacheData"
     )
 )"""
 
+
+MS_VDB_ATTRIB = """attributes "AYONTyFlowVDBData"
+(
+    parameters main rollout:Cacheparams
+    (
+        vdb_exports type:#stringTab tabSize:0 tabSizeVariable:on
+        vdb_handles type:#stringTab tabSize:0 tabSizeVariable:on
+        vdb_sel_list type:#stringTab tabSize:0 tabSizeVariable:on
+    )
+
+    rollout Cacheparams "AYON TyCache Parameters"
+    (
+        listbox export_node "Export Nodes" items:#()
+        button button_add "Add to Exports"
+        button button_del "Delete from Exports"
+        button button_refresh "Refresh"
+        listbox vdb_node "VDB Export Operators" items:#()
+
+        on button_add pressed do
+        (
+            i_node_arr = #()
+            temp_arr = #()
+            current_sel = vdb_node.selected
+            idx = finditem export_node.items current_sel
+            if idx == 0 do (
+                append i_node_arr current_sel
+                append temp_arr current_sel
+            )
+            vdb_exports = join i_node_arr vdb_exports
+            export_node.items = join temp_arr export_node.items
+            vdb_sel_list = export_node.items
+        )
+        on button_del pressed do
+        (
+            i_node_arr = #()
+            temp_arr = #()
+            updated_node_arr = #()
+            new_temp_arr = #()
+            current_sel = export_node.selected
+            idx = finditem export_node.items current_sel
+            if idx do (
+                updated_node_arr = DeleteItem export_node.items idx
+            )
+            idx = finditem vdb_exports current_sel
+            if idx do (
+                new_temp_arr = DeleteItem vdb_exports idx
+            )
+            vdb_exports = join i_node_arr updated_node_arr
+            export_node.items = join temp_arr new_temp_arr
+            vdb_sel_list = export_node.items
+        )
+        on button_refresh pressed do
+        (
+            handle_arr = #()
+            for obj in Objects do
+            (
+                if classof obj == tyflow then
+                (
+                    member = obj.baseobject
+                    anim_names = GetSubAnimNames member
+                    for anim_name in anim_names do
+                    (
+                        sub_anim = GetSubAnim member anim_name
+                        if isKindOf sub_anim tyEvent do
+                        (
+                            node_names = GetSubAnimNames sub_anim
+                            for node_name in node_names do
+                            (
+                                node_sub_anim = GetSubAnim sub_anim node_name
+                                if hasProperty node_sub_anim "gridsSDF" do
+                                (
+                                    node_str = node_sub_anim.name as string
+                                    append handle_arr node_str
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+            vdb_handles = handle_arr
+            vdb_node.items = handle_arr
+        )
+        on Cacheparams open do
+        (
+            temp_arr = #()
+            tyflow_id_arr = #()
+            if vdb_handles.count != 0 then
+            (
+                for x in vdb_handles do
+                (
+                    if x == undefined do continue
+                    tyflow_op_name = x as string
+                    append temp_arr tyflow_op_name
+                )
+                vdb_node.items = temp_arr
+            )
+            if vdb_sel_list.count != 0 then
+            (
+                sel_arr = #()
+                for x in vdb_sel_list do
+                (
+                    append sel_arr x
+                )
+                export_node.items = sel_arr
+            )
+        )
+    )
+)"""
+
+
 class MaxCreatorBase(object):
 
     @staticmethod
@@ -319,7 +429,7 @@ class MaxCreatorBase(object):
 
 class MaxTyFlowDataCreatorBase(MaxCreatorBase):
     @staticmethod
-    def create_instance_node(node):
+    def create_instance_node(node, attribute="tycache_data"):
         """Create instance node.
 
         If the supplied node is existing node, it will be used to hold the
@@ -327,17 +437,25 @@ class MaxTyFlowDataCreatorBase(MaxCreatorBase):
 
         Args:
             node (rt.MXSWrapperBase, str): Node or node name to use.
+            attribute (str): Type of the instance attribute data to imprint.
 
         Returns:
             instance
         """
         if not isinstance(node, str):
             raise CreatorError("Instance node is not at the string value.")
+
+        if attribute == "ty_vdb_data":
+            attrs = rt.Execute(MS_VDB_ATTRIB)
+            modifier_name = "AYON TyFlow VDB Data"
+        else:
+            attrs = rt.Execute(MS_TYCACHE_ATTRIB)
+            modifier_name = "AYON TyCache Data"
+
         node = rt.Container(name=node)
-        attrs = rt.Execute(MS_TYCACHE_ATTRIB)
         modifier = rt.EmptyModifier()
         rt.addModifier(node, modifier)
-        node.modifiers[0].name = "AYON TyCache Data"
+        node.modifiers[0].name = modifier_name
         rt.custAttributes.add(node.modifiers[0], attrs)
 
         return node
@@ -499,6 +617,44 @@ class MaxCacheCreator(MaxCreator, MaxTyFlowDataCreatorBase):
                 rt.Delete(instance_node)
 
             self._remove_instance_from_context(instance)
+
+    def get_pre_create_attr_defs(self):
+        return []
+
+
+class MaxTyflowVDBCacheCreator(MaxCreator, MaxTyFlowDataCreatorBase):
+    """Creator for VDB files exported with TyFlow's VDB export operator."""
+
+    def create(self, product_name, instance_data, pre_create_data):
+        tyflow_op_nodes = get_tyflow_export_operators(
+            operator_type="exportVDB")
+        if not tyflow_op_nodes:
+            raise CreatorError("No Export VDB Operators"
+                               " found in tyCache Editor.")
+        instance_node = self.create_instance_node(
+            product_name, attribute="ty_vdb_data")
+        instance_data["instance_node"] = instance_node.name
+        instance_data["families"] = self.get_published_families()
+        product_type = instance_data.get("productType")
+        if not product_type:
+            product_type = self.product_base_type
+        instance = CreatedInstance(
+            product_type=product_type,
+            product_base_type=self.product_base_type,
+            product_name=product_name,
+            data=instance_data,
+            creator=self,
+        )
+        # Setting the property
+        node_list = [sub_anim.name for sub_anim in tyflow_op_nodes]
+        rt.setProperty(
+            instance_node.modifiers[0].AYONTyFlowVDBData,
+            "vdb_handles", node_list
+        )
+        self._add_instance_to_context(instance)
+        self.imprint_instance_node(instance_node.name, instance.data_to_store())
+
+        return instance
 
     def get_pre_create_attr_defs(self):
         return []
