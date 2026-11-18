@@ -1,9 +1,6 @@
 """3dsmax workfile template builder implementation"""
 import json
-import traceback
 from pathlib import Path
-
-from qtpy import QtWidgets
 
 try:
     from pymxs import runtime as rt
@@ -20,12 +17,8 @@ from ayon_core.pipeline.workfile.workfile_template_builder import (
 )
 from ayon_core.tools.workfile_template_build import (
     WorkfileBuildPlaceholderDialog,
+    open_template_ui
 )
-try:
-    from ayon_core.tools.workfile_template_build import open_template_ui
-except ImportError:
-    # Older ayon-core version without the template builder UI.
-    open_template_ui = None
 
 from .lib import (
     imprint,
@@ -319,29 +312,7 @@ def open_template(*args) -> None:
     """Open the workfile template UI for 3ds Max."""
     host = registered_host()
     builder = MaxTemplateBuilder(host)
-    if open_template_ui is not None:
-        open_template_ui(builder, main_window=get_main_window())
-        return
-
-    answer = QtWidgets.QMessageBox.question(
-        get_main_window(),
-        "Opening template",
-        (
-            "Caution! You will lose unsaved changes.\n"
-            "Do you want to continue?"
-        ),
-        QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-    )
-    if answer != QtWidgets.QMessageBox.Yes:
-        return
-    try:
-        builder.open_template()
-    except Exception:
-        QtWidgets.QMessageBox.critical(
-            get_main_window(),
-            "Template Load Failed",
-            traceback.format_exc(),
-        )
+    open_template_ui(builder, main_window=get_main_window())
 
 
 def create_placeholder(*args) -> None:
