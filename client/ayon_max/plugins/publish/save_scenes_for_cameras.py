@@ -125,8 +125,11 @@ if renderer_name.startswith("V_Ray_"):
 
 rt.saveMaxFile(new_filepath)
 base, extension = os.path.splitext(new_output)
-if renderer_name.startswith("Arnold"):
-    base = base.strip(".")
+# `new_output` still carries the double dot of the batch render pattern
+# ("..._PhysCamera001..exr"). The expected files are normalized to a single
+# dot by `reformat_filename()`, so the per frame files rendered here have to
+# use the same name, otherwise the publish cannot find them.
+base = base.rstrip(".")
 if not farm:
     for frame in {render_frames}:
         output_file = f"{{base}}.{{frame:04d}}{{extension}}"
