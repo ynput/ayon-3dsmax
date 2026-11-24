@@ -152,4 +152,4 @@ class CollectTyFlowVDBData(pyblish.api.InstancePlugin):
                 product_name_template,
                 flags=re.IGNORECASE,
             )
-        return "{}_{}".format(product_name_template, operator_name)
+        return f"{product_name_template}_{operator_name}"
