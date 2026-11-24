@@ -17,7 +17,7 @@ class CollectTyFlowVDBData(pyblish.api.InstancePlugin):
     each of the selected operators into a separate publishable product.
     """
 
-    order = pyblish.api.CollectorOrder + 0.005
+    order = pyblish.api.CollectorOrder - 0.45
     label = "Collect TyFlow VDB Data"
     hosts = ["max"]
     families = ["vdbcache"]
@@ -30,6 +30,10 @@ class CollectTyFlowVDBData(pyblish.api.InstancePlugin):
         if "tyflow_vdb" in data.get("families", []):
             # Product created by this collector, do not process it again.
             return
+
+        # The container instance itself is not a product, skip its
+        #   integration even when no product ends up being created.
+        data["integrate"] = False
 
         instance_node = data.get("instance_node")
         if not instance_node:
@@ -110,13 +114,11 @@ class CollectTyFlowVDBData(pyblish.api.InstancePlugin):
                 "productType": product_type,
                 "productBaseType": "vdbcache",
                 "creator_identifier": "io.ayon.creators.max.vdbcache",
+                # The product is integrated, the container is not.
+                "integrate": True,
                 # Operator used to export the VDB files.
                 "operator": operator,
             })
-            instance.append(vdb_instance)
-
-        # The container instance itself is not a product, skip its integration.
-        data["integrate"] = False
 
     @staticmethod
     def _get_vdb_export_names(container):
@@ -129,6 +131,8 @@ class CollectTyFlowVDBData(pyblish.api.InstancePlugin):
             list[str]: Names of the selected 'Export VDB' operators.
         """
         modifier = next(iter(container.modifiers), None)
+        if modifier is None:
+            return []
         if not rt.isProperty(modifier, "AYONTyFlowVDBData"):
             return []
         return list(modifier.AYONTyFlowVDBData.vdb_exports)
