@@ -1060,36 +1060,87 @@ def suspended_refresh():
         rt.resumeEditing()
 
 
+def _get_time_configuration():
+    """Get the MAXScript time configuration singleton.
+
+    'timeConfiguration' is a MAXScript global, but depending on the 3ds Max
+    version it is not exposed as an attribute of 'pymxs.runtime'. In that
+    case it has to be evaluated through MAXScript.
+
+    Returns:
+        rt.MXSWrapperBase: Time configuration of the current scene.
+    """
+    time_configuration = getattr(rt, "timeConfiguration", None)
+    if time_configuration is None:
+        time_configuration = rt.execute("timeConfiguration")
+    return time_configuration
+
+
 @contextlib.contextmanager
 def animation_range_without_loop(frameStart, frameEnd):
-    """Ensure animation range is played without
-    loop during context
+    """Set the scene timeline to the frame range for the context.
+
+    Playback is performed without looping and real time playback is
+    disabled, so playback does not skip frames.
     """
-    previous_playbackLoop = (
-        rt.timeConfiguration.playbackLoop
-    )
-    previous_realtime_playback = (
-        rt.timeConfiguration.realTimePlayback
-    )
-    previous_animation_range = (
-        rt.animationRange
-    )
+    time_configuration = _get_time_configuration()
+    previous_playbackLoop = time_configuration.playbackLoop
+    previous_realtime_playback = time_configuration.realTimePlayback
+    previous_animation_range = rt.animationRange
     previous_current_frame = rt.currentTime.frame
-    rt.timeConfiguration.playbackLoop = False
-    rt.timeConfiguration.realTimePlayback = True
-    set_timeline(frameStart, frameEnd)
+    time_configuration.playbackLoop = False
+    time_configuration.realTimePlayback = False
     try:
+        set_timeline(frameStart, frameEnd)
         yield
 
     finally:
-        rt.timeConfiguration.playbackLoop = (
-            previous_playbackLoop
-        )
-        rt.timeConfiguration.realTimePlayback = (
-            previous_realtime_playback
-        )
-        rt.currentTime.frame = previous_current_frame
+        time_configuration.playbackLoop = previous_playbackLoop
+        time_configuration.realTimePlayback = previous_realtime_playback
+        # Restore the range before the current frame, as setting the range
+        #   can clamp the current frame into the range.
         rt.animationRange = previous_animation_range
+        rt.currentTime.frame = previous_current_frame
+
+
+@contextlib.contextmanager
+def maintained_tyflow_vdb_export(operator, filepath):
+    """Set the TyFlow 'Export VDB' operator up for an export.
+
+    The operator is switched to 'auto export' mode and pointed to the
+    output path for the duration of the context. Other 'Export VDB'
+    operators in the scene are temporarily disabled, so they do not write
+    into their previous output paths while the animation is played.
+
+    Args:
+        operator (rt.MXSWrapperBase): TyFlow 'Export VDB' operator.
+        filepath (str): Output path for the VDB files.
+    """
+    previous_settings = {
+        prop: rt.getProperty(operator, prop)
+        for prop in ("autoExport", "filename")
+        if rt.hasProperty(operator, prop)
+    }
+    other_operators = [
+        other_operator
+        for other_operator in get_tyflow_export_operators(
+            operator_type="exportVDB")
+        if other_operator.name != operator.name
+        and rt.hasProperty(other_operator, "autoExport")
+        and rt.getProperty(other_operator, "autoExport")
+    ]
+    try:
+        for other_operator in other_operators:
+            rt.setProperty(other_operator, "autoExport", False)
+        rt.setProperty(operator, "autoExport", True)
+        rt.setProperty(operator, "filename", filepath.replace("\\", "/"))
+        yield
+
+    finally:
+        for other_operator in other_operators:
+            rt.setProperty(other_operator, "autoExport", True)
+        for prop, value in previous_settings.items():
+            rt.setProperty(operator, prop, value)
 
 
 def reset_render_outputs(max_filename_before, max_filename_after):

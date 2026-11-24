@@ -1,29 +1,28 @@
-import os
+# -*- coding: utf-8 -*-
+"""Extractor for VDB files written by TyFlow's 'Export VDB' operator."""
 import contextlib
+import os
+import re
+
 import pyblish.api
 from pymxs import runtime as rt
 
-from ayon_max.api.lib import (
-    maintained_selection,
-    animation_range_without_loop
-
-)
-
 from ayon_core.pipeline import publish
+from ayon_core.pipeline.publish import PublishError
+from ayon_max.api.lib import (
+    animation_range_without_loop,
+    maintained_selection,
+    maintained_tyflow_vdb_export,
+)
 
 
 class ExtractTyFlowVDB(publish.Extractor):
-    """Extract tycache format with tyFlow operators.
-    Notes:
-        - TyCache only works for TyFlow Pro Plugin.
+    """Extract VDB files with a TyFlow 'Export VDB' operator.
 
-    Methods:
-        self._extract_tyflow_vdb: sets the necessary
-            attributes and export VDB with the export
-            particle operator(s)
-
-        self.get_files(): get the files with tyFlow naming convention
-            before publishing
+    TyFlow writes the VDB files while the animation is played. The
+    operator is switched into 'auto export' mode only for the duration of
+    the extraction, and the exported files are validated against the
+    instance frame range before a representation is created.
     """
 
     order = pyblish.api.ExtractorOrder - 0.2
@@ -37,81 +36,93 @@ class ExtractTyFlowVDB(publish.Extractor):
         stagingdir = self.staging_dir(instance)
         operator = instance.data["operator"]
         representations = instance.data.setdefault("representations", [])
-        start_frame = instance.data["frameStartHandle"]
-        end_frame = instance.data["frameEndHandle"]
+        start_frame = int(instance.data["frameStartHandle"])
+        end_frame = int(instance.data["frameEndHandle"])
 
-        product_name = instance.data.get("productName")
-        filename = f"{product_name}.vdb"
-        path = os.path.join(stagingdir, filename)
-
-        vdb_fnames = self.get_files(
-            product_name, start_frame, end_frame)
+        product_name = instance.data["productName"]
+        filepath = os.path.join(stagingdir, f"{product_name}.vdb")
 
         with contextlib.ExitStack() as stack:
             stack.enter_context(maintained_selection())
             stack.enter_context(
                 animation_range_without_loop(start_frame, end_frame)
             )
-            self._extract_tyflow_vdb(operator, path)
+            stack.enter_context(
+                maintained_tyflow_vdb_export(operator, filepath)
+            )
+            # VDB files are written while the animation is played.
+            rt.PlayAnimation(immediateReturn=False)
+
+        files = self._get_exported_files(
+            stagingdir, start_frame, end_frame)
 
         representation = {
             "name": "vdb",
             "ext": "vdb",
-            "files": (
-                vdb_fnames if len(vdb_fnames) > 1
-                else vdb_fnames[0]),
-            "stagingDir": stagingdir
+            "files": files if len(files) > 1 else files[0],
+            "stagingDir": stagingdir,
         }
         representations.append(representation)
+        self.log.debug(
+            f"Extracted {len(files)} VDB file(s) to: {stagingdir}")
 
-    def get_files(self, product_name, start_frame, end_frame):
-        """Get file names for tyFlow in VDB format.
-
-        Set the filenames accordingly to the VDB file
-        naming extension(.vdb) for the publishing purpose
-
-        Actual File Output from tyFlow in VDB format:
-        <InstanceName>_<operator>_<frame>.vdb
-
-        e.g. tyFlowMain_00000.vdb
+    def _get_exported_files(self, stagingdir, start_frame, end_frame):
+        """Get the exported VDB files and validate the frame range.
 
         Args:
-            product_name (str): product name
-            start_frame (int): frame start
-            end_frame (int): frame end
+            stagingdir (str): Directory where the VDB files were written.
+            start_frame (int): Expected first frame.
+            end_frame (int): Expected last frame.
 
         Returns:
-            filenames(list): list of filenames
-
+            list[str]: Exported VDB filenames sorted by frame.
         """
-        filenames = []
-        for frame in range(int(start_frame), int(end_frame) + 1):
-            filename = f"{product_name}_{frame:05}.vdb"
-            filenames.append(filename)
+        exported_files = []
+        for filename in os.listdir(stagingdir):
+            if not filename.lower().endswith(".vdb"):
+                continue
+            exported_files.append(
+                (self._get_frame_from_filename(filename), filename)
+            )
+        exported_files.sort(key=lambda item: (item[0] is None, item[0] or 0))
+
+        if not exported_files:
+            raise PublishError(
+                "No VDB files were exported to '{}'. Make sure the TyFlow "
+                "flow is simulated and that an 'Export VDB' operator is "
+                "added to the instance.".format(stagingdir)
+            )
+
+        filenames = [filename for _, filename in exported_files]
+        expected_frames = set(range(start_frame, end_frame + 1))
+        exported_frames = {
+            frame for frame, _ in exported_files if frame is not None
+        }
+        missing_frames = expected_frames - exported_frames
+        if missing_frames:
+            raise PublishError(
+                "Exported VDB files do not match the expected frame range "
+                "({}-{}). Missing frames: {}. Exported files: {}".format(
+                    start_frame,
+                    end_frame,
+                    ", ".join(
+                        str(frame) for frame in sorted(missing_frames)),
+                    ", ".join(filenames),
+                )
+            )
         return filenames
 
-    def _extract_tyflow_vdb(self, operator, filepath):
-        """Exports VDB with the necessary export settings
+    @staticmethod
+    def _get_frame_from_filename(filename):
+        """Get the frame number from a VDB filename, if there is any.
 
         Args:
-            operators (list): List of Export VDB operator
-            frameStart (int): Start frame.
-            frameEnd (int): End frame.
-            filepath (str): Output path of the VDB file.
+            filename (str): Name of the exported VDB file.
 
+        Returns:
+            int | None: Frame number parsed from the filename.
         """
-        export_settings = {
-            "autoExport": True,
-            "filename": filepath.replace("\\", "/"),
-        }
-
-        for key, value in export_settings.items():
-            rt.setProperty(operator, key, value)
-
-        # VDB would be exported when
-        # playing the animation in the timeline
-        rt.PlayAnimation(immediateReturn=False)
-        if not rt.isAnimPlaying():
-            self.log.debug(
-                "Successfully Extracted all VDB particles."
-            )
+        match = re.search(r"(\d+)(?!.*\d)", os.path.splitext(filename)[0])
+        if match is None:
+            return None
+        return int(match.group(1))
