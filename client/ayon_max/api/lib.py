@@ -555,7 +555,8 @@ def convert_unit_scale():
 def set_context_settings(resolution=True,
                          frame_range=True,
                          scene_units=False,
-                         colorspace=True):
+                         colorspace=True,
+                         fps=None):
     """Apply the project settings from the project definition
 
     Settings can be overwritten by an folder if the folder.attrib contains
@@ -565,17 +566,100 @@ def set_context_settings(resolution=True,
         frame range
         resolution
 
+    Args:
+        resolution (bool): Whether to reset the render resolution.
+        frame_range (bool): Whether to reset the timeline and render range.
+        scene_units (bool): Whether to reset the scene units.
+        colorspace (bool): Whether to reset the colorspace.
+        fps (Optional[bool]): Whether to reset the scene FPS. When set to
+            None, the FPS is only reset together with the frame range.
+
     Returns:
         None
     """
     if resolution:
         reset_scene_resolution()
     if frame_range:
-        reset_frame_range()
+        reset_frame_range(fps=True if fps is None else fps)
+    elif fps:
+        rt.frameRate = float(get_fps_for_current_context())
     if scene_units:
         set_unit_scale(scene_units=scene_units)
     if colorspace:
         reset_colorspace()
+
+
+def prompt_reset_context():
+    """Prompt the user what context settings to reset.
+
+    This prompt is used when the workfile is saved into a different folder
+    or task, to allow the scene settings and the publish instances to be
+    matched to the new context.
+    """
+    from ayon_core.lib import BoolDef, UILabelDef
+    from ayon_core.tools.attribute_defs.dialog import (
+        AttributeDefinitionsDialog
+    )
+
+    definitions = [
+        UILabelDef(
+            label=(
+                "You are saving your workfile into a different folder or "
+                "task.\n\n"
+                "Would you like to update some settings to the new context?\n"
+            )
+        ),
+        BoolDef(
+            "fps",
+            label="FPS",
+            tooltip="Reset workfile FPS",
+            default=True
+        ),
+        BoolDef(
+            "frame_range",
+            label="Frame Range",
+            tooltip="Reset workfile start and end frame ranges",
+            default=True
+        ),
+        BoolDef(
+            "resolution",
+            label="Resolution",
+            tooltip="Reset workfile resolution",
+            default=True
+        ),
+        BoolDef(
+            "colorspace",
+            label="Colorspace",
+            tooltip="Reset workfile colorspace",
+            default=True
+        ),
+        BoolDef(
+            "instances",
+            label="Publish instances",
+            tooltip="Update all publish instance's folder and task to match "
+                    "the new folder and task",
+            default=True
+        ),
+    ]
+
+    dialog = AttributeDefinitionsDialog(definitions, parent=get_main_window())
+    dialog.setWindowTitle("Saving to different context.")
+    if not dialog.exec_():
+        dialog.deleteLater()
+        return None
+
+    options = dialog.get_values()
+    dialog.deleteLater()
+
+    with suspended_refresh():
+        set_context_settings(
+            fps=options["fps"],
+            resolution=options["resolution"],
+            frame_range=options["frame_range"],
+            colorspace=options["colorspace"],
+        )
+        if options["instances"]:
+            update_content_on_context_change()
 
 
 def get_max_version():
