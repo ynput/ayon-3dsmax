@@ -82,7 +82,13 @@ class ValidateLoadedPluginModel(BaseSettingsModel):
 
 
 class ValidateTyVDBFrameRangeModel(BaseSettingsModel):
-    enabled: bool = SettingsField(title="Enabled")
+    enabled: bool = SettingsField(
+        title="Enabled",
+        description=(
+            "Validate that the frame range of TyFlow VDB products matches "
+            "the frame range of the folder."
+        )
+    )
 
 
 class BasicValidateModel(BaseSettingsModel):
@@ -112,7 +118,12 @@ class PublishersModel(BaseSettingsModel):
     )
     ValidateTyVDBFrameRange: ValidateTyVDBFrameRangeModel = SettingsField(
         default_factory=ValidateTyVDBFrameRangeModel,
-        title="Validate Frame Range (TyFlow VDB)"
+        title="Validate Frame Range (TyFlow VDB)",
+        description=(
+            "Applies to products published from a TyFlow VDB instance "
+            "only. The frame range of the TyFlow 'Export VDB' operator is "
+            "validated against the folder frame range."
+        )
     )
     ValidateAttributes: ValidateAttributesModel = SettingsField(
         default_factory=ValidateAttributesModel,
