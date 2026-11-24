@@ -97,7 +97,6 @@ class CollectTyFlowVDBData(pyblish.api.InstancePlugin):
                 "Creating instance for operator: {}".format(vdb_export_name))
 
             vdb_instance = instance.context.create_instance(product_name)
-            vdb_instance[:] = instance[:]
             vdb_instance.data.update(copy.deepcopy(dict(data)))
             vdb_instance.data.update({
                 "name": product_name,
