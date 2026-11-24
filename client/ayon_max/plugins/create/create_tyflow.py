@@ -34,17 +34,7 @@ class CreateTyVDB(plugin.MaxTyflowVDBCacheCreator):
     product_type = product_base_type
     icon = "gear"
 
-    def get_dynamic_data(
-        self,
-        project_name,
-        folder_entity,
-        task_entity,
-        variant,
-        host_name,
-        instance=None,
-        project_entity=None,
-        product_type=None,
-    ):
+    def get_dynamic_data(self, *args, **kwargs):
         """Keep the operator part of the product name unfilled.
 
         Single VDB container creates one product per TyFlow 'Export VDB'
