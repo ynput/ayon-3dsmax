@@ -24,7 +24,7 @@ class CollectTyFlowVDBData(pyblish.api.InstancePlugin):
 
     def process(self, instance):
         data = instance.data
-        if data.get("creator_identifier") != "io.ayon.creators.max.vdbcache":
+        if data.get("creator_identifier") != "io.ayon.creators.max.vdb":
             # Not created by the TyFlow VDB creator.
             return
         if "tyflow_vdb" in data.get("families", []):
@@ -113,7 +113,7 @@ class CollectTyFlowVDBData(pyblish.api.InstancePlugin):
                 "productName": product_name,
                 "productType": product_type,
                 "productBaseType": "vdbcache",
-                "creator_identifier": "io.ayon.creators.max.vdbcache",
+                "creator_identifier": "io.ayon.creators.max.vdb",
                 # The product is integrated, the container is not.
                 "integrate": True,
                 # Operator used to export the VDB files.

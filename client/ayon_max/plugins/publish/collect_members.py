@@ -36,7 +36,7 @@ class CollectMembers(pyblish.api.InstancePlugin):
 
         if (
             instance.data.get("creator_identifier")
-            == "io.ayon.creators.max.vdbcache"
+            == "io.ayon.creators.max.vdb"
         ):
             # The TyFlow VDB container is not published as a product.
             self.log.debug(

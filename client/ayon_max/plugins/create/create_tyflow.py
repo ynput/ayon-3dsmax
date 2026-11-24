@@ -24,7 +24,9 @@ class CreateTyVDB(plugin.MaxTyflowVDBCacheCreator):
     operator name is appended to the product name during collection.
     """
 
-    identifier = "io.ayon.creators.max.vdbcache"
+    # The identifier is independent of the product type and must stay
+    #   stable; the published product type is 'vdbcache'.
+    identifier = "io.ayon.creators.max.vdb"
     label = "VDB (TyFlow)"
     # Products are regular 'vdbcache' products. The TyFlow specific family
     #   is added to each product during collection (based on the creator
