@@ -1065,12 +1065,12 @@ def animation_range_without_loop(frameStart, frameEnd):
     """Set the scene timeline to the frame range for the context.
 
     Playback is performed without looping and real time playback is
-    disabled, so playback does not skip frames.
+    disabled, so playback does not skip frames. The current frame is not
+    restored, use 'maintained_slider_time' for that.
     """
     previous_playbackLoop = rt.timeConfiguration.playbackLoop
     previous_realtime_playback = rt.timeConfiguration.realTimePlayback
     previous_animation_range = rt.animationRange
-    previous_current_frame = rt.currentTime.frame
     rt.timeConfiguration.playbackLoop = False
     rt.timeConfiguration.realTimePlayback = False
     try:
@@ -1082,9 +1082,21 @@ def animation_range_without_loop(frameStart, frameEnd):
         rt.timeConfiguration.realTimePlayback = (
             previous_realtime_playback
         )
-        # Restore the range before the current frame, as setting the range
-        #   can clamp the current frame into the range.
         rt.animationRange = previous_animation_range
+
+
+@contextlib.contextmanager
+def maintained_slider_time():
+    """Restore the current frame after the context.
+
+    Intended for operations which move the time slider, e.g. exporting
+    frames, so the current frame of the artist is not changed.
+    """
+    previous_current_frame = rt.currentTime.frame
+    try:
+        yield
+
+    finally:
         rt.currentTime.frame = previous_current_frame
 
 
