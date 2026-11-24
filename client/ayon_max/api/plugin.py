@@ -643,7 +643,7 @@ class MaxCacheCreator(MaxCreator, MaxTyFlowDataCreatorBase):
 
 class MaxTyflowVDBCacheCreator(MaxCreator, MaxTyFlowDataCreatorBase):
     """Creator for VDB files exported with TyFlow's VDB export operator."""
-
+    skip_discovery = True
     def create(self, product_name, instance_data, pre_create_data):
         tyflow_op_nodes = get_tyflow_export_operators(
             operator_type="exportVDB")
