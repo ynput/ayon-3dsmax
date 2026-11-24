@@ -139,7 +139,11 @@ class ValidateTyCacheFrameRange(ValidateFrameRange):
 
 class ValidateTyVDBFrameRange(ValidateFrameRange):
     label = "Validate Frame Range (TyFlow VDB)"
-    families = ["vdb_frame_validation"]
+    families = ["tyflow_vdb"]
+    # The validation is not optional per instance. It is enabled or disabled
+    #   in the addon settings and it is triggered only for instances which
+    #   have the VDB frame validation family.
+    optional = False
 
     @classmethod
     def repair(cls, instance):

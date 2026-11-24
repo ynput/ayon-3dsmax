@@ -17,6 +17,7 @@ from ayon_core.pipeline import (
 
 from .lib import imprint, lsattr, read, get_tyflow_export_operators
 
+
 MS_CUSTOM_ATTRIB = """attributes "AYONData"
 (
     parameters main rollout:OPparams
@@ -465,6 +466,11 @@ class MaxCreator(Creator, MaxCreatorBase):
     skip_discovery = True
     settings_category = "max"
     selected_nodes = []
+    # Creator identifiers used by previous versions of the creator. Instances
+    #   imprinted with them are still collected by this creator, so renaming
+    #   an identifier does not make already created instances disappear from
+    #   the publisher.
+    legacy_identifiers = ()
 
     def create(self, product_name, instance_data, pre_create_data):
         if pre_create_data.get("use_selection"):
@@ -510,13 +516,19 @@ class MaxCreator(Creator, MaxCreatorBase):
 
     def collect_instances(self):
         self.cache_instance_data(self.collection_shared_data)
-        for instance in self.collection_shared_data["max_cached_instances"].get(self.identifier, []):  # noqa
-            data = read(rt.GetNodeByName(instance))
-            families = self.get_published_families()
-            if families:
-                data["families"] = families
-            created_instance = CreatedInstance.from_existing(data, self)
-            self._add_instance_to_context(created_instance)
+        cached_instances = self.collection_shared_data["max_cached_instances"]
+        families = self.get_published_families()
+        identifiers = dict.fromkeys((
+            self.identifier,
+            *self.legacy_identifiers,
+        ))
+        for identifier in identifiers:
+            for instance_name in cached_instances.get(identifier, []):
+                data = read(rt.GetNodeByName(instance_name))
+                if families:
+                    data["families"] = list(families)
+                created_instance = CreatedInstance.from_existing(data, self)
+                self._add_instance_to_context(created_instance)
 
     def update_instances(self, update_list):
         for created_inst, changes in update_list:

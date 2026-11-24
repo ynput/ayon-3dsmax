@@ -1,74 +1,139 @@
-import pyblish.api
-import re
+# -*- coding: utf-8 -*-
+"""Collect TyFlow VDB products from a TyFlow VDB container."""
 import copy
-from ayon_core.lib import BoolDef
-from ayon_core.pipeline.publish import AYONPyblishPluginMixin
-from ayon_max.api.lib import get_tyflow_export_operators
+import re
+
+import pyblish.api
 from pymxs import runtime as rt
 
+from ayon_max.api.lib import get_tyflow_export_operators
 
-class CollectTyFlowVDBData(pyblish.api.InstancePlugin,
-                           AYONPyblishPluginMixin):
-    """Collect TyFlow Attributes for VDB Export"""
+
+class CollectTyFlowVDBData(pyblish.api.InstancePlugin):
+    """Create one product per TyFlow 'Export VDB' operator.
+
+    The creator creates a single container instance which holds the list
+    of 'Export VDB' operators selected by the artist. This collector turns
+    each of the selected operators into a separate publishable product.
+    """
 
     order = pyblish.api.CollectorOrder + 0.005
-    label = "Collect TyFlow VDB attribute Data"
-    hosts = ['max']
-    families = ["tyflow_vdb"]
-    validate_tyvdb_frame_range = True
-
-    @classmethod
-    def apply_settings(cls, project_settings):
-
-        settings = (
-            project_settings["max"]["publish"]["ValidateTyVDBFrameRange"]
-        )
-        cls.validate_tyvdb_frame_range = settings["active"]
+    label = "Collect TyFlow VDB Data"
+    hosts = ["max"]
+    families = ["vdbcache"]
 
     def process(self, instance):
-        context = instance.context
-        container_name = instance.data["instance_node"]
-        container = rt.GetNodeByName(container_name)
-        vdb_product_names = [
-            name for name
-            in container.modifiers[0].AYONTyFlowVDBData.vdb_exports
-        ]
-        attr_values = self.get_attr_values_from_data(instance.data)
-        for vdb_product_name in vdb_product_names:
-            self.log.debug(f"Creating instance for operator:{vdb_product_name}")
-            tyc_instance = context.create_instance(vdb_product_name)
-            tyc_instance[:] = instance[:]
-            tyc_instance.data.update(copy.deepcopy(dict(instance.data)))
-            # Replace all runs of whitespace with underscore
-            prod_name = re.sub(r"\s+", "_", vdb_product_name)
-            operator = next((
-                    node for node in 
-                    get_tyflow_export_operators(operator_type="exportVDB")
-                    if node.name == vdb_product_name),
-                    None
+        data = instance.data
+        if data.get("creator_identifier") != "io.ayon.creators.max.vdbcache":
+            # Not created by the TyFlow VDB creator.
+            return
+        if "tyflow_vdb" in data.get("families", []):
+            # Product created by this collector, do not process it again.
+            return
+
+        instance_node = data.get("instance_node")
+        if not instance_node:
+            self.log.warning(
+                "TyFlow VDB instance does not have an instance node. "
+                "Skipping product creation."
             )
-            tyc_instance.data.update({
-                "name": f"{prod_name}",
-                "label": f"{prod_name}",
+            return
+
+        container = rt.GetNodeByName(instance_node)
+        if container is None:
+            self.log.warning(
+                "TyFlow VDB instance node '{}' was not found. "
+                "Skipping product creation.".format(instance_node)
+            )
+            return
+
+        vdb_export_names = self._get_vdb_export_names(container)
+        if not vdb_export_names:
+            self.log.debug(
+                "No 'Export VDB' operator is added to the TyFlow VDB "
+                "container. Skipping product creation."
+            )
+            return
+
+        operators = {
+            operator.name: operator
+            for operator in get_tyflow_export_operators(
+                operator_type="exportVDB")
+        }
+        product_name_template = data["productName"]
+        product_type = data.get("productType") or "vdbcache"
+
+        for vdb_export_name in vdb_export_names:
+            operator = operators.get(vdb_export_name)
+            if operator is None:
+                self.log.warning(
+                    "No matching 'Export VDB' operator found for "
+                    "'{}'. Skipping its product creation.".format(
+                        vdb_export_name)
+                )
+                continue
+
+            product_name = self._get_product_name(
+                product_name_template, vdb_export_name)
+            self.log.debug(
+                "Creating instance for operator: {}".format(vdb_export_name))
+
+            vdb_instance = instance.context.create_instance(product_name)
+            vdb_instance[:] = instance[:]
+            vdb_instance.data.update(copy.deepcopy(dict(data)))
+            vdb_instance.data.update({
+                "name": product_name,
+                "label": product_name,
                 "family": "vdbcache",
-                "productName": f"{prod_name}",
-                # get the name of operator for the export
+                "families": [
+                    "vdbcache",
+                    "tyflow_vdb",
+                ],
+                "productName": product_name,
+                "productType": product_type,
+                "productBaseType": "vdbcache",
+                "creator_identifier": "io.ayon.creators.max.vdbcache",
+                # Operator used to export the VDB files.
                 "operator": operator,
-                "productType": "vdbcache"
             })
-            instance.append(tyc_instance)
-            if attr_values.get("has_frame_range_validator",
-                               self.validate_tyvdb_frame_range):
+            instance.append(vdb_instance)
 
-                instance.data["families"].append("vdb_frame_validation")
+        # The container instance itself is not a product, skip its integration.
+        data["integrate"] = False
 
-        # Skip integrating original instance.
-        instance.data["integrate"] = False
+    @staticmethod
+    def _get_vdb_export_names(container):
+        """Get 'Export VDB' operator names selected on the container.
 
-    @classmethod
-    def get_attribute_defs(cls):
-        return [
-            BoolDef("has_frame_range_validator",
-                    label="Validate TyCache Frame Range",
-                    default=cls.validate_tyvdb_frame_range),
-        ]
+        Args:
+            container (rt.MXSWrapperBase): Container instance node.
+
+        Returns:
+            list[str]: Names of the selected 'Export VDB' operators.
+        """
+        if not len(container.modifiers):
+            return []
+        modifier = container.modifiers[0]
+        if not rt.isProperty(modifier, "AYONTyFlowVDBData"):
+            return []
+        return list(modifier.AYONTyFlowVDBData.vdb_exports)
+
+    @staticmethod
+    def _get_product_name(product_name_template, operator_name):
+        """Fill the operator into the product name.
+
+        Product name templates may contain the '{operator}' placeholder
+        which is kept unfilled by the creator. If the template does not
+        contain it, the operator name is appended to keep product names
+        unique.
+        """
+        operator_name = re.sub(r"\s+", "_", operator_name)
+        operator_pattern = r"\{operator\}"
+        if re.search(operator_pattern, product_name_template, re.IGNORECASE):
+            return re.sub(
+                operator_pattern,
+                operator_name,
+                product_name_template,
+                flags=re.IGNORECASE,
+            )
+        return "{}_{}".format(product_name_template, operator_name)

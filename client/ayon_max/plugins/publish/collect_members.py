@@ -20,19 +20,31 @@ class CollectMembers(pyblish.api.InstancePlugin):
 
     def process(self, instance):
         if instance.data["productBaseType"] in FILTER_PRODUCT_BASE_TYPES:
-                self.log.debug(
-                    "Skipping Collecting Members for "
-                    f"{instance.data['productBaseType']} product base type."
-                )
-                return
-        elif "tyflow_vdb" in instance.data["families"]:
-             self.log.debug(
-                  "Skipping Collecting Members for tyflow-specific"
-                  "vdbcache product type."
-             )
-             return
+            self.log.debug(
+                "Skipping Collecting Members for "
+                f"{instance.data['productBaseType']} product base type."
+            )
+            return
 
-        elif instance.data.get("instance_node"):
+        if "tyflow_vdb" in instance.data.get("families", []):
+            # TyFlow VDB products are created during collection and they
+            #   do not have any members to collect.
+            self.log.debug(
+                "Skipping Collecting Members for TyFlow VDB product."
+            )
+            return
+
+        if (
+            instance.data.get("creator_identifier")
+            == "io.ayon.creators.max.vdbcache"
+        ):
+            # The TyFlow VDB container is not published as a product.
+            self.log.debug(
+                "Skipping Collecting Members for TyFlow VDB container."
+            )
+            return
+
+        if instance.data.get("instance_node"):
             container = rt.GetNodeByName(instance.data["instance_node"])
             container_modifier = container.modifiers[0]
             ayon_data = get_ayon_data(container_modifier)
