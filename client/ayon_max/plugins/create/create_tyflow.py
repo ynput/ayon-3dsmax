@@ -13,7 +13,16 @@ class CreateTyFlow(plugin.MaxCacheCreator):
 
 
 class CreateTyVDB(plugin.MaxTyflowVDBCacheCreator):
-    """Creator plugin for TyFlow VDB."""
+    """Creator plugin for TyFlow VDB.
+
+    The publisher 'Variant' value is used to distinguish multiple VDB
+    containers in the same context. The product name template may contain
+    the '{variant}' and '{operator}' keys, e.g.
+    '{folder[name]}_{task[name]}_{variant}_vdbcache_{operator}'.
+
+    The '{operator}' key is optional: when it is not in the template, the
+    operator name is appended to the product name during collection.
+    """
 
     identifier = "io.ayon.creators.max.vdbcache"
     label = "VDB (TyFlow)"

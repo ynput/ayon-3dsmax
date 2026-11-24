@@ -49,21 +49,39 @@ class CollectTyFlowVDBData(pyblish.api.InstancePlugin):
 
         vdb_export_names = self._get_vdb_export_names(container)
         if not vdb_export_names:
-            self.log.debug(
+            self.log.warning(
                 "No 'Export VDB' operator is added to the TyFlow VDB "
-                "container. Skipping product creation."
+                "container '{}'. Nothing will be published for this "
+                "instance. Add an 'Export VDB' operator in the modifier "
+                "panel.".format(instance_node)
             )
             return
 
-        operators = {
-            operator.name: operator
-            for operator in get_tyflow_export_operators(
-                operator_type="exportVDB")
-        }
+        operators = {}
+        ambiguous_operator_names = set()
+        for operator in get_tyflow_export_operators(
+                operator_type="exportVDB"):
+            if operator.name in operators:
+                ambiguous_operator_names.add(operator.name)
+            operators[operator.name] = operator
+
         product_name_template = data["productName"]
+        if not re.search(r"\{operator\}", product_name_template, re.IGNORECASE):
+            self.log.debug(
+                f"Product name '{product_name_template}' does not contain "
+                "the '{operator}' key, the operator name is appended to "
+                "the product name."
+            )
         product_type = data.get("productType") or "vdbcache"
 
         for vdb_export_name in vdb_export_names:
+            if vdb_export_name in ambiguous_operator_names:
+                self.log.warning(
+                    "Multiple 'Export VDB' operators named '{}' exist in "
+                    "the scene. Rename them to publish this export.".format(
+                        vdb_export_name)
+                )
+                continue
             operator = operators.get(vdb_export_name)
             if operator is None:
                 self.log.warning(
