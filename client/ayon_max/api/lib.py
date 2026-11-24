@@ -1060,22 +1060,6 @@ def suspended_refresh():
         rt.resumeEditing()
 
 
-def _get_time_configuration():
-    """Get the MAXScript time configuration singleton.
-
-    'timeConfiguration' is a MAXScript global, but depending on the 3ds Max
-    version it is not exposed as an attribute of 'pymxs.runtime'. In that
-    case it has to be evaluated through MAXScript.
-
-    Returns:
-        rt.MXSWrapperBase: Time configuration of the current scene.
-    """
-    time_configuration = getattr(rt, "timeConfiguration", None)
-    if time_configuration is None:
-        time_configuration = rt.execute("timeConfiguration")
-    return time_configuration
-
-
 @contextlib.contextmanager
 def animation_range_without_loop(frameStart, frameEnd):
     """Set the scene timeline to the frame range for the context.
@@ -1083,20 +1067,21 @@ def animation_range_without_loop(frameStart, frameEnd):
     Playback is performed without looping and real time playback is
     disabled, so playback does not skip frames.
     """
-    time_configuration = _get_time_configuration()
-    previous_playbackLoop = time_configuration.playbackLoop
-    previous_realtime_playback = time_configuration.realTimePlayback
+    previous_playbackLoop = rt.timeConfiguration.playbackLoop
+    previous_realtime_playback = rt.timeConfiguration.realTimePlayback
     previous_animation_range = rt.animationRange
     previous_current_frame = rt.currentTime.frame
-    time_configuration.playbackLoop = False
-    time_configuration.realTimePlayback = False
+    rt.timeConfiguration.playbackLoop = False
+    rt.timeConfiguration.realTimePlayback = False
     try:
         set_timeline(frameStart, frameEnd)
         yield
 
     finally:
-        time_configuration.playbackLoop = previous_playbackLoop
-        time_configuration.realTimePlayback = previous_realtime_playback
+        rt.timeConfiguration.playbackLoop = previous_playbackLoop
+        rt.timeConfiguration.realTimePlayback = (
+            previous_realtime_playback
+        )
         # Restore the range before the current frame, as setting the range
         #   can clamp the current frame into the range.
         rt.animationRange = previous_animation_range
