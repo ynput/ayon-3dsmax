@@ -269,16 +269,15 @@ MS_TYCACHE_ATTRIB = """attributes "AYONTyCacheData"
 
 MS_VDB_ATTRIB = """attributes "AYONTyFlowVDBData"
 (
-    parameters main rollout:Cacheparams
+    parameters main rollout:VDBparams
     (
         vdb_exports type:#stringTab tabSize:0 tabSizeVariable:on
         vdb_handles type:#stringTab tabSize:0 tabSizeVariable:on
-        vdb_sel_list type:#stringTab tabSize:0 tabSizeVariable:on
     )
 
-    rollout Cacheparams "AYON TyCache Parameters"
+    rollout VDBparams "AYON TyFlow VDB Parameters"
     (
-        listbox export_node "Export Nodes" items:#()
+        listbox export_node "Exports" items:#()
         button button_add "Add to Exports"
         button button_del "Delete from Exports"
         button button_refresh "Refresh"
@@ -286,36 +285,50 @@ MS_VDB_ATTRIB = """attributes "AYONTyFlowVDBData"
 
         on button_add pressed do
         (
-            i_node_arr = #()
-            temp_arr = #()
-            current_sel = vdb_node.selected
-            idx = finditem export_node.items current_sel
-            if idx == 0 do (
-                append i_node_arr current_sel
-                append temp_arr current_sel
+            idx = vdb_node.selection
+            if idx != 0 do
+            (
+                node_str = vdb_node.items[idx] as string
+                if (finditem vdb_exports node_str) == 0 do
+                (
+                    temp_arr = #()
+                    append temp_arr node_str
+                    vdb_exports = join temp_arr vdb_exports
+                )
+                export_items = #()
+                for export_name in vdb_exports do
+                (
+                    append export_items (export_name as string)
+                )
+                export_node.items = export_items
             )
-            vdb_exports = join i_node_arr vdb_exports
-            export_node.items = join temp_arr export_node.items
-            vdb_sel_list = export_node.items
         )
         on button_del pressed do
         (
-            i_node_arr = #()
-            temp_arr = #()
-            updated_node_arr = #()
-            new_temp_arr = #()
-            current_sel = export_node.selected
-            idx = finditem export_node.items current_sel
-            if idx do (
-                updated_node_arr = DeleteItem export_node.items idx
+            idx = export_node.selection
+            if idx != 0 do
+            (
+                node_str = export_node.items[idx] as string
+                export_idx = finditem vdb_exports node_str
+                if export_idx != 0 do
+                (
+                    new_exports = #()
+                    for i = 1 to vdb_exports.count do
+                    (
+                        if i != export_idx do
+                        (
+                            append new_exports (vdb_exports[i] as string)
+                        )
+                    )
+                    vdb_exports = new_exports
+                )
+                export_items = #()
+                for export_name in vdb_exports do
+                (
+                    append export_items (export_name as string)
+                )
+                export_node.items = export_items
             )
-            idx = finditem vdb_exports current_sel
-            if idx do (
-                new_temp_arr = DeleteItem vdb_exports idx
-            )
-            vdb_exports = join i_node_arr updated_node_arr
-            export_node.items = join temp_arr new_temp_arr
-            vdb_sel_list = export_node.items
         )
         on button_refresh pressed do
         (
@@ -338,7 +351,10 @@ MS_VDB_ATTRIB = """attributes "AYONTyFlowVDBData"
                                 if hasProperty node_sub_anim "gridsSDF" do
                                 (
                                     node_str = node_sub_anim.name as string
-                                    append handle_arr node_str
+                                    if (finditem handle_arr node_str) == 0 do
+                                    (
+                                        append handle_arr node_str
+                                    )
                                 )
                             )
                         )
@@ -348,29 +364,20 @@ MS_VDB_ATTRIB = """attributes "AYONTyFlowVDBData"
             vdb_handles = handle_arr
             vdb_node.items = handle_arr
         )
-        on Cacheparams open do
+        on VDBparams open do
         (
-            temp_arr = #()
-            tyflow_id_arr = #()
-            if vdb_handles.count != 0 then
+            handle_items = #()
+            for handle_name in vdb_handles do
             (
-                for x in vdb_handles do
-                (
-                    if x == undefined do continue
-                    tyflow_op_name = x as string
-                    append temp_arr tyflow_op_name
-                )
-                vdb_node.items = temp_arr
+                append handle_items (handle_name as string)
             )
-            if vdb_sel_list.count != 0 then
+            vdb_node.items = handle_items
+            export_items = #()
+            for export_name in vdb_exports do
             (
-                sel_arr = #()
-                for x in vdb_sel_list do
-                (
-                    append sel_arr x
-                )
-                export_node.items = sel_arr
+                append export_items (export_name as string)
             )
+            export_node.items = export_items
         )
     )
 )"""
