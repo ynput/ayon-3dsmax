@@ -129,9 +129,7 @@ class CollectTyFlowVDBData(pyblish.api.InstancePlugin):
         Returns:
             list[str]: Names of the selected 'Export VDB' operators.
         """
-        if not len(container.modifiers):
-            return []
-        modifier = container.modifiers[0]
+        modifier = next(iter(container.modifiers), None)
         if not rt.isProperty(modifier, "AYONTyFlowVDBData"):
             return []
         return list(modifier.AYONTyFlowVDBData.vdb_exports)
