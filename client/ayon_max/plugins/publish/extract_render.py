@@ -54,13 +54,16 @@ class ExtractLocalRender(publish.Extractor):
             else:
                 frames_to_render = instance.data["expectedFrameRange"]
 
+            # `rt.render()` renders into memory unless an output file is given,
+            # the scene output is not written for a single frame (headless 3ds
+            # Max writes no file at all). Every frame is rendered into its own
+            # output file, for all renderers, not only for Arnold.
+            output_name, output_ext = os.path.splitext(rt.rendOutputFilename)
             for frame in frames_to_render:
-                if instance.data["renderer"].startswith("Arnold"):
-                    filename, ext = os.path.splitext(rt.rendOutputFilename)
-                    new_output = f"{filename}{frame:04d}{ext}"
-                    kwargs["outputFile"] = new_output
+                output_file = f"{output_name}{frame:04d}{output_ext}"
                 _, cancelled = rt.render(
                     frame=frame,
+                    outputFile=output_file,
                     **kwargs
                 )
                 if cancelled:
