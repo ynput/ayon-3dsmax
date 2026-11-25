@@ -207,6 +207,18 @@ class AYONMenu(object):
             create_first_workfile_template_action.triggered.connect(
                 self.create_first_workfile_template_callback)
             ayon_menu.addAction(create_first_workfile_template_action)
+
+            ayon_menu.addSeparator()
+            build_workfile_template_action = QtWidgets.QAction(
+                "Build Workfile from Template", ayon_menu)
+            build_workfile_template_action.triggered.connect(
+                self.build_workfile_template_callback)
+            ayon_menu.addAction(build_workfile_template_action)
+            import_template_action = QtWidgets.QAction(
+                "Open Template", ayon_menu)
+            import_template_action.triggered.connect(
+                self.import_template_callback)
+            ayon_menu.addAction(import_template_action)
             return
 
         template_builder = ayon_menu.addMenu("Template Builder")
