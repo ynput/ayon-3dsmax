@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass
 
 import clique
 import pyblish.api
@@ -13,14 +14,31 @@ from ayon_core.pipeline.publish import (
 )
 
 
+def _representation_files(representation):
+    """Get the file names of a representation as a list."""
+    files = representation.get("files") or []
+    return [files] if isinstance(files, str) else files
+
+
+@dataclass
+class PreviousVersion:
+    """Previous published version of a render product."""
+
+    product: dict
+    version: dict
+    published_files: list[str]
+
+
 class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
                              AYONPyblishPluginMixin):
-    """Provides text field to insert frame(s) to be re-rendered.
+    """Collect the frames to fix and the previous version to copy from.
 
-    Published files of last version of an instance product are collected into
-    `instance.data["last_version_published_files"]`. All these but frames
-    mentioned in text field will be reused for new version.
+    `frames_to_fix` renders only the given frames, the remaining frames are
+    copied from the previous published version by `ExtractLastPublished`.
+    Frames which cannot be copied (no product/version, no file, changed image
+    format) are rendered too, otherwise they would be missing in the version.
     """
+
     order = pyblish.api.CollectorOrder + 0.495
     label = "Collect Frames to Fix"
     hosts = ["max"]
@@ -32,8 +50,8 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
 
     def process(self, instance):
         attribute_values = self.get_attr_values_from_data(instance.data)
-        frames_to_fix: str = attribute_values.get("frames_to_fix", "")
-        rewrite_version: bool = (
+        frames_to_fix = attribute_values.get("frames_to_fix", "")
+        rewrite_version = bool(
             self.rewrite_version
             and attribute_values.get("rewrite_version", False)
         )
@@ -44,203 +62,83 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
                     "specified. Rewriting last version will be skipped.")
             return
 
-        self.log.info(f"Frames to fix: {frames_to_fix}")
+        self.log.info("Frames to fix: %s", frames_to_fix)
         instance.data["frames_to_fix"] = frames_to_fix
         # The frames which are not re-rendered are copied to the frame numbers
         # they had in the previous version, so the published version must not
         # renumber them to consecutive frames.
         instance.data["hasExplicitFrames"] = True
-        # The validators need to know whether the last version is rewritten, the
-        # attribute value itself is stored in the publish attributes of this
-        # plugin and is not available to them.
+        # The validators need to know whether the last version is rewritten,
+        # the attribute itself is stored in the publish attributes.
         instance.data["rewrite_version"] = rewrite_version
 
-        # The frames which are not re-rendered have to be copied from the
-        # previous published version. Any frame which cannot be copied has to be
-        # rendered as well, otherwise it would be missing in the new version.
         expected_frames = set(instance.data.get("expectedFrameRange") or [])
         if not expected_frames:
             self.log.debug(
-                "No expected frame range collected, skipping frames to fix."
-            )
+                "No expected frame range collected, skipping frames to fix.")
             return
 
-        try:
-            fix_frames = set(clique.parse(frames_to_fix, "{ranges}").indexes)
-        except ValueError as exc:
-            raise PublishError(
-                f"Invalid frames to fix value '{frames_to_fix}': {exc}. "
-                "Use a value like '1-10' or '1,3,5-12'."
-            ) from exc
-
-        if not fix_frames:
-            raise PublishError(
-                f"Frames to fix '{frames_to_fix}' does not contain any frame."
-            )
-
+        fix_frames = self._parse_frames_to_fix(frames_to_fix)
         reuse_frames = expected_frames - fix_frames
         frames_to_render = fix_frames & expected_frames
 
-        folder_entity: dict = instance.data["folderEntity"]
-        project_entity: dict = instance.data["projectEntity"]
-        project_name: str = project_entity["name"]
+        project_name = instance.data["projectEntity"]["name"]
+        folder_id = instance.data["folderEntity"]["id"]
         anatomy = instance.context.data.get("anatomy")
 
-        # NOTE: This instance only triggers the render and it has `integrate`
-        # disabled by `CollectLocalRenderInstances`. The products which are
-        # published are the render instances spawned from it, so the previous
-        # version has to be resolved for each of them separately.
-        candidates: list[tuple] = []
-        for render_instance in instance.context:
-            if render_instance is instance:
-                continue
-
-            render_families = set(render_instance.data.get("families") or [])
-            if "render.local" not in render_families:
-                continue
-            if not render_instance.data.get("integrate", True):
-                continue
-            if (
-                render_instance.data.get("instance_node")
-                != instance.data.get("instance_node")
-            ):
-                continue
-
-            product_name: str = render_instance.data.get("productName")
-            product_entity = ayon_api.get_product_by_name(
-                project_name,
-                product_name,
-                folder_id=folder_entity["id"])
-            if not product_entity:
+        # A local render publishes one product per AOV through spawned
+        # `render.local` instances, so the previous version is resolved for
+        # each of them. A farm render has no spawned instances, its products
+        # are created by the farm publish job (see `_get_farm_frames`).
+        render_instances = self._get_local_render_instances(instance)
+        previous_versions = self._get_previous_versions(
+            project_name,
+            folder_id,
+            [render_instance.data.get("productName")
+             for render_instance in render_instances],
+        )
+        copies = []
+        for render_instance in render_instances:
+            product_name = render_instance.data.get("productName")
+            published_files, reusable_frames, reason = self._get_reusable_files(
+                render_instance, previous_versions.get(product_name), anatomy)
+            if reason:
                 self.log.warning(
-                    f"No existing product found for '{product_name}'. "
-                    "Re-render not possible, the frames are rendered instead."
-                )
+                    f"Cannot reuse the frames of '{product_name}': {reason} "
+                    "The frames are rendered instead.")
                 frames_to_render |= reuse_frames
                 continue
 
-            product_base_type = (
-                    product_entity["productBaseType"]
-                    or product_entity["productType"]
-            )
-            instance_product_base_type = render_instance.data.get(
-                "productBaseType")
-            if (
-                instance_product_base_type
-                and product_base_type != instance_product_base_type
-            ):
-                self.log.warning(
-                    f"Existing product '{product_name}' product base type "
-                    f"'{product_base_type}' is not the same as instance "
-                    "product base type "
-                    f"'{instance_product_base_type}'. Re-render is not "
-                    "possible, so the frames are rendered instead."
-                )
-                frames_to_render |= reuse_frames
-                continue
-
-            version_entity = ayon_api.get_last_version_by_product_id(
-                project_name,
-                product_id=product_entity["id"],
-            )
-            if not version_entity:
-                self.log.warning(
-                    f"No last version found for product '{product_name}', "
-                    "re-render not possible, the frames are rendered instead."
-                )
-                frames_to_render |= reuse_frames
-                continue
-
-            # Get all published files for the representation of this product
-            published_files: list[str] = []
-            representations = ayon_api.get_representations(
-                project_name, version_ids={version_entity["id"]}
-            )
-            for repre in representations:
-                for file_info in repre.get("files"):
-                    published_files.append(file_info["path"])
-
-            # The output format may have changed since the previous version, in
-            # which case the old files cannot be used for the current
-            # representations.
-            published_files = self._get_compatible_files(
-                published_files, render_instance)
-            if not published_files:
-                self.log.warning(
-                    f"No reusable published files found for '{product_name}', "
-                    "re-render not possible, the frames are rendered instead."
-                )
-                frames_to_render |= reuse_frames
-                continue
-
-            reusable_frames = self._get_reusable_frames(
-                published_files, anatomy)
             not_reusable_frames = reuse_frames - reusable_frames
             if not_reusable_frames:
                 self.log.warning(
                     f"These frames cannot be reused from the previous version "
                     f"of '{product_name}' and are rendered too: "
-                    f"{sorted(not_reusable_frames)}"
-                )
+                    f"{sorted(not_reusable_frames)}")
                 frames_to_render |= not_reusable_frames
 
-            self.log.debug(
-                f"last_version_published_files of '{product_name}': "
-                f"{published_files}"
-            )
-            candidates.append((
-                render_instance, version_entity, published_files,
-                reusable_frames
-            ))
+            copies.append(
+                (render_instance, previous_versions[product_name],
+                 published_files, reusable_frames))
 
-        # A farm render instance is integrated in the farm publish job and has
-        # no spawned `render.local` instances, so the reusable frames were not
-        # verified above. Frames which cannot be copied from the previous
-        # version have to be rendered as well, otherwise they would be missing
-        # in the new published version.
         if instance.data.get("farm"):
-            frames_to_render |= self._get_not_reusable_frames(
-                instance, project_name, folder_entity, anatomy, reuse_frames)
+            frames_to_render |= self._get_farm_frames(
+                instance, project_name, folder_id, anatomy, reuse_frames)
 
         frames_to_render = sorted(frames_to_render)
         self.log.info(
             "Frames to fix: %s, frames to render: %s",
-            frames_to_fix, frames_to_render
-        )
+            frames_to_fix, frames_to_render)
         # Both local render paths, `ExtractLocalRender` and the multi camera
         # batch script, render exactly these frames.
         instance.data["frames_to_render"] = frames_to_render
 
-        # A farm render instance is integrated in the farm publish job, so the
-        # rewrite has to be applied to the instance itself. It must happen in
-        # the collector: `ValidateVersion` rejects publishing into an existing
-        # version while `latestVersion` is still present.
-        if (rewrite_version and instance.data.get("farm")
-                and not instance.data.get("version")):
-            product_entity = ayon_api.get_product_by_name(
-                project_name,
-                instance.data.get("productName"),
-                folder_id=folder_entity["id"])
-            version_entity = (
-                ayon_api.get_last_version_by_product_id(
-                    project_name, product_id=product_entity["id"])
-                if product_entity else None)
-            if version_entity:
-                instance.data["version"] = version_entity["version"]
-                instance.data.pop("latestVersion", None)
-                self.log.info(
-                    "Rewrite latest version: publishing into version %s",
-                    version_entity["version"])
-            else:
-                self.log.warning(
-                    "Rewrite latest version is enabled but no previous version"
-                    " exists, a new version is published.")
+        if rewrite_version:
+            self._rewrite_farm_version(instance, project_name, folder_id)
 
-        for render_instance, version_entity, published_files, reusable in (
-            candidates
-        ):
+        for render_instance, previous, published_files, reusable in copies:
             if rewrite_version:
-                render_instance.data["version"] = version_entity["version"]
+                render_instance.data["version"] = previous.version["version"]
                 # limits triggering version validator
                 render_instance.data.pop("latestVersion", None)
 
@@ -251,138 +149,260 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
             render_instance.data["frames_to_fix"] = frames_to_fix
             render_instance.data["frames_to_render"] = frames_to_render
             render_instance.data["last_version_published_files"] = (
-                published_files
-            )
+                published_files)
 
-    @staticmethod
-    def _get_compatible_files(published_files, render_instance):
-        """Filter previous version files to the current output format.
+    def _get_farm_frames(
+            self, instance, project_name, folder_id, anatomy, reuse_frames):
+        """Frames of a farm render which cannot be copied from the previous one.
 
-        The image format may have changed since the previous version, e.g. from
-        EXR to PNG. Only files with the extension of one of the current
-        representations can be reused, otherwise their content would end up in
-        files of another format.
-
-        Args:
-            published_files (list[str]): Files of the previous version.
-            render_instance (pyblish.api.Instance): The render instance which is
-                integrated and holds the current representations.
-
-        Returns:
-            list[str]: Published files matching the current output format.
-
+        A farm instance is integrated by the farm publish job, so its products
+        are resolved the same way the publish job does them (see
+        `_get_publish_product_names`).
         """
-        current_extensions: set[str] = set()
-        for representation in render_instance.data.get("representations", []):
-            files = representation.get("files") or []
-            if isinstance(files, str):
-                files = [files]
-            for file_name in files:
+        if not reuse_frames:
+            # Every frame is rendered, there is nothing to copy.
+            return set()
+
+        product_names = self._get_publish_product_names(instance)
+        if not product_names:
+            self.log.warning(
+                "No product found which the farm publish job would create for "
+                "the instance. The frames are rendered instead.")
+            return set(reuse_frames)
+
+        previous_versions = self._get_previous_versions(
+            project_name, folder_id, product_names)
+
+        frames_to_render = set()
+        for product_name in product_names:
+            _files, reusable_frames, reason = self._get_reusable_files(
+                instance, previous_versions.get(product_name), anatomy,
+                compare_base_type=False)
+            if reason:
+                self.log.warning(
+                    f"Cannot reuse the frames of '{product_name}': {reason} "
+                    "The frames are rendered instead.")
+                return set(reuse_frames)
+
+            not_reusable_frames = set(reuse_frames) - reusable_frames
+            if not_reusable_frames:
+                self.log.warning(
+                    f"These frames cannot be reused from the previous version "
+                    f"of '{product_name}' and are rendered too: "
+                    f"{sorted(not_reusable_frames)}")
+            frames_to_render |= not_reusable_frames
+
+        return frames_to_render
+
+    def _get_publish_product_names(self, instance):
+        """Get the names of the products the farm publish job creates.
+
+        `instance.data["productName"]` of a farm render instance is the name of
+        the render instance (`maxrenderMain`), not of the published product
+        (`renderLookdevMain_Beauty`). The publish job creates the products with
+        `create_instances_for_aov`, whose naming has to be used here as well.
+        """
+        from ayon_core.pipeline.farm.pyblish_functions import (
+            create_skeleton_instance,
+            create_instances_for_aov,
+        )
+
+        try:
+            # Mirrors `CollectLocalRenderInstances` / `SubmitPublishJob`, so
+            # the names are exactly the ones of the farm publish instances.
+            skeleton = create_skeleton_instance(
+                instance,
+                families_transfer=[],
+                instance_transfer={},
+            )
+            publish_instances = create_instances_for_aov(
+                instance=instance,
+                skeleton=skeleton,
+                aov_filter={"max": [r".*"]},
+                skip_integration_repre_list=[],
+                do_not_add_review=False,
+            )
+        except Exception as exc:
+            self.log.warning(
+                "Could not resolve the products which the farm publish job "
+                f"creates ({type(exc).__name__}: {exc}), falling back to the "
+                "collected product name.")
+            product_name = instance.data.get("productName")
+            return [product_name] if product_name else []
+
+        product_names = [
+            publish_instance["productName"]
+            for publish_instance in publish_instances
+            if publish_instance.get("productName")
+        ]
+        self.log.debug(
+            "Products created by the farm publish job: %s", product_names)
+        return product_names
+
+    def _get_previous_versions(self, project_name, folder_id, product_names):
+        """Get the previous published version of the products.
+
+        Three queries are used for any number of products, products without a
+        last version are missing from the result.
+        """
+        product_names = {name for name in product_names if name}
+        if not product_names:
+            return {}
+
+        products_by_name = {
+            product["name"]: product
+            for product in ayon_api.get_products(
+                project_name,
+                product_names=product_names,
+                folder_ids={folder_id},
+                fields={"id", "name", "productBaseType", "productType"},
+            )
+        }
+        last_versions = ayon_api.get_last_versions(
+            project_name,
+            [product["id"] for product in products_by_name.values()],
+            fields={"id", "version"},
+        )
+
+        published_files_by_version = {}
+        for representation in ayon_api.get_representations(
+                project_name,
+                version_ids={
+                    version["id"] for version in last_versions.values()
+                    if version}):
+            version_id = representation.get("versionId")
+            if not version_id:
+                continue
+            published_files = published_files_by_version.setdefault(
+                version_id, [])
+            for file_info in representation.get("files") or []:
+                published_files.append(file_info["path"])
+
+        previous_versions = {}
+        for product_name, product in products_by_name.items():
+            version_entity = last_versions.get(product["id"])
+            if not version_entity:
+                continue
+            previous_versions[product_name] = PreviousVersion(
+                product=product,
+                version=version_entity,
+                published_files=published_files_by_version.get(
+                    version_entity["id"], []),
+            )
+        return previous_versions
+
+    def _get_reusable_files(
+            self, instance, previous, anatomy, compare_base_type=True):
+        """Get the files and frames of the previous version which can be used.
+
+        Returns the published files, the reusable frames and the reason why the
+        previous version cannot be used at all (`None` when it can be used).
+        The base type is only compared for the local render instances, a farm
+        instance publishes with the base type of the host.
+        """
+        if not previous:
+            return None, None, "no published product or last version."
+        if compare_base_type:
+            mismatch = self._get_product_mismatch(previous, instance)
+            if mismatch:
+                return None, None, mismatch
+
+        # The output format may have changed since the previous version, only
+        # files of the current representations can be reused.
+        current_extensions = set()
+        for representation in instance.data.get("representations") or []:
+            for file_name in _representation_files(representation):
                 extension = os.path.splitext(file_name)[1].lower()
                 if extension:
                     current_extensions.add(extension)
-
-        if not current_extensions:
-            # nothing to compare the files against
-            return list(published_files)
-
-        return [
-            file_path for file_path in published_files
-            if os.path.splitext(file_path)[1].lower() in current_extensions
+        published_files = [
+            file_path for file_path in previous.published_files
+            if not current_extensions
+            or os.path.splitext(file_path)[1].lower() in current_extensions
         ]
+        if not published_files:
+            return None, None, "no published files of the current format."
 
-    @staticmethod
-    def _get_reusable_frames(published_files, anatomy):
-        """Get the frames of a previous version which can really be copied.
-
-        Args:
-            published_files (list[str]): Files of the previous version.
-            anatomy (Anatomy): Anatomy used to resolve the root of the paths.
-
-        Returns:
-            set[int]: Frames whose file exists and can be copied.
-
-        """
-        reusable_frames: set[int] = set()
+        reusable_frames = set()
         for file_path, frame in collect_frames(published_files).items():
             if frame is None:
                 continue
             if anatomy is not None and not os.path.exists(
-                anatomy.fill_root(file_path)
-            ):
+                    anatomy.fill_root(file_path)):
                 continue
             reusable_frames.add(int(frame))
 
-        return reusable_frames
+        return published_files, reusable_frames, None
 
-    def _get_not_reusable_frames(
-            self, instance, project_name, folder_entity, anatomy,
-            reuse_frames):
-        """Get the frames which cannot be copied from the previous version.
+    @staticmethod
+    def _get_product_mismatch(previous, instance):
+        """Get the reason why the instance cannot publish into the product."""
+        product_base_type = (
+            previous.product.get("productBaseType")
+            or previous.product.get("productType"))
+        instance_base_type = instance.data.get("productBaseType")
+        if (instance_base_type and product_base_type
+                and product_base_type != instance_base_type):
+            return (
+                f"the product base type '{product_base_type}' does not match "
+                f"the instance base type '{instance_base_type}'.")
+        return None
 
-        A farm render instance is not integrated through spawned
-        `render.local` instances, so this check has to run for the instance
-        itself before the render job is restricted to the frames to fix.
+    def _rewrite_farm_version(self, instance, project_name, folder_id):
+        """Publish the farm job into the latest version instead of a new one."""
+        # The rewrite has to happen in the collector: `ValidateVersion` rejects
+        # publishing into an existing version while `latestVersion` is present.
+        if not instance.data.get("farm") or instance.data.get("version"):
+            return
 
-        Args:
-            instance (pyblish.api.Instance): The render instance.
-            project_name (str): Current project name.
-            folder_entity (dict): Folder entity of the instance.
-            anatomy (Anatomy): Anatomy used to resolve the root of the paths.
-            reuse_frames (set[int]): Frames which are not re-rendered.
-
-        Returns:
-            set[int]: Frames which cannot be reused and have to be rendered.
-
-        """
         product_name = instance.data.get("productName")
-        if not product_name:
-            return set(reuse_frames)
-
-        product_entity = ayon_api.get_product_by_name(
-            project_name,
-            product_name,
-            folder_id=folder_entity["id"])
-        if not product_entity:
+        previous = self._get_previous_versions(
+            project_name, folder_id, [product_name]).get(product_name)
+        if not previous:
             self.log.warning(
-                f"No existing product found for '{product_name}'. Re-render "
-                "not possible, the frames are rendered instead."
-            )
-            return set(reuse_frames)
+                "Rewrite latest version is enabled but no previous version "
+                "exists, a new version is published.")
+            return
 
-        version_entity = ayon_api.get_last_version_by_product_id(
-            project_name, product_id=product_entity["id"])
-        if not version_entity:
-            self.log.warning(
-                f"No last version found for product '{product_name}', "
-                "re-render not possible, the frames are rendered instead."
-            )
-            return set(reuse_frames)
+        instance.data["version"] = previous.version["version"]
+        instance.data.pop("latestVersion", None)
+        self.log.info(
+            "Rewrite latest version: publishing into version %s",
+            previous.version["version"])
 
-        published_files: list[str] = []
-        for representation in ayon_api.get_representations(
-                project_name, version_ids={version_entity["id"]}):
-            for file_info in representation.get("files") or []:
-                published_files.append(file_info["path"])
+    @staticmethod
+    def _parse_frames_to_fix(frames_to_fix):
+        """Parse the frames to fix value into frame numbers."""
+        try:
+            fix_frames = set(clique.parse(frames_to_fix, "{ranges}").indexes)
+        except ValueError as exc:
+            raise PublishError(
+                f"Invalid frames to fix value '{frames_to_fix}': {exc}. "
+                "Use a value like '1-10' or '1,3,5-12'."
+            ) from exc
 
-        published_files = self._get_compatible_files(
-            published_files, instance)
-        if not published_files:
-            self.log.warning(
-                f"No reusable published files found for '{product_name}', "
-                "re-render not possible, the frames are rendered instead."
-            )
-            return set(reuse_frames)
+        if not fix_frames:
+            raise PublishError(
+                f"Frames to fix '{frames_to_fix}' does not contain any frame.")
+        return fix_frames
 
-        not_reusable_frames = set(reuse_frames) - self._get_reusable_frames(
-            published_files, anatomy)
-        if not_reusable_frames:
-            self.log.warning(
-                f"These frames cannot be reused from the previous version of "
-                f"'{product_name}' and are rendered too: "
-                f"{sorted(not_reusable_frames)}"
-            )
-        return not_reusable_frames
+    @staticmethod
+    def _get_local_render_instances(instance):
+        """Get the spawned, integrated `render.local` instances."""
+        render_instances = []
+        for render_instance in instance.context:
+            if render_instance is instance:
+                continue
+            families = set(render_instance.data.get("families") or [])
+            if "render.local" not in families:
+                continue
+            if not render_instance.data.get("integrate", True):
+                continue
+            if (render_instance.data.get("instance_node")
+                    != instance.data.get("instance_node")):
+                continue
+            render_instances.append(render_instance)
+        return render_instances
 
     @classmethod
     def get_attribute_defs(cls):
