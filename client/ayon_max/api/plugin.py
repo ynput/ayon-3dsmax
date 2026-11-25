@@ -586,8 +586,11 @@ class MaxCreator(Creator, MaxCreatorBase):
 
 class MaxCacheCreator(MaxCreator, MaxTyFlowDataCreatorBase):
     skip_discovery = True
+    # tycache type
+    export_type = "tyc"
+
     def create(self, product_name, instance_data, pre_create_data):
-        tyflow_op_nodes = get_tyflow_export_operators()
+        tyflow_op_nodes = self.get_export_operators(self.export_type)
         if not tyflow_op_nodes:
             raise CreatorError("No Export Particle Operators"
                                " found in tyCache Editor.")
@@ -608,11 +611,16 @@ class MaxCacheCreator(MaxCreator, MaxTyFlowDataCreatorBase):
         node_list = [sub_anim.name for sub_anim in tyflow_op_nodes]
         rt.setProperty(
             instance_node.modifiers[0].AYONTyCacheData,
-            "tyc_handles", node_list)
+            f"{self.export_type}_handles", node_list)
         self._add_instance_to_context(instance)
         self.imprint_instance_node(instance_node.name, instance.data_to_store())
 
         return instance
+
+    def get_export_operators(self, export_type="tyc"):
+        if export_type == "vdb":
+            return get_tyflow_export_operators(operator_type="exportVDB")
+        return get_tyflow_export_operators()
 
     def remove_instances(self, instances):
         """Remove specified instance from the scene.
@@ -631,44 +639,6 @@ class MaxCacheCreator(MaxCreator, MaxTyFlowDataCreatorBase):
                 rt.Delete(instance_node)
 
             self._remove_instance_from_context(instance)
-
-    def get_pre_create_attr_defs(self):
-        return []
-
-
-class MaxTyflowVDBCacheCreator(MaxCreator, MaxTyFlowDataCreatorBase):
-    """Creator for VDB files exported with TyFlow's VDB export operator."""
-    skip_discovery = True
-    def create(self, product_name, instance_data, pre_create_data):
-        tyflow_op_nodes = get_tyflow_export_operators(
-            operator_type="exportVDB")
-        if not tyflow_op_nodes:
-            raise CreatorError("No Export VDB Operators"
-                               " found in tyCache Editor.")
-        instance_node = self.create_instance_node(
-            product_name, attribute="ty_vdb_data")
-        instance_data["instance_node"] = instance_node.name
-        instance_data["families"] = self.get_published_families()
-        product_type = instance_data.get("productType")
-        if not product_type:
-            product_type = self.product_base_type
-        instance = CreatedInstance(
-            product_type=product_type,
-            product_base_type=self.product_base_type,
-            product_name=product_name,
-            data=instance_data,
-            creator=self,
-        )
-        # Setting the property
-        node_list = [sub_anim.name for sub_anim in tyflow_op_nodes]
-        rt.setProperty(
-            instance_node.modifiers[0].AYONTyFlowVDBData,
-            "vdb_handles", node_list
-        )
-        self._add_instance_to_context(instance)
-        self.imprint_instance_node(instance_node.name, instance.data_to_store())
-
-        return instance
 
     def get_pre_create_attr_defs(self):
         return []

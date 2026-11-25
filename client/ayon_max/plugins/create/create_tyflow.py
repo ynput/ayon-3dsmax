@@ -12,7 +12,7 @@ class CreateTyFlow(plugin.MaxCacheCreator):
     icon = "gear"
 
 
-class CreateTyVDB(plugin.MaxTyflowVDBCacheCreator):
+class CreateTyVDB(plugin.MaxCacheCreator):
     """Creator plugin for TyFlow VDB.
 
     The publisher 'Variant' value is used to distinguish multiple VDB
@@ -35,6 +35,7 @@ class CreateTyVDB(plugin.MaxTyflowVDBCacheCreator):
     product_base_type = "vdbcache"
     product_type = product_base_type
     icon = "gear"
+    export_type = "vdb"
 
     def get_dynamic_data(self, *args, **kwargs):
         """Keep the operator part of the product name unfilled.
