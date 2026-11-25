@@ -592,9 +592,13 @@ class MaxCacheCreator(MaxCreator, MaxTyFlowDataCreatorBase):
     def create(self, product_name, instance_data, pre_create_data):
         tyflow_op_nodes = self.get_export_operators(self.export_type)
         if not tyflow_op_nodes:
-            raise CreatorError("No Export Particle Operators"
-                               " found in tyCache Editor.")
-        instance_node = self.create_instance_node(product_name)
+            raise CreatorError(
+                f"No TyFlow export operators found for "
+                f"'{self.export_type}'.")
+        attribute = (
+            "ty_vdb_data" if self.export_type == "vdb" else "tycache_data")
+        instance_node = self.create_instance_node(
+            product_name, attribute=attribute)
         instance_data["instance_node"] = instance_node.name
         instance_data["families"] = self.get_published_families()
         product_type = instance_data.get("productType")
@@ -609,8 +613,11 @@ class MaxCacheCreator(MaxCreator, MaxTyFlowDataCreatorBase):
         )
         # Setting the property
         node_list = [sub_anim.name for sub_anim in tyflow_op_nodes]
+        data_attribute = (
+            "AYONTyFlowVDBData" if self.export_type == "vdb"
+            else "AYONTyCacheData")
         rt.setProperty(
-            instance_node.modifiers[0].AYONTyCacheData,
+            getattr(instance_node.modifiers[0], data_attribute),
             f"{self.export_type}_handles", node_list)
         self._add_instance_to_context(instance)
         self.imprint_instance_node(instance_node.name, instance.data_to_store())
