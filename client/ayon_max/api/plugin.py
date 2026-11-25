@@ -525,17 +525,12 @@ class MaxCreator(Creator, MaxCreatorBase):
         self.cache_instance_data(self.collection_shared_data)
         cached_instances = self.collection_shared_data["max_cached_instances"]
         families = self.get_published_families()
-        identifiers = dict.fromkeys((
-            self.identifier,
-            *self.legacy_identifiers,
-        ))
-        for identifier in identifiers:
-            for instance_name in cached_instances.get(identifier, []):
-                data = read(rt.GetNodeByName(instance_name))
-                if families:
-                    data["families"] = list(families)
-                created_instance = CreatedInstance.from_existing(data, self)
-                self._add_instance_to_context(created_instance)
+        for instance_name in cached_instances.get(self.identifier, []):
+            data = read(rt.GetNodeByName(instance_name))
+            if families:
+                data["families"] = list(families)
+            created_instance = CreatedInstance.from_existing(data, self)
+            self._add_instance_to_context(created_instance)
 
     def update_instances(self, update_list):
         for created_inst, changes in update_list:
