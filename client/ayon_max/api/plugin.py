@@ -473,11 +473,6 @@ class MaxCreator(Creator, MaxCreatorBase):
     skip_discovery = True
     settings_category = "max"
     selected_nodes = []
-    # Creator identifiers used by previous versions of the creator. Instances
-    #   imprinted with them are still collected by this creator, so renaming
-    #   an identifier does not make already created instances disappear from
-    #   the publisher.
-    legacy_identifiers = ()
 
     def create(self, product_name, instance_data, pre_create_data):
         if pre_create_data.get("use_selection"):
