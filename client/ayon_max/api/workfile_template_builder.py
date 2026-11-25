@@ -72,6 +72,10 @@ class MaxTemplateBuilder(AbstractTemplateBuilder):
         update_content_on_context_change()
         return True
 
+    def get_selected_placeholder_identifiers(self):
+        """Return selected nodes so the tool can follow 3ds Max selection."""
+        return [node.name for node in rt.getCurrentSelection() or []]
+
 
 class MaxPlaceholderPlugin(PlaceholderPlugin):
     """Base Placeholder Plugin for 3ds Max with one unified cache.
