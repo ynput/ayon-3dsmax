@@ -15,6 +15,7 @@ class SetContextMaxPlaceholderPlugin(MaxPlaceholderPlugin):
 
     identifier = "max.set_context"
     label = "Set Context Settings"
+    icon = {"type": "material-symbols", "name": "tune"}
 
     use_selection_as_parent = False
 
@@ -55,6 +56,10 @@ class SetContextMaxPlaceholderPlugin(MaxPlaceholderPlugin):
         self.set_context_settings(placeholder)
         if not placeholder.data.get("keep_placeholder", True):
             self.delete_placeholder(placeholder)
+
+    def repopulate_placeholder(self, placeholder):
+        """Re-apply the context settings of the placeholder."""
+        self.set_context_settings(placeholder)
 
     def set_context_settings(self, placeholder):
         """Set context settings for the placeholder.
