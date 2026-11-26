@@ -7,7 +7,14 @@ from operator import attrgetter
 import json
 from typing import Generator, List
 
-from ayon_core.host import HostBase, IWorkfileHost, ILoadHost, IPublishHost
+from ayon_core.host import (
+    ContextChangeData,
+    ContextChangeReason,
+    HostBase,
+    ILoadHost,
+    IPublishHost,
+    IWorkfileHost,
+)
 
 from ayon_core.lib import (
     register_event_callback,
@@ -45,9 +52,6 @@ LOAD_PATH = os.path.join(PLUGINS_DIR, "load")
 CREATE_PATH = os.path.join(PLUGINS_DIR, "create")
 INVENTORY_PATH = os.path.join(PLUGINS_DIR, "inventory")
 WORKFILE_BUILD_PATH = os.path.join(PLUGINS_DIR, "workfile_build")
-
-# Track whether the workfile tool is about to save the current workfile
-_about_to_save = False
 
 
 class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
@@ -100,8 +104,6 @@ class MaxHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         register_event_callback("new", on_new)
         register_event_callback("workfile.open.before", on_before_open)
         register_event_callback("workfile.open.after", on_after_open)
-        register_event_callback("workfile.save.before", before_workfile_save)
-        register_event_callback("workfile.save.after", after_workfile_save)
         register_event_callback("save", on_save)
         register_event_callback("before.save", before_save)
         register_event_callback("taskChanged", self.on_task_changed)
@@ -217,19 +219,25 @@ attributes "AYONContext"
             context = "{}"
         return json.loads(context)
 
+    def _after_context_change(self, context_change_data: ContextChangeData):
+        """Offer to match the scene to the new context when saving into it.
+
+        Args:
+            context_change_data (ContextChangeData): Object with information
+                about context change.
+        """
+        super()._after_context_change(context_change_data)
+        if lib.is_headless():
+            return
+
+        if context_change_data.reason == ContextChangeReason.workfile_save:
+            lib.prompt_reset_context()
+
     def on_task_changed(self):
         if lib.is_headless():
             return
 
         self._update_menu_context_label()
-
-        global _about_to_save
-        if _about_to_save:
-            # The workfile is about to be saved into another folder or task,
-            # let the user update the scene settings and the publish
-            # instances to match the new context.
-            _about_to_save = False
-            lib.prompt_reset_context()
 
     def _update_menu_context_label(self):
         ayon_menu = self.menu
@@ -332,11 +340,6 @@ def on_new() -> None:
 
 def on_save():
     log.info("Saving workfile.")
-
-    # The workfile is now saved, the context change has already been
-    # handled before the actual save.
-    global _about_to_save
-    _about_to_save = False
 
 
 def on_open():
@@ -468,18 +471,6 @@ def on_after_open():
     """Check and set up unit scale after opening workfile if user enabled.
     """
     lib.validate_unit_scale()
-
-
-def before_workfile_save(event):
-    """Mark that the workfile tool is about to save the current workfile."""
-    global _about_to_save
-    _about_to_save = True
-
-
-def after_workfile_save(event):
-    """Reset the about-to-save mark once the workfile save is finished."""
-    global _about_to_save
-    _about_to_save = False
 
 
 def before_save(event):
