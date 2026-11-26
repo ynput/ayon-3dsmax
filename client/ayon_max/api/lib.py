@@ -958,7 +958,7 @@ def render_resolution(width, height):
         rt.renderHeight = current_renderHeight
 
 
-def get_tyflow_export_operators():
+def get_tyflow_export_operators(operator_type="exportParticle"):
     """Get Tyflow Export Particles Operators.
 
     Returns:
@@ -966,6 +966,10 @@ def get_tyflow_export_operators():
 
     """
     operators = []
+    operator_prop = (
+        "exportMode" if operator_type == "exportParticle"
+        else "gridsSDF"
+    )
     members = [obj for obj in rt.Objects if rt.ClassOf(obj) == rt.tyFlow]
     for member in members:
         obj = member.baseobject
@@ -977,7 +981,7 @@ def get_tyflow_export_operators():
             node_names = rt.GetSubAnimNames(sub_anim)
             for node_name in node_names:
                 node_sub_anim = rt.GetSubAnim(sub_anim, node_name)
-                if rt.hasProperty(node_sub_anim, "exportMode"):
+                if rt.hasProperty(node_sub_anim, operator_prop):
                     operators.append(node_sub_anim)
     return operators
 
@@ -1054,6 +1058,86 @@ def suspended_refresh():
     finally:
         rt.enableSceneRedraw()
         rt.resumeEditing()
+
+
+@contextlib.contextmanager
+def animation_range_without_loop(frameStart, frameEnd):
+    """Set the scene timeline to the frame range for the context.
+
+    Playback is performed without looping and real time playback is
+    disabled, so playback does not skip frames. The current frame is not
+    restored, use 'maintained_slider_time' for that.
+    """
+    previous_playbackLoop = rt.timeConfiguration.playbackLoop
+    previous_realtime_playback = rt.timeConfiguration.realTimePlayback
+    previous_animation_range = rt.animationRange
+    rt.timeConfiguration.playbackLoop = False
+    rt.timeConfiguration.realTimePlayback = False
+    try:
+        set_timeline(frameStart, frameEnd)
+        yield
+
+    finally:
+        rt.timeConfiguration.playbackLoop = previous_playbackLoop
+        rt.timeConfiguration.realTimePlayback = (
+            previous_realtime_playback
+        )
+        rt.animationRange = previous_animation_range
+
+
+@contextlib.contextmanager
+def maintained_slider_time():
+    """Restore the current frame after the context.
+
+    Intended for operations which move the time slider, e.g. exporting
+    frames, so the current frame of the artist is not changed.
+    """
+    previous_current_frame = rt.currentTime.frame
+    try:
+        yield
+
+    finally:
+        rt.currentTime.frame = previous_current_frame
+
+
+@contextlib.contextmanager
+def maintained_tyflow_vdb_export(operator, filepath):
+    """Set the TyFlow 'Export VDB' operator up for an export.
+
+    The operator is switched to 'auto export' mode and pointed to the
+    output path for the duration of the context. Other 'Export VDB'
+    operators in the scene are temporarily disabled, so they do not write
+    into their previous output paths while the animation is played.
+
+    Args:
+        operator (rt.MXSWrapperBase): TyFlow 'Export VDB' operator.
+        filepath (str): Output path for the VDB files.
+    """
+    previous_settings = {
+        prop: rt.getProperty(operator, prop)
+        for prop in ("autoExport", "filename")
+        if rt.hasProperty(operator, prop)
+    }
+    other_operators = [
+        other_operator
+        for other_operator in get_tyflow_export_operators(
+            operator_type="exportVDB")
+        if other_operator.name != operator.name
+        and rt.hasProperty(other_operator, "autoExport")
+        and rt.getProperty(other_operator, "autoExport")
+    ]
+    try:
+        for other_operator in other_operators:
+            rt.setProperty(other_operator, "autoExport", False)
+        rt.setProperty(operator, "autoExport", True)
+        rt.setProperty(operator, "filename", filepath.replace("\\", "/"))
+        yield
+
+    finally:
+        for other_operator in other_operators:
+            rt.setProperty(other_operator, "autoExport", True)
+        for prop, value in previous_settings.items():
+            rt.setProperty(operator, prop, value)
 
 
 def reset_render_outputs(max_filename_before, max_filename_after):
