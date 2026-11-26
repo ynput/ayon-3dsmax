@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
 
 import clique
@@ -12,6 +13,17 @@ from ayon_core.pipeline.publish import (
     AYONPyblishPluginMixin,
     PublishError,
 )
+
+# Frame number at the end of a file name, e.g. `beauty.1001.exr`
+FRAME_IN_FILE_NAME = re.compile(r"\.(?P<frame>[0-9]+)(?:\.[^.]+)?$")
+
+
+def _frame_from_file_name(file_name):
+    """Get the frame number of a rendered file name, None when it has none."""
+    match = FRAME_IN_FILE_NAME.search(os.path.basename(file_name))
+    if not match:
+        return None
+    return int(match.group("frame"))
 
 
 def _representation_files(representation):
@@ -121,9 +133,17 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
                 (render_instance, previous_versions[product_name],
                  published_files, reusable_frames))
 
+        publish_instances = []
+        previous_versions = {}
+
         if instance.data.get("farm"):
-            frames_to_render |= self._get_farm_frames(
+            (
+                farm_frames,
+                publish_instances,
+                previous_versions,
+            ) = self._get_farm_frames(
                 instance, project_name, folder_id, anatomy, reuse_frames)
+            frames_to_render |= farm_frames
 
         frames_to_render = sorted(frames_to_render)
         self.log.info(
@@ -132,6 +152,11 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
         # Both local render paths, `ExtractLocalRender` and the multi camera
         # batch script, render exactly these frames.
         instance.data["frames_to_render"] = frames_to_render
+
+        if publish_instances:
+            self._collect_reused_files(
+                instance, publish_instances, previous_versions,
+                frames_to_render, anatomy)
 
         if rewrite_version:
             self._rewrite_farm_version(instance, project_name, folder_id)
@@ -157,19 +182,29 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
 
         A farm instance is integrated by the farm publish job, so its products
         are resolved the same way the publish job does them (see
-        `_get_publish_product_names`).
+        `_get_publish_instances`).
+
+        Returns:
+            tuple: Frames which have to be rendered, the instances the farm
+                publish job creates and their previous versions.
+
         """
         if not reuse_frames:
             # Every frame is rendered, there is nothing to copy.
-            return set()
+            return set(), [], {}
 
-        product_names = self._get_publish_product_names(instance)
-        if not product_names:
+        publish_instances = self._get_publish_instances(instance)
+        if not publish_instances:
             self.log.warning(
                 "No product found which the farm publish job would create for "
                 "the instance. The frames are rendered instead.")
-            return set(reuse_frames)
+            return set(reuse_frames), [], {}
 
+        product_names = [
+            publish_instance["productName"]
+            for publish_instance in publish_instances
+            if publish_instance.get("productName")
+        ]
         previous_versions = self._get_previous_versions(
             project_name, folder_id, product_names)
 
@@ -182,7 +217,7 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
                 self.log.warning(
                     f"Cannot reuse the frames of '{product_name}': {reason} "
                     "The frames are rendered instead.")
-                return set(reuse_frames)
+                return set(reuse_frames), publish_instances, previous_versions
 
             not_reusable_frames = set(reuse_frames) - reusable_frames
             if not_reusable_frames:
@@ -192,10 +227,69 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
                     f"{sorted(not_reusable_frames)}")
             frames_to_render |= not_reusable_frames
 
-        return frames_to_render
+        return frames_to_render, publish_instances, previous_versions
 
-    def _get_publish_product_names(self, instance):
-        """Get the names of the products the farm publish job creates.
+    def _collect_reused_files(
+            self, instance, publish_instances, previous_versions,
+            frames_to_render, anatomy):
+        """Collect the files of the reused frames the publish job needs.
+
+        The farm publish job lists every frame of the version in its
+        representations. When the Deadline publish job waits for the rendered
+        files (the addon setting `Add rendered files as Dependencies`), the
+        frames which are not rendered have to exist before the job starts,
+        otherwise it waits forever for files the render job never writes.
+        `PrepareFrameFixDependencies` copies the collected files right before
+        the job is submitted.
+        """
+        rendered = {int(frame) for frame in frames_to_render}
+        copies = []
+        seen = set()
+        for publish_instance in publish_instances:
+            product_name = publish_instance.get("productName")
+            previous = previous_versions.get(product_name)
+            if not previous:
+                continue
+
+            sources_by_frame = {
+                int(frame): path
+                for path, frame in collect_frames(
+                    previous.published_files).items()
+                if frame is not None
+            }
+            for representation in (
+                    publish_instance.get("representations") or []):
+                staging_dir = representation.get("stagingDir") or ""
+                if staging_dir.startswith("{") and anatomy is not None:
+                    staging_dir = anatomy.fill_root(staging_dir)
+                for file_name in _representation_files(representation):
+                    frame = _frame_from_file_name(file_name)
+                    if frame is None or frame in rendered:
+                        continue
+                    source = sources_by_frame.get(frame)
+                    if not source:
+                        self.log.warning(
+                            "The reused frame %s of '%s' has no file in the "
+                            "previous version.", frame, product_name)
+                        continue
+                    target = os.path.join(staging_dir, file_name)
+                    key = os.path.normpath(target)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    if anatomy is not None:
+                        source = anatomy.fill_root(source)
+                    copies.append((source, target))
+
+        if copies:
+            instance.data["frame_fix_reused_files"] = copies
+            self.log.debug(
+                "Reused frames which the Deadline publish job needs: %s",
+                len(copies))
+        return copies
+
+    def _get_publish_instances(self, instance):
+        """Get the instances the farm publish job creates.
 
         `instance.data["productName"]` of a farm render instance is the name of
         the render instance (`maxrenderMain`), not of the published product
@@ -228,7 +322,7 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
                 f"creates ({type(exc).__name__}: {exc}), falling back to the "
                 "collected product name.")
             product_name = instance.data.get("productName")
-            return [product_name] if product_name else []
+            return [{"productName": product_name}] if product_name else []
 
         product_names = [
             publish_instance["productName"]
@@ -237,7 +331,7 @@ class CollectFramesFixDefMax(pyblish.api.InstancePlugin,
         ]
         self.log.debug(
             "Products created by the farm publish job: %s", product_names)
-        return product_names
+        return publish_instances
 
     def _get_previous_versions(self, project_name, folder_id, product_names):
         """Get the previous published version of the products.
