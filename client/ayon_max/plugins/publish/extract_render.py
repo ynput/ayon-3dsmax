@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import os
+
 from ayon_core.pipeline import publish
-from ayon_core.pipeline.publish import KnownPublishError
+from ayon_core.pipeline.publish import PublishError
 
 
 try:
@@ -43,17 +44,30 @@ class ExtractLocalRender(publish.Extractor):
                 "cancelled": pymxs.byref(None),
                 "vfb": False,
             }
-            for frame in instance.data["expectedFrameRange"]:
-                if instance.data["renderer"].startswith("Arnold"):
-                    filename, ext = os.path.splitext(rt.rendOutputFilename)
-                    new_output = f"{filename}{frame:04d}{ext}"
-                    kwargs["outputFile"] = new_output
+
+            # `CollectFramesFixDefMax` decides which frames have to be rendered
+            # when frames to fix are used; the remaining frames are copied from
+            # the previous published version by `ExtractLastPublished`.
+            frames_to_render = instance.data.get("frames_to_render")
+            if frames_to_render:
+                self.log.info("Rendering only: %s", frames_to_render)
+            else:
+                frames_to_render = instance.data["expectedFrameRange"]
+
+            # `rt.render()` renders into memory unless an output file is given,
+            # the scene output is not written for a single frame (headless 3ds
+            # Max writes no file at all). Every frame is rendered into its own
+            # output file, for all renderers, not only for Arnold.
+            output_name, output_ext = os.path.splitext(rt.rendOutputFilename)
+            for frame in frames_to_render:
+                output_file = f"{output_name}{frame:04d}{output_ext}"
                 _, cancelled = rt.render(
                     frame=frame,
+                    outputFile=output_file,
                     **kwargs
                 )
                 if cancelled:
-                    raise KnownPublishError(f"Render cancelled at frame {frame}.")
+                    raise PublishError(f"Render cancelled at frame {frame}.")
             self.log.debug("Local render extraction completed.")
         else:
             self.log.debug(
